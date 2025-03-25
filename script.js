@@ -1,4 +1,5 @@
-const OPENAI_API_URL = 'https://ttsapi.site/v1/audio/speech';
+// Use the current host for API requests
+const OPENAI_API_URL = `${window.location.protocol}//${window.location.host}/v1/audio/speech`;
 const processingStatus = document.getElementById('processing-status');
 const activeRequests = document.getElementById('queue-size');
 const lastUpdate = document.getElementById('last-update');
@@ -107,7 +108,7 @@ function updateLastUpdate() {
 // Function to update queue size with visual indicators
 async function updateQueueSize() {
     try {
-        const response = await fetch('https://ttsapi.site/api/queue-size');
+        const response = await fetch('/api/queue-size');
         const data = await response.json();
         
         // Update text values
