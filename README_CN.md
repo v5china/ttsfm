@@ -22,13 +22,13 @@ docker pull dbcccc/ttsfm:latest
 docker run -p 7000:7000 dbcccc/ttsfm:latest
 ```
 注：
-如果是Apple Mac OS，7000端口若被中心控制器占用，可以换一个本地端口比如5051，可以使用以下命令：
+如果是Apple Mac OS，7000端口若被中心控制器占用，可以换一个本地端口比如5051，可以使用以下命令：  
 Intel 芯片可以直接使用
 ```bash
 docker pull dbcccc/ttsfm:latest
 docker run -p 5051:7000 dbcccc/ttsfm:latest
 ```
-M系列芯片可以在仓库当前目录使用：
+M系列芯片可以在仓库当前目录使用：  
 ```bash
 docker build -t ttsfm .
 docker run -p 5051:7000 ttsfm
