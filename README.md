@@ -3,6 +3,8 @@
 [![Docker Image](https://img.shields.io/docker/pulls/dbcccc/ttsfm?style=flat-square)](https://hub.docker.com/r/dbcccc/ttsfm)
 [![License](https://img.shields.io/github/license/dbccccccc/ttsfm?style=flat-square)](LICENSE)
 
+> **Disclaimer**: This project is for learning and testing purposes only. For production use, please use the official OpenAI TTS service at https://platform.openai.com/docs/guides/audio
+
 [English](README.md) | [中文](README_CN.md)
 
 TTSFM is a reverse-engineered API server that mirrors OpenAI's TTS service, providing a compatible interface for text-to-speech conversion with multiple voice options.

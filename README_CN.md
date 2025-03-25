@@ -3,6 +3,8 @@
 [![Docker Image](https://img.shields.io/docker/pulls/dbcccc/ttsfm?style=flat-square)](https://hub.docker.com/r/dbcccc/ttsfm)
 [![License](https://img.shields.io/github/license/dbccccccc/ttsfm?style=flat-square)](LICENSE)
 
+> **免责声明**: 此项目仅用于学习测试，请使用 https://platform.openai.com/docs/guides/audio OpenAI的官方服务进行生产环境使用。
+
 [English](../README.md) | 中文
 
 TTSFM 是一个逆向工程的 API 服务器，镜像了 OpenAI 的 TTS 服务，提供了兼容的文本转语音接口，支持多种语音选项。
