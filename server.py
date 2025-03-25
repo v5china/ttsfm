@@ -8,11 +8,12 @@ import asyncio
 import aiohttp
 from aiohttp import web
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from pathlib import Path
 import json
 import time
 import ssl
+import random
 
 # Configure logging
 logging.basicConfig(
@@ -21,10 +22,98 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+class ProxyManager:
+    """Manages a pool of proxies for rotating IP addresses."""
+    
+    def __init__(self, api_url: str = "https://proxy.scdn.io/api/get_proxy.php", 
+                 protocol: str = "http", batch_size: int = 5):
+        """Initialize the proxy manager.
+        
+        Args:
+            api_url: URL of the proxy pool API
+            protocol: Proxy protocol to use (http, https, socks4, socks5, all)
+            batch_size: Number of proxies to fetch at once
+        """
+        self.api_url = api_url
+        self.protocol = protocol
+        self.batch_size = batch_size
+        self.proxies = []
+        self.session = None
+        self.lock = asyncio.Lock()
+        
+    async def initialize(self, session: aiohttp.ClientSession):
+        """Initialize the proxy manager with a session.
+        
+        Args:
+            session: aiohttp client session to use for requests
+        """
+        self.session = session
+        await self.refresh_proxies()
+        
+    async def refresh_proxies(self) -> bool:
+        """Fetch new proxies from the API.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.session:
+            logger.error("Session not initialized for proxy manager")
+            return False
+            
+        try:
+            params = {
+                'protocol': self.protocol,
+                'count': self.batch_size
+            }
+            
+            async with self.session.get(self.api_url, params=params) as response:
+                if response.status != 200:
+                    logger.error(f"Failed to fetch proxies: HTTP {response.status}")
+                    return False
+                    
+                data = await response.json()
+                
+                if data.get('code') != 200 or 'data' not in data:
+                    logger.error(f"Invalid response from proxy API: {data}")
+                    return False
+                    
+                async with self.lock:
+                    self.proxies = data['data']['proxies']
+                    logger.info(f"Refreshed proxy pool with {len(self.proxies)} proxies")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error refreshing proxies: {str(e)}")
+            return False
+            
+    async def get_proxy(self) -> Optional[str]:
+        """Get a proxy from the pool.
+        
+        Returns:
+            str: Proxy URL or None if no proxies available
+        """
+        async with self.lock:
+            if not self.proxies:
+                await self.refresh_proxies()
+                if not self.proxies:
+                    return None
+                    
+            # Get and remove a random proxy
+            proxy = random.choice(self.proxies)
+            self.proxies.remove(proxy)
+            
+            # Trigger refresh if running low
+            if len(self.proxies) <= 1:
+                asyncio.create_task(self.refresh_proxies())
+                
+            return f"{self.protocol}://{proxy}"
+
 class TTSServer:
     """Server that's compatible with OpenAI's TTS API."""
     
-    def __init__(self, host: str = "localhost", port: int = 7000, max_queue_size: int = 100, verify_ssl: bool = True):
+    def __init__(self, host: str = "localhost", port: int = 7000, 
+                 max_queue_size: int = 100, verify_ssl: bool = True,
+                 use_proxy: bool = False):
         """Initialize the TTS server.
         
         Args:
@@ -32,16 +121,21 @@ class TTSServer:
             port: Port to bind to
             max_queue_size: Maximum number of tasks in queue
             verify_ssl: Whether to verify SSL certificates when connecting to external services
+            use_proxy: Whether to use a proxy pool for requests
         """
         self.host = host
         self.port = port
         self.app = web.Application()
         self.verify_ssl = verify_ssl
+        self.use_proxy = use_proxy
         
         # Initialize queue system
         self.queue = asyncio.Queue(maxsize=max_queue_size)
         self.current_task = None
         self.processing_lock = asyncio.Lock()
+        
+        # Initialize proxy manager if needed
+        self.proxy_manager = ProxyManager() if use_proxy else None
         
         # OpenAI compatible endpoint
         self.app.router.add_post('/v1/audio/speech', self.handle_openai_speech)
@@ -64,6 +158,11 @@ class TTSServer:
             self.session = aiohttp.ClientSession()
             logger.info("Created aiohttp session with default SSL settings")
             
+        # Initialize proxy manager if enabled
+        if self.use_proxy and self.proxy_manager:
+            await self.proxy_manager.initialize(self.session)
+            logger.info("Initialized proxy manager")
+            
         # Start the task processor
         asyncio.create_task(self.process_queue())
         runner = web.AppRunner(self.app)
@@ -73,6 +172,8 @@ class TTSServer:
         logger.info(f"TTS server running at http://{self.host}:{self.port}")
         if not self.verify_ssl:
             logger.warning("Running with SSL verification disabled. Not recommended for production use.")
+        if self.use_proxy:
+            logger.info("Running with proxy pool enabled for IP rotation")
         
     async def stop(self):
         """Stop the TTS server."""
@@ -105,52 +206,89 @@ class TTSServer:
 
     async def process_tts_request(self, task_data: Dict[str, Any]) -> web.Response:
         """Process a single TTS request."""
-        try:
-            logger.info(f"Sending request to OpenAI.fm with data: {task_data['data']}")
-            logger.info(f"SSL verification is {'DISABLED' if not self.verify_ssl else 'ENABLED'}")
-            
-            headers = {
-                "Accept": "*/*",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Origin": "https://www.openai.fm",
-                "Referer": "https://www.openai.fm/",
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
-            
-            logger.info(f"Request headers: {headers}")
-            
-            async with self.session.post(
-                "https://www.openai.fm/api/generate",
-                data=task_data['data'],
-                headers=headers
-            ) as response:
-                audio_data = await response.read()
+        max_retries = 3
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                logger.info(f"Sending request to OpenAI.fm with data: {task_data['data']}")
                 
-                if response.status != 200:
-                    logger.error(f"Error from OpenAI.fm: {response.status}")
-                    error_msg = f"Error from upstream service: {response.status}"
+                headers = {
+                    "Accept": "*/*",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Origin": "https://www.openai.fm",
+                    "Referer": "https://www.openai.fm/",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+                
+                # Get proxy if enabled
+                proxy = None
+                if self.use_proxy and self.proxy_manager:
+                    proxy = await self.proxy_manager.get_proxy()
+                    if proxy:
+                        logger.info(f"Using proxy: {proxy}")
+                    else:
+                        logger.warning("No proxy available, proceeding without proxy")
+                
+                request_kwargs = {
+                    "data": task_data['data'],
+                    "headers": headers
+                }
+                
+                if proxy:
+                    request_kwargs["proxy"] = proxy
+                
+                async with self.session.post(
+                    "https://www.openai.fm/api/generate",
+                    **request_kwargs
+                ) as response:
+                    if response.status == 403:
+                        logger.warning("Received 403 Forbidden from OpenAI.fm")
+                        if self.use_proxy and self.proxy_manager:
+                            logger.info("Rotating proxy and retrying")
+                            retry_count += 1
+                            await asyncio.sleep(1)
+                            continue
+                    
+                    audio_data = await response.read()
+                    
+                    if response.status != 200:
+                        logger.error(f"Error from OpenAI.fm: {response.status}")
+                        error_msg = f"Error from upstream service: {response.status}"
+                        return web.Response(
+                            text=json.dumps({"error": error_msg}),
+                            status=response.status,
+                            content_type="application/json"
+                        )
+                    
                     return web.Response(
-                        text=json.dumps({"error": error_msg}),
-                        status=response.status,
-                        content_type="application/json"
+                        body=audio_data,
+                        content_type=task_data['content_type'],
+                        headers={
+                            "Access-Control-Allow-Origin": "*",
+                            "Access-Control-Allow-Methods": "POST, OPTIONS",
+                            "Access-Control-Allow-Headers": "Content-Type, Authorization"
+                        }
                     )
-                
+            except aiohttp.ClientProxyConnectionError:
+                logger.warning(f"Proxy connection error, retrying with new proxy (attempt {retry_count+1}/{max_retries})")
+                retry_count += 1
+                await asyncio.sleep(1)
+            except Exception as e:
+                logger.error(f"Error processing TTS request: {str(e)}")
                 return web.Response(
-                    body=audio_data,
-                    content_type=task_data['content_type'],
-                    headers={
-                        "Access-Control-Allow-Origin": "*",
-                        "Access-Control-Allow-Methods": "POST, OPTIONS",
-                        "Access-Control-Allow-Headers": "Content-Type, Authorization"
-                    }
+                    text=json.dumps({"error": str(e)}),
+                    status=500,
+                    content_type="application/json"
                 )
-        except Exception as e:
-            logger.error(f"Error processing TTS request: {str(e)}")
-            return web.Response(
-                text=json.dumps({"error": str(e)}),
-                status=500,
-                content_type="application/json"
-            )
+                
+        # If we've exhausted retries
+        logger.error("Exhausted retries for TTS request")
+        return web.Response(
+            text=json.dumps({"error": "Failed to process request after multiple retries"}),
+            status=500,
+            content_type="application/json"
+        )
     
     async def handle_openai_speech(self, request: web.Request) -> web.Response:
         """Handle POST requests to /v1/audio/speech (OpenAI compatible API)."""
@@ -294,15 +432,16 @@ class TTSServer:
             logger.error(f"Error serving static file: {str(e)}")
             return web.Response(text=str(e), status=500)
 
-async def run_server(host: str = "localhost", port: int = 7000, verify_ssl: bool = True):
+async def run_server(host: str = "localhost", port: int = 7000, verify_ssl: bool = True, use_proxy: bool = False):
     """Run the TTS server.
     
     Args:
         host: Host to bind to
         port: Port to bind to
         verify_ssl: Whether to verify SSL certificates (disable only for testing)
+        use_proxy: Whether to use a proxy pool for requests
     """
-    server = TTSServer(host, port, verify_ssl=verify_ssl)
+    server = TTSServer(host, port, verify_ssl=verify_ssl, use_proxy=use_proxy)
     await server.start()
     
     try:
@@ -320,6 +459,7 @@ if __name__ == "__main__":
     parser.add_argument("--host", type=str, default="localhost", help="Host to bind to")
     parser.add_argument("--port", type=int, default=7000, help="Port to bind to")
     parser.add_argument("--no-verify-ssl", action="store_true", help="Disable SSL certificate verification (insecure, use only for testing)")
+    parser.add_argument("--use-proxy", action="store_true", help="Use proxy pool for IP rotation")
     parser.add_argument("--test-connection", action="store_true", help="Test connection to OpenAI.fm and exit")
     
     args = parser.parse_args()
@@ -392,4 +532,4 @@ if __name__ == "__main__":
         exit(0)
     
     # Start the server
-    asyncio.run(run_server(args.host, args.port, verify_ssl=not args.no_verify_ssl)) 
+    asyncio.run(run_server(args.host, args.port, verify_ssl=not args.no_verify_ssl, use_proxy=args.use_proxy)) 

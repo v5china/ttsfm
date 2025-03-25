@@ -1097,4 +1097,71 @@ code[class*="language-"] {
     .playground-container {
         grid-template-columns: 1fr;
     }
+}
+
+/* Ban Notice Section */
+.ban-notice {
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+}
+
+.notice-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.notice-icon {
+    color: #856404;
+    font-size: 1.5rem;
+    padding: 0.5rem;
+    background-color: #fff3cd;
+    border-radius: 50%;
+}
+
+.notice-content {
+    flex: 1;
+}
+
+.notice-content h2 {
+    color: #856404;
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.notice-content p {
+    color: #856404;
+    margin-bottom: 1rem;
+}
+
+.notice-actions {
+    margin-top: 1rem;
+}
+
+.notice-actions p {
+    margin-bottom: 0.5rem;
+}
+
+.github-discussion-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #856404;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.github-discussion-btn:hover {
+    background-color: #6b5203;
+    transform: translateY(-2px);
+}
+
+.github-discussion-btn i {
+    font-size: 1.2rem;
 } 

@@ -1,7 +1,7 @@
 """
 Pressure Test for the OpenAI TTS API Server
 
-This script sends concurrent requests to the API server to test its performance under load.
+This script continuously sends requests to the API server until it encounters a failure.
 """
 
 import asyncio
@@ -112,8 +112,8 @@ async def send_request(session, url, voice, text_length, request_num, save_dir=N
             "response_size": 0
         }
 
-async def run_pressure_test(num_requests, concurrency, server_url, text_length="medium", save_audio=False):
-    """Run the pressure test with the specified parameters."""
+async def run_continuous_test(server_url, text_length="medium", save_audio=False):
+    """Run continuous requests until a failure is encountered."""
     
     if not server_url.endswith('/v1/audio/speech'):
         server_url = f"{server_url.rstrip('/')}/v1/audio/speech"
@@ -124,7 +124,7 @@ async def run_pressure_test(num_requests, concurrency, server_url, text_length="
         save_dir = Path('test_output')
         save_dir.mkdir(exist_ok=True)
         
-    print(f"Starting pressure test with {num_requests} total requests, {concurrency} concurrent connections")
+    print(f"Starting continuous test until failure")
     print(f"Server URL: {server_url}")
     print(f"Text length: {text_length}")
     if save_audio:
@@ -133,42 +133,35 @@ async def run_pressure_test(num_requests, concurrency, server_url, text_length="
     
     results = []
     start_time = time.time()
+    request_num = 1
     
     async with aiohttp.ClientSession() as session:
-        tasks = []
-        for i in range(num_requests):
+        while True:
             # Cycle through different voices
-            voice = VOICES[i % len(VOICES)]
+            voice = VOICES[(request_num - 1) % len(VOICES)]
             
-            # Add a small delay between creating tasks to avoid overwhelming the server at startup
-            await asyncio.sleep(0.05)
+            # Send request and wait for completion
+            result = await send_request(session, server_url, voice, text_length, request_num, save_dir)
+            results.append(result)
             
-            task = asyncio.create_task(send_request(session, server_url, voice, text_length, i + 1, save_dir))
-            tasks.append(task)
-            
-            # If we've reached the concurrency limit, wait for some tasks to complete
-            if len(tasks) >= concurrency:
-                done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-                results.extend([task.result() for task in done])
-                tasks = list(pending)  # Convert the pending set back to a list
-        
-        # Wait for any remaining tasks
-        if tasks:
-            done, _ = await asyncio.wait(tasks)
-            results.extend([task.result() for task in done])
+            # If request failed, stop the test
+            if not result["success"]:
+                break
+                
+            request_num += 1
     
     end_time = time.time()
     total_duration = end_time - start_time
     
     print("\n" + "=" * 60)
-    print(f"Pressure Test Results ({text_length} text)")
+    print(f"Continuous Test Results ({text_length} text)")
     print("=" * 60)
     
     # Calculate and display statistics
     successful_reqs = [r for r in results if r["success"]]
     failed_reqs = [r for r in results if not r["success"]]
     
-    success_rate = len(successful_reqs) / num_requests * 100 if num_requests > 0 else 0
+    success_rate = len(successful_reqs) / len(results) * 100 if results else 0
     
     # Calculate response time statistics
     if successful_reqs:
@@ -183,7 +176,8 @@ async def run_pressure_test(num_requests, concurrency, server_url, text_length="
         avg_size = statistics.mean(sizes) / 1024  # KB
         total_size = sum(sizes) / (1024 * 1024)  # MB
         
-        print(f"Success Rate: {success_rate:.1f}% ({len(successful_reqs)}/{num_requests})")
+        print(f"Total Successful Requests: {len(successful_reqs)}")
+        print(f"Success Rate: {success_rate:.1f}%")
         print(f"Total Test Duration: {total_duration:.2f} seconds")
         print(f"Average Response Time: {avg_duration:.3f} seconds")
         print(f"Median Response Time: {median_duration:.3f} seconds")
@@ -191,27 +185,24 @@ async def run_pressure_test(num_requests, concurrency, server_url, text_length="
         print(f"Max Response Time: {max_duration:.3f} seconds")
         print(f"Average Response Size: {avg_size:.1f} KB")
         print(f"Total Data Transferred: {total_size:.2f} MB")
-        print(f"Requests per Second: {num_requests / total_duration:.2f}")
+        print(f"Requests per Second: {len(results) / total_duration:.2f}")
         print(f"Throughput: {(total_size * 8) / total_duration:.2f} Mbps")
     else:
-        print(f"Success Rate: 0% (0/{num_requests})")
+        print(f"Success Rate: 0%")
         print(f"Total Test Duration: {total_duration:.2f} seconds")
     
-    # Show error breakdown if there are failures
+    # Show error details for the failure
     if failed_reqs:
-        print("\nError Breakdown:")
-        error_counts = {}
-        for req in failed_reqs:
-            error = req.get("error", f"HTTP {req['status']}")
-            error_counts[error] = error_counts.get(error, 0) + 1
-        
-        for error, count in error_counts.items():
-            print(f"  {error}: {count} occurrences")
+        print("\nFailure Details:")
+        failed_req = failed_reqs[0]  # Get the first (and only) failure
+        error = failed_req.get("error", f"HTTP {failed_req['status']}")
+        print(f"  Request Number: {failed_req['request_num']}")
+        print(f"  Voice: {failed_req['voice']}")
+        print(f"  Error: {error}")
+        print(f"  Duration: {failed_req['duration']:.2f} seconds")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Pressure test for OpenAI TTS API Server")
-    parser.add_argument("-n", "--num-requests", type=int, default=10, help="Total number of requests to send")
-    parser.add_argument("-c", "--concurrency", type=int, default=2, help="Number of concurrent connections")
+    parser = argparse.ArgumentParser(description="Continuous pressure test for OpenAI TTS API Server")
     parser.add_argument("-u", "--url", type=str, default="http://localhost:7000", help="Server URL")
     parser.add_argument("-t", "--text-length", type=str, choices=["short", "medium", "long"], default="medium", 
                         help="Length of text to use for testing")
@@ -219,9 +210,7 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    asyncio.run(run_pressure_test(
-        args.num_requests, 
-        args.concurrency, 
+    asyncio.run(run_continuous_test(
         args.url, 
         args.text_length,
         args.save_audio
