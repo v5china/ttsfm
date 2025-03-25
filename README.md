@@ -23,7 +23,7 @@ docker run -p 7000:7000 dbcccc/ttsfm:latest
 ```
 
 Note:
-For Apple macOS, if port 7000 is occupied by the Control Center, you can use an alternative local port like 5051:
+For Apple macOS, if port 7000 is occupied by the Control Center, you can use an alternative local port like 5051:  
 For Intel chips:
 ```bash
 docker pull dbcccc/ttsfm:latest
