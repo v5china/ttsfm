@@ -10,6 +10,83 @@ const queueLoadText = document.getElementById('queue-load-text');
 // Track active requests
 let currentActiveRequests = 0;
 
+// Language translations
+const translations = {
+    en: {
+        title: "OpenAI TTS API Documentation",
+        subtitle: "Text-to-Speech API with Multiple Voice Options",
+        tryItOut: "Try It Out",
+        textToConvert: "Text to Convert",
+        voice: "Voice",
+        instructions: "Instructions (Optional)",
+        generateSpeech: "Generate Speech",
+        quickStart: "Quick Start",
+        availableVoices: "Available Voices",
+        apiReference: "API Reference",
+        queueStatus: "Queue Status",
+        activeRequests: "Active Requests",
+        maxCapacity: "Maximum Capacity",
+        noLoad: "No Load",
+        lowLoad: "Low Load",
+        mediumLoad: "Medium Load",
+        highLoad: "High Load"
+    },
+    zh: {
+        title: "OpenAI TTS API 文档",
+        subtitle: "支持多种语音的文本转语音 API",
+        tryItOut: "立即体验",
+        textToConvert: "要转换的文本",
+        voice: "语音",
+        instructions: "指令（可选）",
+        generateSpeech: "生成语音",
+        quickStart: "快速开始",
+        availableVoices: "可用语音",
+        apiReference: "API 参考",
+        queueStatus: "队列状态",
+        activeRequests: "活动请求",
+        maxCapacity: "最大容量",
+        noLoad: "无负载",
+        lowLoad: "低负载",
+        mediumLoad: "中负载",
+        highLoad: "高负载"
+    }
+};
+
+// Language switching functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const langButtons = document.querySelectorAll('.lang-btn');
+    let currentLang = 'en';
+
+    function updateLanguage(lang) {
+        currentLang = lang;
+        const t = translations[lang];
+        
+        // Update text content
+        document.querySelector('.main-header h1').textContent = t.title;
+        document.querySelector('.subtitle').textContent = t.subtitle;
+        document.querySelector('.playground-section h2').textContent = t.tryItOut;
+        document.querySelector('label[for="playground-text"]').textContent = t.textToConvert;
+        document.querySelector('label[for="playground-voice"]').textContent = t.voice;
+        document.querySelector('label[for="playground-instructions"]').textContent = t.instructions;
+        document.querySelector('.playground-button').innerHTML = `<i class="fas fa-play"></i> ${t.generateSpeech}`;
+        document.querySelector('.content-section:nth-child(3) h2').textContent = t.quickStart;
+        document.querySelector('.content-section:nth-child(4) h2').textContent = t.availableVoices;
+        document.querySelector('.content-section:nth-child(5) h2').textContent = t.apiReference;
+        document.querySelector('.status-header h3').textContent = t.queueStatus;
+        document.querySelector('.stat-item:nth-child(1) .stat-label').textContent = t.activeRequests;
+        document.querySelector('.stat-item:nth-child(2) .stat-label').textContent = t.maxCapacity;
+    }
+
+    langButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const lang = this.dataset.lang;
+            langButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            updateLanguage(lang);
+        });
+    });
+});
+
 function updateProcessingStatus(requestCount) {
     if (requestCount > 0) {
         processingStatus.textContent = 'Processing';

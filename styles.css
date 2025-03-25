@@ -52,6 +52,72 @@ body {
     border-bottom: 1px solid #eee;
 }
 
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.github-link {
+    color: #333;
+    font-size: 1.5rem;
+    transition: all 0.2s ease;
+    background-color: #f8fafc;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.github-link i {
+    font-size: 1.5rem;
+}
+
+.github-link:hover {
+    color: #2563eb;
+    background-color: #eff6ff;
+    border-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1);
+}
+
+.header-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.language-selector {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.lang-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.lang-btn:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+.lang-btn.active {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
 .main-header h1 {
     margin: 0;
     color: #2c3e50;
