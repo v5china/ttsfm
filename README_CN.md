@@ -1,105 +1,110 @@
 # TTSFM
 
-[![Docker Image](https://img.shields.io/docker/pulls/dbcccc/ttsfm?style=flat-square)](https://hub.docker.com/r/dbcccc/ttsfm)
+[![Docker Pulls](https://img.shields.io/docker/pulls/dbcccc/ttsfm?style=flat-square&logo=docker)](https://hub.docker.com/r/dbcccc/ttsfm)
 [![License](https://img.shields.io/github/license/dbccccccc/ttsfm?style=flat-square)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/dbccccccc/ttsfm?style=social)](https://github.com/dbccccccc/ttsfm)
 
-> **免责声明**: 此项目仅用于学习测试，请使用 https://platform.openai.com/docs/guides/audio OpenAI的官方服务进行生产环境使用。
+> ⚠️ **免责声明**  
+> 此项目仅用于学习测试，生产环境请使用 [OpenAI 官方 TTS 服务](https://platform.openai.com/docs/guides/audio)。
 
-[English](../README.md) | 中文
+[English](README.md) | 中文文档
 
-TTSFM 是一个逆向工程的 API 服务器，镜像了 OpenAI 的 TTS 服务，提供了兼容的文本转语音接口，支持多种语音选项。
+## 🌟 项目简介
+
+TTSFM 是一个逆向工程实现的 API 服务器，完全兼容 OpenAI 的文本转语音(TTS)接口。
+
+> 🎮 立即体验：[官方演示站](https://ttsapi.fm) 
+
+
+## 🏗️ 项目结构
+
+```text
+ttsfm/
+├── main.py              # 应用入口
+├── server/              # 服务核心
+│   ├── api.py           # OpenAI 兼容API
+│   └── handlers.py      # 请求处理器
+├── proxy/               # 代理系统
+│   └── manager.py
+├── utils/               # 工具模块
+│   └── config.py
+├── static/              # 前端资源
+│   ├── index.html       # 英文界面
+│   ├── index_zh.html    # 中文界面
+│   └── ...              # JS/CSS 资源
+└── requirements.txt     # Python依赖
+```
+
+## 🚀 快速开始
 
 ### 系统要求
-- Python 3.8 或更高版本
-- pip（Python 包管理器）
-- 或 Docker
+- Python ≥ 3.8
+- 或 Docker 环境
 
-### 安装步骤
-
-#### 选项一：使用 Docker（推荐）
+### 🐳 Docker 运行（推荐）
 ```bash
-docker pull dbcccc/ttsfm:latest
 docker run -p 7000:7000 dbcccc/ttsfm:latest
 ```
-注：
-如果是Apple Mac OS，7000端口若被中心控制器占用，可以换一个本地端口比如5051，可以使用以下命令：  
-Intel 芯片可以直接使用
-```bash
-docker pull dbcccc/ttsfm:latest
-docker run -p 5051:7000 dbcccc/ttsfm:latest
-```
-M系列芯片可以在仓库当前目录使用：  
-```bash
-docker build -t ttsfm .
-docker run -p 5051:7000 ttsfm
-```
-  Mac 网页地址使用 `http://localhost:5051`.
 
-#### 选项二：手动安装
-1. 克隆仓库：
-```bash
-git clone https://github.com/yourusername/ttsfm.git
-cd ttsfm
-```
+> 💡 **提示**  
+> MacOS 用户若遇到端口冲突，可替换端口号：  
+> `docker run -p 5051:7000 dbcccc/ttsfm:latest`
 
-2. 安装依赖：
+以下是精简后的手动安装部分，仅保留发行版下载方式：
+
+### 📦 手动安装
+
+1. 从 [GitHub Releases](https://github.com/dbccccccc/ttsfm/releases) 下载最新版本压缩包
+2. 解压并进入目录：
+```bash
+tar -zxvf ttsfm-vX.X.X.tar.gz
+cd ttsfm-vX.X.X
+```
+3. 安装依赖并启动：
 ```bash
 pip install -r requirements.txt
+cp .env.example .env  # 按需编辑配置
+python main.py
 ```
 
-### 使用方法
+## 📚 使用指南
 
-#### 选项一：使用 Docker
-1. 运行 docker 命令后服务器将自动启动
-2. 访问网页界面：`http://localhost:7000`
+### Web 界面
+访问 `http://localhost:7000` 体验交互式演示
 
-#### 选项二：手动使用
-1. 启动服务器：
+### API 端点
+| 端点 | 方法 | 描述 |
+|------|------|-------------|
+| `/v1/audio/speech` | POST | 文本转语音 |
+| `/api/queue-size` | GET | 查询任务队列 |
+
+> 🔍 完整 API 文档可在本地部署后通过 Web 界面查看
+
+### 🧪 压力测试
 ```bash
-python server.py
-```
-
-2. 访问网页界面：`http://localhost:7000`
-
-3. 使用 API 接口
-
-### API 接口
-具体信息请至部署完成的网页查看。
-- `POST /v1/audio/speech`：文本转语音
-- `GET /v1/voices`：获取可用语音列表
-
-### 压力测试
-项目包含一个压力测试脚本，用于评估服务器在负载下的性能。使用方法：
-
-```bash
-# 基础测试（10个请求，2个并发连接）
+# 基础测试
 python pressure_test.py
 
-# 更多请求和更高并发测试
-python pressure_test.py -n 50 -c 10
-
-# 不同文本长度测试
-python pressure_test.py -t short  # 短文本
-python pressure_test.py -t medium # 中等文本（默认）
-python pressure_test.py -t long   # 长文本
-
-# 保存生成的音频文件
-python pressure_test.py -s
-
-# 自定义服务器地址
-python pressure_test.py -u http://localhost:7000
+# 自定义测试示例
+python pressure_test.py -n 50 -c 10 -t long -s
 ```
 
-选项说明：
-- `-n, --num-requests`：发送的总请求数（默认：10）
-- `-c, --concurrency`：并发连接数（默认：2）
-- `-t, --text-length`：使用的文本长度（short/medium/long）
-- `-s, --save-audio`：将生成的音频文件保存到 test_output 目录
-- `-u, --url`：自定义服务器地址（默认：http://localhost:7000）
+**参数说明**：
+- `-n` 总请求数
+- `-c` 并发数
+- `-t` 文本长度 (short/medium/long)  
+- `-s` 保存生成音频
 
-### 许可证
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。 
+## 🤝 参与贡献
 
-## Star History
+我们欢迎所有形式的贡献！您可以通过以下方式参与：
 
-[![Star History Chart](https://api.star-history.com/svg?repos=dbccccccc/ttsfm&type=Date)](https://www.star-history.com/#dbccccccc/ttsfm&Date)
+- 提交 [Issue](https://github.com/dbccccccc/ttsfm/issues) 报告问题
+- 发起 [Pull Request](https://github.com/dbccccccc/ttsfm/pulls) 改进代码
+- 分享使用体验和建议
+
+📜 项目采用 [MIT 许可证](LICENSE)
+
+## 📈 项目动态
+
+[![Star History Chart](https://api.star-history.com/svg?repos=dbccccccc/ttsfm&type=Date)](https://star-history.com/#dbccccccc/ttsfm&Date)

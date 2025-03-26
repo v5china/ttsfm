@@ -1,106 +1,111 @@
+Here's the English translation of your document:
+
 # TTSFM
 
-[![Docker Image](https://img.shields.io/docker/pulls/dbcccc/ttsfm?style=flat-square)](https://hub.docker.com/r/dbcccc/ttsfm)
+[![Docker Pulls](https://img.shields.io/docker/pulls/dbcccc/ttsfm?style=flat-square&logo=docker)](https://hub.docker.com/r/dbcccc/ttsfm)
 [![License](https://img.shields.io/github/license/dbccccccc/ttsfm?style=flat-square)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/dbccccccc/ttsfm?style=social)](https://github.com/dbccccccc/ttsfm)
 
-> **Disclaimer**: This project is for learning and testing purposes only. For production use, please use the official OpenAI TTS service at https://platform.openai.com/docs/guides/audio
+> ⚠️ **Disclaimer**  
+> This project is for learning and testing purposes only. For production environments, please use [OpenAI's official TTS service](https://platform.openai.com/docs/guides/audio).
 
-[English](README.md) | [中文](README_CN.md)
+[English](README.md) | Chinese Documentation
 
-TTSFM is a reverse-engineered API server that mirrors OpenAI's TTS service, providing a compatible interface for text-to-speech conversion with multiple voice options.
+## 🌟 Project Introduction
 
-### Prerequisites
-- Python 3.8 or higher
-- pip (Python package manager)
-- OR Docker
+TTSFM is a reverse-engineered API server that is fully compatible with OpenAI's Text-to-Speech (TTS) interface.
 
-### Installation
+> 🎮 Try it now: [Official Demo Site](https://ttsapi.fm)
 
-#### Option 1: Using Docker (Recommended)
+## 🏗️ Project Structure
+
+```text
+ttsfm/
+├── main.py              # Application entry
+├── server/              # Core services
+│   ├── api.py           # OpenAI-compatible API
+│   └── handlers.py      # Request handlers
+├── proxy/               # Proxy system
+│   └── manager.py
+├── utils/               # Utility modules
+│   └── config.py
+├── static/              # Frontend resources
+│   ├── index.html       # English interface
+│   ├── index_zh.html    # Chinese interface
+│   └── ...              # JS/CSS resources
+└── requirements.txt     # Python dependencies
+```
+
+## 🚀 Quick Start
+
+### System Requirements
+- Python ≥ 3.8
+- Or Docker environment
+
+### 🐳 Docker Run (Recommended)
 ```bash
-docker pull dbcccc/ttsfm:latest
 docker run -p 7000:7000 dbcccc/ttsfm:latest
 ```
 
-Note:
-For Apple macOS, if port 7000 is occupied by the Control Center, you can use an alternative local port like 5051:  
-For Intel chips:
-```bash
-docker pull dbcccc/ttsfm:latest
-docker run -p 5051:7000 dbcccc/ttsfm:latest
-```
-For Apple Silicon (M-series) chips, in the repository's current directory:
-```bash
-docker build -t ttsfm .
-docker run -p 5051:7000 ttsfm
-```
-For Mac, access the web interface at `http://localhost:5051`.
+> 💡 **Tip**  
+> MacOS users experiencing port conflicts can use alternative ports:  
+> `docker run -p 5051:7000 dbcccc/ttsfm:latest`
 
-#### Option 2: Manual Installation
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/ttsfm.git
-cd ttsfm
-```
+Below is the simplified manual installation section, retaining only the release package download method:
 
-2. Install dependencies:
+### 📦 Manual Installation
+
+1. Download the latest release package from [GitHub Releases](https://github.com/dbccccccc/ttsfm/releases)
+2. Extract and enter the directory:
+```bash
+tar -zxvf ttsfm-vX.X.X.tar.gz
+cd ttsfm-vX.X.X
+```
+3. Install dependencies and launch:
 ```bash
 pip install -r requirements.txt
+cp .env.example .env  # Edit config as needed
+python main.py
 ```
 
-### Usage
+## 📚 Usage Guide
 
-#### Option 1: Using Docker
-1. The server will start automatically after running the docker command
-2. Access the web interface at `http://localhost:7000`
-
-#### Option 2: Manual Usage
-1. Start the server:
-```bash
-python server.py
-```
-
-2. Access the web interface at `http://localhost:7000`
-
-3. Use the API endpoint
+### Web Interface
+Access `http://localhost:7000` to experience the interactive demo
 
 ### API Endpoints
-Please refer to the deployed webpage for detailed information.
-- `POST /v1/audio/speech`: Convert text to speech
-- `GET /v1/voices`: List available voices
+| Endpoint | Method | Description |
+|------|------|-------------|
+| `/v1/audio/speech` | POST | Text-to-Speech |
+| `/api/queue-size` | GET | Query task queue |
 
-### Pressure Testing
-The project includes a pressure test script to evaluate server performance under load. To use it:
+> 🔍 Complete API documentation is available via the web interface after local deployment
 
+### 🧪 Stress Testing
 ```bash
-# Basic test (10 requests, 2 concurrent connections)
+# Basic test
 python pressure_test.py
 
-# Test with more requests and higher concurrency
-python pressure_test.py -n 50 -c 10
-
-# Test with different text lengths
-python pressure_test.py -t short  # Short text
-python pressure_test.py -t medium # Medium text (default)
-python pressure_test.py -t long   # Long text
-
-# Save generated audio files
-python pressure_test.py -s
-
-# Custom server URL
-python pressure_test.py -u http://localhost:7000
+# Custom test example
+python pressure_test.py -n 50 -c 10 -t long -s
 ```
 
-Options:
-- `-n, --num-requests`: Total number of requests to send (default: 10)
-- `-c, --concurrency`: Number of concurrent connections (default: 2)
-- `-t, --text-length`: Length of text to use (short/medium/long)
-- `-s, --save-audio`: Save generated audio files to test_output directory
-- `-u, --url`: Custom server URL (default: http://localhost:7000)
+**Parameter Explanation**:
+- `-n` Total requests
+- `-c` Concurrency count
+- `-t` Text length (short/medium/long)  
+- `-s` Save generated audio
 
-### License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 🤝 Contributing
 
-## Star History
+We welcome all forms of contributions! You can participate by:
 
-[![Star History Chart](https://api.star-history.com/svg?repos=dbccccccc/ttsfm&type=Date)](https://www.star-history.com/#dbccccccc/ttsfm&Date)
+- Submitting [Issues](https://github.com/dbccccccc/ttsfm/issues) to report problems
+- Creating [Pull Requests](https://github.com/dbccccccc/ttsfm/pulls) to improve code
+- Sharing usage experiences and suggestions
+
+📜 Project licensed under [MIT License](LICENSE)
+
+## 📈 Project Activity
+
+[![Star History Chart](https://api.star-history.com/svg?repos=dbccccccc/ttsfm&type=Date)](https://star-history.com/#dbccccccc/ttsfm&Date)

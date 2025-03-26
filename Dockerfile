@@ -10,15 +10,15 @@ COPY requirements.txt .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application files
-COPY server.py .
-COPY index.html .
-COPY index_zh.html .
-COPY script.js .
-COPY styles.css .
+# Copy all application directories and files
+COPY main.py .
+COPY server/ server/
+COPY proxy/ proxy/
+COPY utils/ utils/
+COPY static/ static/
 
 # Expose port 7000
 EXPOSE 7000
 
 # Command to run the application with host set to 0.0.0.0
-CMD ["python", "server.py", "--host", "0.0.0.0"] 
+CMD ["python", "main.py", "--host", "0.0.0.0"] 
