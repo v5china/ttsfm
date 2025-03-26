@@ -11,6 +11,7 @@ import ssl
 from aiohttp import web, TCPConnector
 from typing import Optional
 import random
+from utils.config import load_config
 
 from server.handlers import handle_openai_speech, handle_queue_size, handle_static, process_tts_request
 
@@ -21,11 +22,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Load configuration
+config = load_config()
+
 class TTSServer:
     """Server that's compatible with OpenAI's TTS API."""
     
-    def __init__(self, host: str = "localhost", port: int = 7000, 
-                 max_queue_size: int = 100, verify_ssl: bool = True):
+    def __init__(self, host: str = config['host'], port: int = config['port'], 
+                 max_queue_size: int = config['max_queue_size'], verify_ssl: bool = config['verify_ssl']):
         """Initialize the TTS server.
         
         Args:

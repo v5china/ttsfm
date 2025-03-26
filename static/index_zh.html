@@ -306,7 +306,7 @@ else:
                                 </tr>
                                 <tr>
                                     <td>429</td>
-                                    <td>队列已满，请稍后重试</td>
+                                    <td>速率限制超出或队列已满。速率限制时包含 Retry-After 标头。</td>
                                 </tr>
                                 <tr>
                                     <td>500</td>
@@ -321,8 +321,9 @@ else:
                         <h3>队列系统</h3>
                         <p>API 使用队列系统高效处理多个请求：</p>
                         <ul>
-                            <li>最大队列大小：100 个请求</li>
+                            <li>最大队列大小：可通过 <code>MAX_QUEUE_SIZE</code> 环境变量配置（默认：100 个请求）</li>
                             <li>请求按 FIFO（先进先出）顺序处理</li>
+                            <li>速率限制：可通过 <code>RATE_LIMIT_REQUESTS</code> 和 <code>RATE_LIMIT_WINDOW</code> 环境变量配置（默认：每个 IP 地址 60 秒内最多 30 个请求）</li>
                             <li>可以通过 <code>/api/queue-size</code> 端点监控队列状态</li>
                         </ul>
 

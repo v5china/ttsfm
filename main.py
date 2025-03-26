@@ -60,11 +60,11 @@ async def create_test_session(verify_ssl: bool = True) -> Optional[aiohttp.Clien
 async def main():
     """Main function to start the server."""
     try:
-        args = load_config()
+        config = load_config()
         
         # Test connection mode
-        if args.test_connection:
-            session = await create_test_session(not args.no_verify_ssl)
+        if config.get('test_connection', False):
+            session = await create_test_session(config['verify_ssl'])
             if not session:
                 logger.error("Failed to create test session")
                 sys.exit(1)
@@ -82,10 +82,10 @@ async def main():
         
         # Start the server
         server = TTSServer(
-            args.host, 
-            args.port, 
-            verify_ssl=not args.no_verify_ssl,
-            max_queue_size=args.max_queue_size
+            host=config['host'],
+            port=config['port'],
+            verify_ssl=config['verify_ssl'],
+            max_queue_size=config['max_queue_size']
         )
         
         await server.start()

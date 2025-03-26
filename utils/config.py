@@ -25,6 +25,8 @@ def load_config():
     default_port = int(os.getenv("PORT", "7000"))
     default_verify_ssl = os.getenv("VERIFY_SSL", "true").lower() != "false"
     default_max_queue_size = int(os.getenv("MAX_QUEUE_SIZE", "100"))
+    default_rate_limit_requests = int(os.getenv("RATE_LIMIT_REQUESTS", "30"))
+    default_rate_limit_window = int(os.getenv("RATE_LIMIT_WINDOW", "60"))
     
     parser = argparse.ArgumentParser(description="Run the TTS API server")
     parser.add_argument("--host", type=str, default=default_host, help="Host to bind to")
@@ -42,7 +44,15 @@ def load_config():
         ssl._create_default_https_context = ssl._create_unverified_context
         logger.warning("SSL certificate verification disabled GLOBALLY. This is insecure!")
     
-    return args
+    return {
+        'host': args.host,
+        'port': args.port,
+        'verify_ssl': not args.no_verify_ssl,
+        'max_queue_size': args.max_queue_size,
+        'rate_limit_requests': default_rate_limit_requests,
+        'rate_limit_window': default_rate_limit_window,
+        'test_connection': args.test_connection
+    }
 
 async def test_connection(session):
     """Test connection to OpenAI.fm.

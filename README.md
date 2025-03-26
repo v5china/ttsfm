@@ -55,6 +55,8 @@ docker run -d \
   -e PORT=7000 \
   -e VERIFY_SSL=true \
   -e MAX_QUEUE_SIZE=100 \
+  -e RATE_LIMIT_REQUESTS=30 \
+  -e RATE_LIMIT_WINDOW=60 \
   dbcccc/ttsfm:latest
 ```
 
@@ -63,6 +65,8 @@ Available environment variables:
 - `PORT`: Server port (default: 7000)
 - `VERIFY_SSL`: Whether to verify SSL certificates (default: true)
 - `MAX_QUEUE_SIZE`: Maximum number of tasks in queue (default: 100)
+- `RATE_LIMIT_REQUESTS`: Maximum number of requests per time window (default: 30)
+- `RATE_LIMIT_WINDOW`: Time window in seconds for rate limiting (default: 60)
 
 > 💡 **Tip**  
 > MacOS users experiencing port conflicts can use alternative ports:  

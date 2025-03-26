@@ -13,14 +13,47 @@ import random
 import uuid
 from aiohttp import web
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
 from fake_useragent import UserAgent
+from collections import defaultdict
+from datetime import datetime, timedelta
+from utils.config import load_config
 
 logger = logging.getLogger(__name__)
 ua = UserAgent()
 
-def _get_headers():
-    """Generate more realistic browser headers"""
+# Load configuration
+config = load_config()
+
+# Rate limiting per IP
+RATE_LIMIT_WINDOW = config['rate_limit_window']  # seconds
+MAX_REQUESTS_PER_WINDOW = config['rate_limit_requests']
+ip_request_counts = defaultdict(list)
+
+def _get_headers() -> Dict[str, str]:
+    """Generate more realistic browser headers with rotation"""
+    browsers = [
+        {
+            "User-Agent": ua.chrome,
+            "Sec-Ch-Ua": '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Windows"',
+        },
+        {
+            "User-Agent": ua.firefox,
+            "Sec-Ch-Ua": '"Not A(Brand";v="8", "Chromium";v="121"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Windows"',
+        },
+        {
+            "User-Agent": ua.edge,
+            "Sec-Ch-Ua": '"Not A(Brand";v="8", "Chromium";v="121", "Microsoft Edge";v="121"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Windows"',
+        }
+    ]
+    
+    browser = random.choice(browsers)
     return {
         "Authority": "www.openai.fm",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
@@ -29,23 +62,51 @@ def _get_headers():
         "Cache-Control": "no-cache",
         "Dnt": "1",
         "Referer": "https://www.openai.fm/",
-        "Sec-Ch-Ua": '"Microsoft Edge";v="117", "Not;A=Brand";v="8", "Chromium";v="117"',
-        "Sec-Ch-Ua-Mobile": "?0",
-        "Sec-Ch-Ua-Platform": '"Windows"',
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-origin",
-        "User-Agent": ua.random,
-        "X-Requested-With": "XMLHttpRequest"
+        "X-Requested-With": "XMLHttpRequest",
+        **browser
     }
 
-def _get_random_delay():
-    """Get random delay time (1-5 seconds)"""
-    return random.uniform(1, 5)
+def _get_random_delay() -> float:
+    """Get random delay time (1-5 seconds) with jitter"""
+    base_delay = random.uniform(1, 5)
+    jitter = random.uniform(0.1, 0.5)
+    return base_delay + jitter
+
+def _is_rate_limited(ip: str) -> bool:
+    """Check if IP is rate limited"""
+    now = datetime.now()
+    window_start = now - timedelta(seconds=RATE_LIMIT_WINDOW)
+    
+    # Clean old requests
+    ip_request_counts[ip] = [t for t in ip_request_counts[ip] if t > window_start]
+    
+    # Check if rate limited
+    if len(ip_request_counts[ip]) >= MAX_REQUESTS_PER_WINDOW:
+        return True
+    
+    # Add current request
+    ip_request_counts[ip].append(now)
+    return False
 
 async def handle_openai_speech(request: web.Request, queue, session=None) -> web.Response:
     """Handle POST requests to /v1/audio/speech (OpenAI compatible API)."""
     try:
+        # Rate limiting check
+        client_ip = request.remote
+        if _is_rate_limited(client_ip):
+            return web.Response(
+                text=json.dumps({
+                    "error": "Rate limit exceeded. Please try again later.",
+                    "retry_after": RATE_LIMIT_WINDOW
+                }),
+                status=429,
+                content_type="application/json",
+                headers={"Retry-After": str(RATE_LIMIT_WINDOW)}
+            )
+
         # Check if queue is full
         if queue.full():
             return web.Response(
@@ -53,7 +114,7 @@ async def handle_openai_speech(request: web.Request, queue, session=None) -> web
                     "error": "Queue is full. Please try again later.",
                     "queue_size": queue.qsize()
                 }),
-                status=429,  # Too Many Requests
+                status=429,
                 content_type="application/json"
             )
 
@@ -99,7 +160,8 @@ async def handle_openai_speech(request: web.Request, queue, session=None) -> web
             'data': openai_fm_data,
             'content_type': content_type,
             'response_future': response_future,
-            'timestamp': time.time()
+            'timestamp': time.time(),
+            'client_ip': client_ip
         }
         
         # Add to queue
@@ -109,6 +171,12 @@ async def handle_openai_speech(request: web.Request, queue, session=None) -> web
         # Wait for response
         return await response_future
                 
+    except json.JSONDecodeError:
+        return web.Response(
+            text=json.dumps({"error": "Invalid JSON in request body"}),
+            status=400,
+            content_type="application/json"
+        )
     except Exception as e:
         logger.error(f"Error handling request: {str(e)}")
         return web.Response(
@@ -126,6 +194,7 @@ async def process_tts_request(task_data: Dict[str, Any], session) -> web.Respons
     """Process a single TTS request."""
     max_retries = 3
     retry_count = 0
+    base_delay = 1
     
     while retry_count < max_retries:
         try:
@@ -150,7 +219,19 @@ async def process_tts_request(task_data: Dict[str, Any], session) -> web.Respons
                 if response.status == 403:
                     logger.warning("Received 403 Forbidden from OpenAI.fm")
                     retry_count += 1
-                    await asyncio.sleep(2 * retry_count)  # Exponential backoff
+                    await asyncio.sleep(base_delay * (2 ** retry_count))  # Exponential backoff
+                    continue
+                
+                if response.status == 429:
+                    logger.warning("Rate limited by OpenAI.fm")
+                    retry_after = int(response.headers.get('Retry-After', 60))
+                    await asyncio.sleep(retry_after)
+                    continue
+                
+                if response.status == 503:
+                    logger.warning("Service unavailable from OpenAI.fm")
+                    retry_count += 1
+                    await asyncio.sleep(base_delay * (2 ** retry_count))
                     continue
                 
                 audio_data = await response.read()
@@ -176,11 +257,15 @@ async def process_tts_request(task_data: Dict[str, Any], session) -> web.Respons
         except asyncio.TimeoutError:
             logger.error("Request timeout")
             retry_count += 1
-            await asyncio.sleep(2 * retry_count)
+            await asyncio.sleep(base_delay * (2 ** retry_count))
+        except aiohttp.ClientError as e:
+            logger.error(f"Network error: {str(e)}")
+            retry_count += 1
+            await asyncio.sleep(base_delay * (2 ** retry_count))
         except Exception as e:
             logger.error(f"Error processing TTS request: {str(e)}")
             retry_count += 1
-            await asyncio.sleep(2 * retry_count)
+            await asyncio.sleep(base_delay * (2 ** retry_count))
             if retry_count >= max_retries:
                 return web.Response(
                     text=json.dumps({"error": str(e)}),

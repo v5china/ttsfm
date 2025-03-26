@@ -306,7 +306,7 @@ else:
                                 </tr>
                                 <tr>
                                     <td>429</td>
-                                    <td>Queue is full, try again later</td>
+                                    <td>Rate limit exceeded or queue is full. Includes Retry-After header when rate limited.</td>
                                 </tr>
                                 <tr>
                                     <td>500</td>
@@ -321,8 +321,9 @@ else:
                         <h3>Queue System</h3>
                         <p>The API uses a queue system to handle multiple requests efficiently:</p>
                         <ul>
-                            <li>Maximum queue size: 100 requests</li>
+                            <li>Maximum queue size: Configurable via <code>MAX_QUEUE_SIZE</code> environment variable (default: 100 requests)</li>
                             <li>Requests are processed in FIFO (First In, First Out) order</li>
+                            <li>Rate limiting: Configurable via <code>RATE_LIMIT_REQUESTS</code> and <code>RATE_LIMIT_WINDOW</code> environment variables (default: 30 requests per 60 seconds per IP address)</li>
                             <li>Queue status can be monitored via the <code>/api/queue-size</code> endpoint</li>
                         </ul>
 

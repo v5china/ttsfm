@@ -56,6 +56,8 @@ docker run -d \
   -e PORT=7000 \
   -e VERIFY_SSL=true \
   -e MAX_QUEUE_SIZE=100 \
+  -e RATE_LIMIT_REQUESTS=30 \
+  -e RATE_LIMIT_WINDOW=60 \
   dbcccc/ttsfm:latest
 ```
 
@@ -64,6 +66,8 @@ docker run -d \
 - `PORT`：服务器端口（默认：7000）
 - `VERIFY_SSL`：是否验证 SSL 证书（默认：true）
 - `MAX_QUEUE_SIZE`：队列最大任务数（默认：100）
+- `RATE_LIMIT_REQUESTS`：每个时间窗口的最大请求数（默认：30）
+- `RATE_LIMIT_WINDOW`：速率限制的时间窗口（秒）（默认：60）
 
 > 💡 **提示**  
 > MacOS 用户若遇到端口冲突，可替换端口号：  
