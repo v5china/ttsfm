@@ -7,7 +7,7 @@
 > ⚠️ **Disclaimer**  
 > This project is for learning and testing purposes only. For production environments, please use [OpenAI's official TTS service](https://platform.openai.com/docs/guides/audio).
 
-English | [Chinese](README_CN.md)
+English | [中文](README_CN.md)
 
 ## 🌟 Project Introduction
 
