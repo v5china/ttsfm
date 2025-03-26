@@ -7,7 +7,7 @@
 > ⚠️ **免责声明**  
 > 此项目仅用于学习测试，生产环境请使用 [OpenAI 官方 TTS 服务](https://platform.openai.com/docs/guides/audio)。
 
-[English](README.md) | 中文文档
+[English](README.md) | 中文
 
 ## 🌟 项目简介
 

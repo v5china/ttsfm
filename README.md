@@ -1,5 +1,3 @@
-Here's the English translation of your document:
-
 # TTSFM
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/dbcccc/ttsfm?style=flat-square&logo=docker)](https://hub.docker.com/r/dbcccc/ttsfm)
@@ -9,7 +7,7 @@ Here's the English translation of your document:
 > ⚠️ **Disclaimer**  
 > This project is for learning and testing purposes only. For production environments, please use [OpenAI's official TTS service](https://platform.openai.com/docs/guides/audio).
 
-[English](README.md) | Chinese Documentation
+English | [Chinese](README_CN.md)
 
 ## 🌟 Project Introduction
 
