@@ -42,15 +42,40 @@ ttsfm/
 - 或 Docker 环境
 
 ### 🐳 Docker 运行（推荐）
+
+基本用法：
 ```bash
 docker run -p 7000:7000 dbcccc/ttsfm:latest
 ```
 
+使用环境变量自定义配置：
+```bash
+docker run -d \
+  -p 7000:7000 \
+  -e HOST=0.0.0.0 \
+  -e PORT=7000 \
+  -e VERIFY_SSL=true \
+  -e USE_PROXY=false \
+  -e PROXY_API_URL=https://proxy.scdn.io/api/get_proxy.php \
+  -e PROXY_PROTOCOL=http \
+  -e PROXY_BATCH_SIZE=5 \
+  -e MAX_QUEUE_SIZE=100 \
+  dbcccc/ttsfm:latest
+```
+
+可用的环境变量：
+- `HOST`：服务器主机（默认：0.0.0.0）
+- `PORT`：服务器端口（默认：7000）
+- `VERIFY_SSL`：是否验证 SSL 证书（默认：true）
+- `USE_PROXY`：是否使用代理池（默认：true）
+- `PROXY_API_URL`：代理 API URL（默认：https://proxy.scdn.io/api/get_proxy.php）
+- `PROXY_PROTOCOL`：代理协议（默认：http）
+- `PROXY_BATCH_SIZE`：一次获取的代理数量（默认：5）
+- `MAX_QUEUE_SIZE`：队列最大任务数（默认：100）
+
 > 💡 **提示**  
 > MacOS 用户若遇到端口冲突，可替换端口号：  
 > `docker run -p 5051:7000 dbcccc/ttsfm:latest`
-
-以下是精简后的手动安装部分，仅保留发行版下载方式：
 
 ### 📦 手动安装
 

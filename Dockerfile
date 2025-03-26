@@ -17,8 +17,18 @@ COPY proxy/ proxy/
 COPY utils/ utils/
 COPY static/ static/
 
+# Set default environment variables
+ENV HOST=0.0.0.0 \
+    PORT=7000 \
+    VERIFY_SSL=true \
+    USE_PROXY=true \
+    PROXY_API_URL=https://proxy.scdn.io/api/get_proxy.php \
+    PROXY_PROTOCOL=http \
+    PROXY_BATCH_SIZE=5 \
+    MAX_QUEUE_SIZE=100
+
 # Expose port 7000
 EXPOSE 7000
 
-# Command to run the application with host set to 0.0.0.0
-CMD ["python", "main.py", "--host", "0.0.0.0"] 
+# Command to run the application
+CMD ["python", "main.py"] 

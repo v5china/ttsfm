@@ -24,7 +24,7 @@ def load_config():
     default_host = os.getenv("HOST", "localhost")
     default_port = int(os.getenv("PORT", "7000"))
     default_verify_ssl = os.getenv("VERIFY_SSL", "true").lower() != "false"
-    default_use_proxy = os.getenv("USE_PROXY", "false").lower() == "true"
+    default_use_proxy = os.getenv("USE_PROXY", "true").lower() == "true"
     default_proxy_api = os.getenv("PROXY_API_URL", "https://proxy.scdn.io/api/get_proxy.php")
     default_proxy_protocol = os.getenv("PROXY_PROTOCOL", "http")
     default_proxy_batch_size = int(os.getenv("PROXY_BATCH_SIZE", "5"))

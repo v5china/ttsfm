@@ -41,15 +41,40 @@ ttsfm/
 - Or Docker environment
 
 ### 🐳 Docker Run (Recommended)
+
+Basic usage:
 ```bash
 docker run -p 7000:7000 dbcccc/ttsfm:latest
 ```
 
+Custom configuration using environment variables:
+```bash
+docker run -d \
+  -p 7000:7000 \
+  -e HOST=0.0.0.0 \
+  -e PORT=7000 \
+  -e VERIFY_SSL=true \
+  -e USE_PROXY=false \
+  -e PROXY_API_URL=https://proxy.scdn.io/api/get_proxy.php \
+  -e PROXY_PROTOCOL=http \
+  -e PROXY_BATCH_SIZE=5 \
+  -e MAX_QUEUE_SIZE=100 \
+  dbcccc/ttsfm:latest
+```
+
+Available environment variables:
+- `HOST`: Server host (default: 0.0.0.0)
+- `PORT`: Server port (default: 7000)
+- `VERIFY_SSL`: Whether to verify SSL certificates (default: true)
+- `USE_PROXY`: Whether to use proxy pool (default: true)
+- `PROXY_API_URL`: Proxy API URL (default: https://proxy.scdn.io/api/get_proxy.php)
+- `PROXY_PROTOCOL`: Proxy protocol (default: http)
+- `PROXY_BATCH_SIZE`: Number of proxies to fetch at once (default: 5)
+- `MAX_QUEUE_SIZE`: Maximum number of tasks in queue (default: 100)
+
 > 💡 **Tip**  
 > MacOS users experiencing port conflicts can use alternative ports:  
 > `docker run -p 5051:7000 dbcccc/ttsfm:latest`
-
-Below is the simplified manual installation section, retaining only the release package download method:
 
 ### 📦 Manual Installation
 
