@@ -13,7 +13,7 @@ English | [中文](README_CN.md)
 
 TTSFM is a reverse-engineered API server that is fully compatible with OpenAI's Text-to-Speech (TTS) interface.
 
-> 🎮 Try it now: [Official Demo Site](https://ttsapi.fm)
+> 🎮 Try it now: [Official Demo Site](https://ttsapi.site/)
 
 ## 🏗️ Project Structure
 
