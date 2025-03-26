@@ -24,20 +24,12 @@ def load_config():
     default_host = os.getenv("HOST", "localhost")
     default_port = int(os.getenv("PORT", "7000"))
     default_verify_ssl = os.getenv("VERIFY_SSL", "true").lower() != "false"
-    default_use_proxy = os.getenv("USE_PROXY", "true").lower() == "true"
-    default_proxy_api = os.getenv("PROXY_API_URL", "https://proxy.scdn.io/api/get_proxy.php")
-    default_proxy_protocol = os.getenv("PROXY_PROTOCOL", "http")
-    default_proxy_batch_size = int(os.getenv("PROXY_BATCH_SIZE", "5"))
     default_max_queue_size = int(os.getenv("MAX_QUEUE_SIZE", "100"))
     
     parser = argparse.ArgumentParser(description="Run the TTS API server")
     parser.add_argument("--host", type=str, default=default_host, help="Host to bind to")
     parser.add_argument("--port", type=int, default=default_port, help="Port to bind to")
     parser.add_argument("--no-verify-ssl", action="store_true", help="Disable SSL certificate verification (insecure, use only for testing)")
-    parser.add_argument("--use-proxy", action="store_true", default=default_use_proxy, help="Use proxy pool for IP rotation")
-    parser.add_argument("--proxy-api", type=str, default=default_proxy_api, help="Proxy API URL")
-    parser.add_argument("--proxy-protocol", type=str, default=default_proxy_protocol, help="Proxy protocol (http, https, socks4, socks5, all)")
-    parser.add_argument("--proxy-batch-size", type=int, default=default_proxy_batch_size, help="Number of proxies to fetch at once")
     parser.add_argument("--max-queue-size", type=int, default=default_max_queue_size, help="Maximum number of tasks in queue")
     parser.add_argument("--test-connection", action="store_true", help="Test connection to OpenAI.fm and exit")
     

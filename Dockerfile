@@ -13,7 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy all application directories and files
 COPY main.py .
 COPY server/ server/
-COPY proxy/ proxy/
 COPY utils/ utils/
 COPY static/ static/
 
@@ -21,10 +20,6 @@ COPY static/ static/
 ENV HOST=0.0.0.0 \
     PORT=7000 \
     VERIFY_SSL=true \
-    USE_PROXY=true \
-    PROXY_API_URL=https://proxy.scdn.io/api/get_proxy.php \
-    PROXY_PROTOCOL=http \
-    PROXY_BATCH_SIZE=5 \
     MAX_QUEUE_SIZE=100
 
 # Expose port 7000

@@ -8,11 +8,11 @@ import asyncio
 import aiohttp
 import logging
 import ssl
-from aiohttp import web
+from aiohttp import web, TCPConnector
 from typing import Optional
+import random
 
 from server.handlers import handle_openai_speech, handle_queue_size, handle_static, process_tts_request
-from proxy.manager import ProxyManager
 
 # Configure logging
 logging.basicConfig(
@@ -25,9 +25,7 @@ class TTSServer:
     """Server that's compatible with OpenAI's TTS API."""
     
     def __init__(self, host: str = "localhost", port: int = 7000, 
-                 max_queue_size: int = 100, verify_ssl: bool = True,
-                 use_proxy: bool = False, proxy_api: str = "https://proxy.scdn.io/api/get_proxy.php",
-                 proxy_protocol: str = "http", proxy_batch_size: int = 5):
+                 max_queue_size: int = 100, verify_ssl: bool = True):
         """Initialize the TTS server.
         
         Args:
@@ -35,28 +33,18 @@ class TTSServer:
             port: Port to bind to
             max_queue_size: Maximum number of tasks in queue
             verify_ssl: Whether to verify SSL certificates when connecting to external services
-            use_proxy: Whether to use a proxy pool for requests
-            proxy_api: URL of the proxy pool API
-            proxy_protocol: Proxy protocol to use (http, https, socks4, socks5, all)
-            proxy_batch_size: Number of proxies to fetch at once
         """
         self.host = host
         self.port = port
         self.app = web.Application()
         self.verify_ssl = verify_ssl
-        self.use_proxy = use_proxy
         
-        # Initialize queue system
+        # Initialize queue system with rate limiting
         self.queue = asyncio.Queue(maxsize=max_queue_size)
         self.current_task = None
         self.processing_lock = asyncio.Lock()
-        
-        # Initialize proxy manager if needed
-        self.proxy_manager = ProxyManager(
-            api_url=proxy_api,
-            protocol=proxy_protocol,
-            batch_size=proxy_batch_size
-        ) if use_proxy else None
+        self.last_request_time = 0
+        self.min_request_interval = 1.0  # Minimum time between requests in seconds
         
         # Set up routes
         self.setup_routes()
@@ -75,9 +63,7 @@ class TTSServer:
         return await handle_openai_speech(
             request, 
             self.queue, 
-            proxy_manager=self.proxy_manager, 
-            session=self.session,
-            use_proxy=self.use_proxy
+            session=self.session
         )
         
     async def _handle_queue_size(self, request):
@@ -86,23 +72,46 @@ class TTSServer:
         
     async def start(self):
         """Start the TTS server."""
-        # Configure SSL context
+        # Configure SSL context and connector with better settings
         if not self.verify_ssl:
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
             logger.warning("SSL certificate verification disabled. This is insecure and should only be used for testing.")
-            connector = aiohttp.TCPConnector(ssl=False)
-            self.session = aiohttp.ClientSession(connector=connector)
-            logger.info("Created aiohttp session with SSL verification disabled")
+            connector = TCPConnector(
+                ssl=False,
+                limit=10,  # Limit concurrent connections
+                ttl_dns_cache=300,  # Cache DNS results for 5 minutes
+                use_dns_cache=True,
+                enable_cleanup_closed=True
+            )
         else:
-            self.session = aiohttp.ClientSession()
-            logger.info("Created aiohttp session with default SSL settings")
+            connector = TCPConnector(
+                limit=10,
+                ttl_dns_cache=300,
+                use_dns_cache=True,
+                enable_cleanup_closed=True
+            )
             
-        # Initialize proxy manager if enabled
-        if self.use_proxy and self.proxy_manager:
-            await self.proxy_manager.initialize(self.session)
-            logger.info("Initialized proxy manager")
+        # Create session with better timeout settings
+        timeout = aiohttp.ClientTimeout(
+            total=30,
+            connect=10,
+            sock_read=20
+        )
+        
+        self.session = aiohttp.ClientSession(
+            connector=connector,
+            timeout=timeout,
+            headers={
+                "Accept": "*/*",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Origin": "https://www.openai.fm",
+                "Referer": "https://www.openai.fm/",
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+        )
+        logger.info("Created aiohttp session with optimized settings")
             
         # Start the task processor
         asyncio.create_task(self.process_queue())
@@ -113,8 +122,6 @@ class TTSServer:
         logger.info(f"TTS server running at http://{self.host}:{self.port}")
         if not self.verify_ssl:
             logger.warning("Running with SSL verification disabled. Not recommended for production use.")
-        if self.use_proxy:
-            logger.info("Running with proxy pool enabled for IP rotation")
         
     async def stop(self):
         """Stop the TTS server."""
@@ -122,11 +129,17 @@ class TTSServer:
             await self.session.close()
 
     async def process_queue(self):
-        """Background task to process the queue."""
+        """Background task to process the queue with rate limiting."""
         while True:
             try:
                 # Get next task from queue
                 task_data = await self.queue.get()
+                
+                # Implement rate limiting
+                current_time = asyncio.get_event_loop().time()
+                time_since_last_request = current_time - self.last_request_time
+                if time_since_last_request < self.min_request_interval:
+                    await asyncio.sleep(self.min_request_interval - time_since_last_request)
                 
                 async with self.processing_lock:
                     self.current_task = task_data
@@ -134,12 +147,11 @@ class TTSServer:
                         # Process the task
                         response = await process_tts_request(
                             task_data, 
-                            self.session, 
-                            proxy_manager=self.proxy_manager, 
-                            use_proxy=self.use_proxy
+                            self.session
                         )
                         # Send response through the response future
                         task_data['response_future'].set_result(response)
+                        self.last_request_time = asyncio.get_event_loop().time()
                     except Exception as e:
                         task_data['response_future'].set_exception(e)
                     finally:
