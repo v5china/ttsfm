@@ -6,7 +6,6 @@ on:
 
 jobs:
   build-and-push:
-    if: !github.event.release.prerelease
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -34,7 +33,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/ttsfm
           tags: |
             type=ref,event=tag
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
           labels: |
             org.opencontainers.image.source=${{ github.repositoryUrl }}
 
