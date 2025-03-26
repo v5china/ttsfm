@@ -43,6 +43,16 @@ class TTSServer:
         self.app = web.Application()
         self.verify_ssl = verify_ssl
         
+        # Validate and set queue size
+        try:
+            max_queue_size = int(max_queue_size)
+            if max_queue_size < 1:
+                logger.warning(f"Invalid max_queue_size {max_queue_size}, defaulting to 100")
+                max_queue_size = 100
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid max_queue_size {max_queue_size}, defaulting to 100")
+            max_queue_size = 100
+            
         # Initialize queue system with rate limiting
         self.queue = asyncio.Queue(maxsize=max_queue_size)
         self.current_task = None
@@ -54,6 +64,8 @@ class TTSServer:
         self.setup_routes()
         
         self.session = None
+        
+        logger.info(f"Initialized TTS server with max queue size: {max_queue_size}")
         
     def setup_routes(self):
         """Set up the API routes."""

@@ -18,7 +18,7 @@
             <!-- Header Section -->
             <header class="main-header">
                 <div class="header-top">
-                    <h1>OpenAI TTS API 文档</h1>
+                    <h1>ttsfm</h1>
                     <a href="https://github.com/dbccccccc/ttsfm" target="_blank" class="github-link">
                         <i class="fab fa-github"></i>
                         <span>GitHub</span>
@@ -26,11 +26,8 @@
                 </div>
                 <p class="subtitle">支持多种语音的文本转语音 API</p>
                 <div class="header-bottom">
-                    <div class="domain-badge">
-                        <span>API 域名: <strong>ttsapi.site</strong></span>
-                    </div>
                     <div class="version-badge">
-                        <span>版本: <strong id="version">1.2.0-beta1</strong></span>
+                        <span>版本: <strong id="version">1.2.0-beta2</strong></span>
                     </div>
                     <div class="language-selector">
                         <a href="index.html" class="lang-btn">English</a>
@@ -68,7 +65,7 @@
                             </div>
                             <div class="stat-item">
                                 <span class="stat-label">最大容量:</span>
-                                <span class="stat-value" id="max-queue-size">100</span>
+                                <span class="stat-value" id="max-queue-size">-</span>
                             </div>
                         </div>
                         <div class="queue-progress-container">
@@ -325,15 +322,35 @@ else:
                             <li>请求按 FIFO（先进先出）顺序处理</li>
                             <li>速率限制：可通过 <code>RATE_LIMIT_REQUESTS</code> 和 <code>RATE_LIMIT_WINDOW</code> 环境变量配置（默认：每个 IP 地址 60 秒内最多 30 个请求）</li>
                             <li>可以通过 <code>/api/queue-size</code> 端点监控队列状态</li>
+                            <li>Web 界面每 2 秒更新一次队列状态</li>
+                            <li>根据使用率显示队列负载状态（低/中/高）</li>
                         </ul>
 
                         <h4>队列状态端点</h4>
                         <pre><code class="language-http">GET /api/queue-size</code></pre>
                         <p>返回包含队列信息的 JSON：</p>
                         <pre><code class="language-json">{
-    "queue_size": 0,
-    "max_queue_size": 100
+    "queue_size": 0,        // 当前队列中的请求数
+    "max_queue_size": 100   // 队列最大容量
 }</code></pre>
+
+                        <div class="response-codes">
+                            <h4>响应状态码</h4>
+                            <ul>
+                                <li><code>200</code> - 成功</li>
+                                <li><code>429</code> - 队列已满或超出速率限制</li>
+                                <li><code>500</code> - 服务器错误</li>
+                            </ul>
+                        </div>
+
+                        <div class="queue-load-indicators">
+                            <h4>队列负载指示器</h4>
+                            <ul>
+                                <li><strong>低负载</strong> (0-40%)：绿色指示器，适合发送新请求</li>
+                                <li><strong>中负载</strong> (40-75%)：黄色/橙色指示器，可能会有延迟</li>
+                                <li><strong>高负载</strong> (75-100%)：红色指示器，预计会有明显延迟</li>
+                            </ul>
+                        </div>
                     </div>
                 </section>
             </main>

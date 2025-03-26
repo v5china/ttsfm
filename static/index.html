@@ -18,7 +18,7 @@
             <!-- Header Section -->
             <header class="main-header">
                 <div class="header-top">
-                    <h1>OpenAI TTS API Documentation</h1>
+                    <h1>ttsfm</h1>
                     <a href="https://github.com/dbccccccc/ttsfm" target="_blank" class="github-link">
                         <i class="fab fa-github"></i>
                         <span>GitHub</span>
@@ -26,11 +26,8 @@
                 </div>
                 <p class="subtitle">Text-to-Speech API with Multiple Voice Options</p>
                 <div class="header-bottom">
-                    <div class="domain-badge">
-                        <span>API Domain: <strong>ttsapi.site</strong></span>
-                    </div>
                     <div class="version-badge">
-                        <span>Version: <strong id="version">1.2.0-beta1</strong></span>
+                        <span>Version: <strong id="version">1.2.0-beta2</strong></span>
                     </div>
                     <div class="language-selector">
                         <button class="lang-btn active" data-lang="en">English</button>
@@ -68,7 +65,7 @@
                             </div>
                             <div class="stat-item">
                                 <span class="stat-label">Maximum Capacity:</span>
-                                <span class="stat-value" id="max-queue-size">100</span>
+                                <span class="stat-value" id="max-queue-size">-</span>
                             </div>
                         </div>
                         <div class="queue-progress-container">
@@ -325,15 +322,35 @@ else:
                             <li>Requests are processed in FIFO (First In, First Out) order</li>
                             <li>Rate limiting: Configurable via <code>RATE_LIMIT_REQUESTS</code> and <code>RATE_LIMIT_WINDOW</code> environment variables (default: 30 requests per 60 seconds per IP address)</li>
                             <li>Queue status can be monitored via the <code>/api/queue-size</code> endpoint</li>
+                            <li>Queue status updates every 2 seconds in the web interface</li>
+                            <li>Visual indicators show queue load (Low/Medium/High) based on utilization</li>
                         </ul>
 
                         <h4>Queue Status Endpoint</h4>
                         <pre><code class="language-http">GET /api/queue-size</code></pre>
                         <p>Returns JSON with queue information:</p>
                         <pre><code class="language-json">{
-    "queue_size": 0,
-    "max_queue_size": 100
+    "queue_size": 0,        // Current number of requests in queue
+    "max_queue_size": 100   // Maximum queue capacity
 }</code></pre>
+
+                        <div class="response-codes">
+                            <h4>Response Status Codes</h4>
+                            <ul>
+                                <li><code>200</code> - Success</li>
+                                <li><code>429</code> - Queue is full or rate limit exceeded</li>
+                                <li><code>500</code> - Server error</li>
+                            </ul>
+                        </div>
+
+                        <div class="queue-load-indicators">
+                            <h4>Queue Load Indicators</h4>
+                            <ul>
+                                <li><strong>Low Load</strong> (0-40%): Green indicator, optimal for new requests</li>
+                                <li><strong>Medium Load</strong> (40-75%): Yellow/Orange indicator, some delay expected</li>
+                                <li><strong>High Load</strong> (75-100%): Red indicator, significant delay expected</li>
+                            </ul>
+                        </div>
                     </div>
                 </section>
             </main>

@@ -11,6 +11,9 @@ const queueLoadText = document.getElementById('queue-load-text');
 // Track active requests
 let currentActiveRequests = 0;
 
+// Initialize current language
+let currentLang = 'en';
+
 // Language translations
 const translations = {
     en: {
@@ -56,36 +59,22 @@ const translations = {
 // Language switching functionality
 document.addEventListener('DOMContentLoaded', function() {
     const langButtons = document.querySelectorAll('.lang-btn');
-    let currentLang = 'en';
-
-    function updateLanguage(lang) {
-        currentLang = lang;
-        const t = translations[lang];
-        
-        // Update text content
-        document.querySelector('.main-header h1').textContent = t.title;
-        document.querySelector('.subtitle').textContent = t.subtitle;
-        document.querySelector('.playground-section h2').textContent = t.tryItOut;
-        document.querySelector('label[for="playground-text"]').textContent = t.textToConvert;
-        document.querySelector('label[for="playground-voice"]').textContent = t.voice;
-        document.querySelector('label[for="playground-instructions"]').textContent = t.instructions;
-        document.querySelector('.playground-button').innerHTML = `<i class="fas fa-play"></i> ${t.generateSpeech}`;
-        document.querySelector('.content-section:nth-child(3) h2').textContent = t.quickStart;
-        document.querySelector('.content-section:nth-child(4) h2').textContent = t.availableVoices;
-        document.querySelector('.content-section:nth-child(5) h2').textContent = t.apiReference;
-        document.querySelector('.status-header h3').textContent = t.queueStatus;
-        document.querySelector('.stat-item:nth-child(1) .stat-label').textContent = t.activeRequests;
-        document.querySelector('.stat-item:nth-child(2) .stat-label').textContent = t.maxCapacity;
-    }
-
-    langButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const lang = this.dataset.lang;
-            langButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            updateLanguage(lang);
-        });
+    
+    // Set initial language based on current page
+    const isChinesePage = window.location.pathname.includes('_zh.html');
+    currentLang = isChinesePage ? 'zh' : 'en';
+    
+    // Update active state of language buttons
+    langButtons.forEach(btn => {
+        if (btn.getAttribute('data-lang') === currentLang) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
     });
+    
+    // Initial queue size update
+    updateQueueSize();
 });
 
 function updateProcessingStatus(requestCount) {
@@ -109,6 +98,9 @@ function updateLastUpdate() {
 async function updateQueueSize() {
     try {
         const response = await fetch('/api/queue-size');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         
         // Update text values
@@ -119,13 +111,21 @@ async function updateQueueSize() {
         const loadPercentage = (data.queue_size / data.max_queue_size) * 100;
         
         // Update progress bar width
-        queueProgressBar.style.width = `${loadPercentage}%`;
+        queueProgressBar.style.width = `${Math.min(loadPercentage, 100)}%`;
         
         // Update status indicators based on load
         updateLoadStatus(loadPercentage);
         
     } catch (error) {
         console.error('Error fetching queue size:', error);
+        // Show error state in UI
+        document.getElementById('queue-size').textContent = '?';
+        document.getElementById('max-queue-size').textContent = '?';
+        queueProgressBar.style.width = '0%';
+        statusIndicator.classList.remove('indicator-low', 'indicator-medium', 'indicator-high');
+        queueProgressBar.classList.remove('progress-low', 'progress-medium', 'progress-high');
+        queueLoadText.classList.remove('low-load', 'medium-load', 'high-load');
+        queueLoadText.textContent = 'Error';
     }
 }
 
@@ -142,19 +142,19 @@ function updateLoadStatus(loadPercentage) {
         statusIndicator.classList.add('indicator-high');
         queueProgressBar.classList.add('progress-high');
         queueLoadText.classList.add('high-load');
-        queueLoadText.textContent = 'High Load';
+        queueLoadText.textContent = translations[currentLang].highLoad;
     } else if (loadPercentage >= 40) {
         // Medium load (40-75%)
         statusIndicator.classList.add('indicator-medium');
         queueProgressBar.classList.add('progress-medium');
         queueLoadText.classList.add('medium-load');
-        queueLoadText.textContent = 'Medium Load';
+        queueLoadText.textContent = translations[currentLang].mediumLoad;
     } else {
         // Low load (0-40%)
         statusIndicator.classList.add('indicator-low');
         queueProgressBar.classList.add('progress-low');
         queueLoadText.classList.add('low-load');
-        queueLoadText.textContent = loadPercentage > 0 ? 'Low Load' : 'No Load';
+        queueLoadText.textContent = loadPercentage > 0 ? translations[currentLang].lowLoad : translations[currentLang].noLoad;
     }
 }
 

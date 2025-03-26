@@ -283,14 +283,36 @@ async def process_tts_request(task_data: Dict[str, Any], session) -> web.Respons
 
 async def handle_queue_size(request: web.Request, queue) -> web.Response:
     """Handle GET requests to /api/queue-size."""
-    return web.json_response({
-        "queue_size": queue.qsize(),
-        "max_queue_size": queue.maxsize
-    }, headers={
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-    })
+    try:
+        # Get current queue size and max size
+        current_size = queue.qsize()
+        max_size = queue.maxsize if hasattr(queue, 'maxsize') else 100  # Fallback to 100 if maxsize not set
+        
+        # Ensure values are valid
+        if current_size < 0:
+            current_size = 0
+        if max_size < 1:
+            max_size = 100  # Default to 100 if invalid
+            
+        return web.json_response({
+            "queue_size": current_size,
+            "max_queue_size": max_size
+        }, headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+        })
+    except Exception as e:
+        logger.error(f"Error getting queue size: {str(e)}")
+        return web.json_response({
+            "queue_size": 0,
+            "max_queue_size": 100,  # Default values on error
+            "error": "Failed to get queue status"
+        }, status=500, headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+        })
         
 async def handle_static(request: web.Request) -> web.Response:
     """Handle static file requests.
