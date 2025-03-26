@@ -22,6 +22,20 @@ docker pull dbcccc/ttsfm:latest
 docker run -p 7000:7000 dbcccc/ttsfm:latest
 ```
 
+Note:
+For Apple macOS, if port 7000 is occupied by the Control Center, you can use an alternative local port like 5051:  
+For Intel chips:
+```bash
+docker pull dbcccc/ttsfm:latest
+docker run -p 5051:7000 dbcccc/ttsfm:latest
+```
+For Apple Silicon (M-series) chips, in the repository's current directory:
+```bash
+docker build -t ttsfm .
+docker run -p 5051:7000 ttsfm
+```
+For Mac, access the web interface at `http://localhost:5051`.
+
 #### Option 2: Manual Installation
 1. Clone the repository:
 ```bash
