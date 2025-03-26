@@ -23,15 +23,17 @@ ttsfm/
 ├── server/              # Core services
 │   ├── api.py           # OpenAI-compatible API
 │   └── handlers.py      # Request handlers
-├── proxy/               # Proxy system
-│   └── manager.py
 ├── utils/               # Utility modules
-│   └── config.py
+│   └── config.py        # Configuration management
 ├── static/              # Frontend resources
 │   ├── index.html       # English interface
 │   ├── index_zh.html    # Chinese interface
-│   └── ...              # JS/CSS resources
-└── requirements.txt     # Python dependencies
+│   ├── script.js        # Frontend JavaScript
+│   └── styles.css       # Frontend styles
+├── pressure_test.py     # Stress testing script
+├── Dockerfile          # Docker configuration
+├── requirements.txt    # Python dependencies
+└── .env.example       # Environment variables template
 ```
 
 ## 🚀 Quick Start

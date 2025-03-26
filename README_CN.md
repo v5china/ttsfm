@@ -24,15 +24,17 @@ ttsfm/
 ├── server/              # 服务核心
 │   ├── api.py           # OpenAI 兼容API
 │   └── handlers.py      # 请求处理器
-├── proxy/               # 代理系统
-│   └── manager.py
 ├── utils/               # 工具模块
-│   └── config.py
+│   └── config.py        # 配置管理
 ├── static/              # 前端资源
 │   ├── index.html       # 英文界面
 │   ├── index_zh.html    # 中文界面
-│   └── ...              # JS/CSS 资源
-└── requirements.txt     # Python依赖
+│   ├── script.js        # 前端JavaScript
+│   └── styles.css       # 前端样式
+├── pressure_test.py     # 压力测试脚本
+├── Dockerfile          # Docker配置
+├── requirements.txt    # Python依赖
+└── .env.example       # 环境变量模板
 ```
 
 ## 🚀 快速开始
