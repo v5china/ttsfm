@@ -313,7 +313,9 @@ code[class*="language-"] {
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background-color: #10b981; /* Default green */
+    display: inline-block;
+    margin-right: 8px;
+    background-color: var(--success-color);
 }
 
 .queue-stats {
@@ -1160,4 +1162,9 @@ code[class*="language-"] {
     .playground-container {
         grid-template-columns: 1fr;
     }
+}
+
+.indicator-error {
+    background-color: var(--error-color);
+    animation: pulse 2s infinite;
 } 

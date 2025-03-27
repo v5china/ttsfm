@@ -123,6 +123,7 @@ async function updateQueueSize() {
         document.getElementById('max-queue-size').textContent = '?';
         queueProgressBar.style.width = '0%';
         statusIndicator.classList.remove('indicator-low', 'indicator-medium', 'indicator-high');
+        statusIndicator.classList.add('indicator-error');
         queueProgressBar.classList.remove('progress-low', 'progress-medium', 'progress-high');
         queueLoadText.classList.remove('low-load', 'medium-load', 'high-load');
         queueLoadText.textContent = 'Error';
