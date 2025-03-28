@@ -149,26 +149,53 @@
                                 <i class="fas fa-copy"></i>
                             </button>
                         </div>
-                        <pre><code class="language-python">import requests
+                        <pre><code class="language-python">
+import requests
+import os
 
-url = "https://ttsapi.site/v1/audio/speech"
-headers = {
-    "Content-Type": "application/json"
-}
-data = {
-    "input": "你好，这是一个测试。",
-    "voice": "alloy",
-    "instructions": "请用欢快和兴奋的语气说话"  // 可选
-}
+def generate_speech(text, voice="alloy", format="mp3", instructions=None):
+    url = "https://ttsapi.site/v1/audio/speech"
+    headers = {
+        "Content-Type": "application/json"
+    }
+    data = {
+        "input": text,
+        "voice": voice,
+        "response_format": format
+    }
+    
+    # 如果提供了指令，则添加到请求中
+    if instructions:
+        data["instructions"] = instructions
+    
+    response = requests.post(url, json=data, headers=headers)
+    
+    if response.status_code == 200:
+        # 根据格式获取适当的文件扩展名
+        ext = format.lower()
+        filename = f"output.{ext}"
+        
+        # 保存音频文件
+        with open(filename, "wb") as f:
+            f.write(response.content)
+        print(f"音频已保存为 {filename}")
+        return filename
+    else:
+        error = response.json()
+        print(f"错误: {response.status_code}, {error}")
+        return None
 
-response = requests.post(url, json=data, headers=headers)
-if response.status_code == 200:
-    # 保存音频文件 - 始终为 MP3 格式
-    with open("output.mp3", "wb") as f:
-        f.write(response.content)
-    print("音频已保存为 output.mp3")
-else:
-    print(f"错误: {response.status_code}, {response.json()}")</code></pre>
+# 使用示例
+text = "你好，这是一个测试。"
+voice = "alloy"
+format = "mp3"  # 支持的格式：mp3、opus、aac、flac、wav、pcm
+instructions = "请用欢快和兴奋的语气说话"
+
+# 使用默认格式（MP3）生成语音
+generate_speech(text, voice, instructions=instructions)
+
+# 使用 WAV 格式生成语音
+generate_speech(text, voice, format="wav", instructions=instructions)</code></pre>
                     </div>
 
                     <!-- JavaScript Example -->
@@ -179,29 +206,56 @@ else:
                                 <i class="fas fa-copy"></i>
                             </button>
                         </div>
-                        <pre><code class="language-javascript">async function generateSpeech() {
+                        <pre><code class="language-javascript">async function generateSpeech(text, voice = 'alloy', format = 'mp3', instructions = null) {
     const response = await fetch('https://ttsapi.site/v1/audio/speech', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            input: '你好，这是一个测试。',
-            voice: 'alloy',
-            instructions: '请用欢快和兴奋的语气说话'  // 可选
+            input: text,
+            voice: voice,
+            response_format: format,
+            ...(instructions && { instructions })
         })
     });
 
     if (response.ok) {
-        // 始终为 MP3 格式
         const blob = await response.blob();
+        
+        // 创建音频元素用于播放
         const audio = new Audio(URL.createObjectURL(blob));
         audio.play();
+        
+        // 可选：下载文件
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `output.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        return blob;
     } else {
         const error = await response.json();
         console.error('错误:', error);
+        throw error;
     }
-}</code></pre>
+}
+
+// 使用示例
+const text = '你好，这是一个测试。';
+const voice = 'alloy';
+const format = 'mp3';  // 支持的格式：mp3、opus、aac、flac、wav、pcm
+const instructions = '请用欢快和兴奋的语气说话';
+
+// 使用默认格式（MP3）生成语音
+generateSpeech(text, voice, undefined, instructions);
+
+// 使用 WAV 格式生成语音
+generateSpeech(text, voice, 'wav', instructions);</code></pre>
                     </div>
                 </section>
 
