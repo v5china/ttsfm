@@ -102,21 +102,6 @@ Access `http://localhost:7000` to experience the interactive demo
 
 > 🔍 Complete API documentation is available via the web interface after local deployment
 
-### 🧪 Stress Testing
-```bash
-# Basic test
-python pressure_test.py
-
-# Custom test example
-python pressure_test.py -n 50 -c 10 -t long -s
-```
-
-**Parameter Explanation**:
-- `-n` Total requests
-- `-c` Concurrency count
-- `-t` Text length (short/medium/long)  
-- `-s` Save generated audio
-
 ## 🤝 Contributing
 
 We welcome all forms of contributions! You can participate by:

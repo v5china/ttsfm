@@ -197,6 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const textInput = document.getElementById('playground-text');
     const voiceSelect = document.getElementById('playground-voice');
     const instructionsInput = document.getElementById('playground-instructions');
+    const formatSelect = document.getElementById('playground-format');
     const statusDiv = document.getElementById('playground-status');
     const audioDiv = document.getElementById('playground-audio');
 
@@ -204,6 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const text = textInput.value.trim();
         const voice = voiceSelect.value;
         const instructions = instructionsInput.value.trim();
+        const format = formatSelect.value;
 
         if (!text) {
             showStatus('Please enter some text to convert', 'error');
@@ -225,7 +227,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({
                     input: text,
                     voice: voice,
-                    instructions: instructions || undefined
+                    instructions: instructions || undefined,
+                    response_format: format
                 })
             });
 
@@ -306,5 +309,62 @@ document.addEventListener('DOMContentLoaded', function() {
     const voiceSelect = document.getElementById('playground-voice');
     if (voiceSelect) {
         loadVoiceSample(voiceSelect.value);
+    }
+});
+
+// Update the example code blocks
+document.addEventListener('DOMContentLoaded', function() {
+    // Update Python example
+    const pythonExample = document.querySelector('.language-python');
+    if (pythonExample) {
+        pythonExample.textContent = `import requests
+
+url = "https://ttsapi.site/v1/audio/speech"
+headers = {
+    "Content-Type": "application/json"
+}
+data = {
+    "input": "Hello, this is a test.",
+    "voice": "alloy",
+    "instructions": "Speak in a cheerful and upbeat tone.",  # Optional
+    "response_format": "mp3"  # Optional, supported formats: mp3, opus, aac, flac, wav, pcm
+}
+
+response = requests.post(url, json=data, headers=headers)
+if response.status_code == 200:
+    # Save the audio file in the requested format
+    with open("output.${format}", "wb") as f:
+        f.write(response.content)
+    print(f"Audio saved as output.${format}")
+else:
+    print(f"Error: {response.status_code}, {response.json()}")`;
+    }
+
+    // Update JavaScript example
+    const javascriptExample = document.querySelector('.language-javascript');
+    if (javascriptExample) {
+        javascriptExample.textContent = `async function generateSpeech() {
+    const response = await fetch('https://ttsapi.site/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            input: 'Hello, this is a test.',
+            voice: 'alloy',
+            instructions: 'Speak in a cheerful and upbeat tone.',  // Optional
+            response_format: 'mp3'  // Optional, supported formats: mp3, opus, aac, flac, wav, pcm
+        })
+    });
+
+    if (response.ok) {
+        const blob = await response.blob();
+        const audio = new Audio(URL.createObjectURL(blob));
+        audio.play();
+    } else {
+        const error = await response.json();
+        console.error('Error:', error);
+    }
+}`;
     }
 }); 
