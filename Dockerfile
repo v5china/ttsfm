@@ -15,6 +15,7 @@ COPY main.py .
 COPY server/ server/
 COPY utils/ utils/
 COPY static/ static/
+COPY voices/ voices/
 
 # Set default environment variables
 ENV HOST=0.0.0.0 \
