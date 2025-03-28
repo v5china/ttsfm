@@ -153,7 +153,17 @@ async def handle_openai_speech(request: web.Request, queue, session=None) -> web
                 'wav': 'audio/wav',
                 'pcm': 'audio/pcm'
             }
-            content_type = format_mapping.get(body['response_format'], 'audio/mpeg')
+            requested_format = body['response_format'].lower()
+            if requested_format not in format_mapping:
+                return web.Response(
+                    text=json.dumps({
+                        "error": f"Unsupported response format: {requested_format}. Supported formats are: {', '.join(format_mapping.keys())}"
+                    }),
+                    status=400,
+                    content_type="application/json"
+                )
+            content_type = format_mapping[requested_format]
+            openai_fm_data['format'] = requested_format
         
         # Create response future
         response_future = asyncio.Future()
@@ -208,6 +218,10 @@ async def process_tts_request(task_data: Dict[str, Any], session) -> web.Respons
             
             # Add generation ID to request data
             task_data['data']['generation'] = str(uuid.uuid4())
+            
+            # Ensure format is properly set in request data
+            if 'format' in task_data['data']:
+                logger.info(f"Requesting audio in format: {task_data['data']['format']}")
             
             request_kwargs = {
                 "data": task_data['data'],

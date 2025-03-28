@@ -103,21 +103,6 @@ python main.py
 
 > 🔍 完整 API 文档可在本地部署后通过 Web 界面查看
 
-### 🧪 压力测试
-```bash
-# 基础测试
-python pressure_test.py
-
-# 自定义测试示例
-python pressure_test.py -n 50 -c 10 -t long -s
-```
-
-**参数说明**：
-- `-n` 总请求数
-- `-c` 并发数
-- `-t` 文本长度 (short/medium/long)  
-- `-s` 保存生成音频
-
 ## 🤝 参与贡献
 
 我们欢迎所有形式的贡献！您可以通过以下方式参与：

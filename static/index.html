@@ -105,6 +105,17 @@
                                 <option value="verse">Verse</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label for="playground-format">Response Format</label>
+                            <select id="playground-format">
+                                <option value="mp3">MP3</option>
+                                <option value="opus">Opus</option>
+                                <option value="aac">AAC</option>
+                                <option value="flac">FLAC</option>
+                                <option value="wav">WAV</option>
+                                <option value="pcm">PCM</option>
+                            </select>
+                        </div>
                         <button id="playground-submit" class="playground-button">
                             <i class="fas fa-play"></i> Generate Speech
                         </button>
@@ -147,12 +158,13 @@ headers = {
 data = {
     "input": "Hello, this is a test.",
     "voice": "alloy",
-    "instructions": "Speak in a cheerful and upbeat tone."  # Optional
+    "instructions": "Speak in a cheerful and upbeat tone.",  # Optional
+    "response_format": "mp3"  # Optional, supported formats: mp3, opus, aac, flac, wav, pcm
 }
 
 response = requests.post(url, json=data, headers=headers)
 if response.status_code == 200:
-    # Save the audio file - always MP3 format regardless of Content-Type header
+    # Save the audio file in the requested format
     with open("output.mp3", "wb") as f:
         f.write(response.content)
     print("Audio saved as output.mp3")
@@ -177,12 +189,12 @@ else:
         body: JSON.stringify({
             input: 'Hello, this is a test.',
             voice: 'alloy',
-            instructions: 'Speak in a cheerful and upbeat tone.'  // Optional
+            instructions: 'Speak in a cheerful and upbeat tone.',  // Optional
+            response_format: 'mp3'  // Optional, supported formats: mp3, opus, aac, flac, wav, pcm
         })
     });
 
     if (response.ok) {
-        // Always MP3 format regardless of Content-Type header
         const blob = await response.blob();
         const audio = new Audio(URL.createObjectURL(blob));
         audio.play();
@@ -247,10 +259,10 @@ else:
                                     <td><em>Mapped to "prompt" parameter when sent to the backend service. Can be used to guide voice emotion or style.</em></td>
                                 </tr>
                                 <tr>
-                                    <td class="compat-param">response_format</td>
+                                    <td class="partial-param">response_format</td>
                                     <td>string</td>
                                     <td>No</td>
-                                    <td><em>OpenAI compatibility only - only changes the Content-Type header but not the actual audio format. May result in incorrect Content-Type headers. Audio is always MP3.</em></td>
+                                    <td>The format of the audio response. Supported formats: mp3, opus, aac, flac, wav, pcm. Defaults to mp3.</td>
                                 </tr>
                                 <tr>
                                     <td class="compat-param">model</td>
@@ -267,7 +279,7 @@ else:
                             </table>
 
                             <div class="compatibility-notice">
-                                <p><strong>Note:</strong> Parameters in <span class="compat-inline">gray</span> are completely ignored by the service or may cause misleading behavior. Only <code>input</code>, <code>voice</code>, and <code>instructions</code> affect the actual TTS output.</p>
+                                <p><strong>Note:</strong> Parameters in <span class="compat-inline">gray</span> are completely ignored by the service or may cause misleading behavior. Only <code>input</code>, <code>voice</code>, <code>response_format</code> and <code>instructions</code> affect the actual TTS output.</p>
                             </div>
 
                             <!-- Instructions Parameter Details -->
@@ -288,15 +300,11 @@ else:
                             </div>
 
                             <h4>Response Format</h4>
-                            <p>The API always returns a binary MP3 audio file with the following headers:</p>
+                            <p>The API returns audio in the requested format with the following headers:</p>
                             <ul>
-                                <li><code>Content-Type</code>: "audio/mpeg"</li>
+                                <li><code>Content-Type</code>: Based on the requested format (e.g., "audio/mpeg" for MP3)</li>
                                 <li><code>Access-Control-Allow-Origin</code>: "*" (CORS enabled)</li>
                             </ul>
-
-                            <div class="warning-box">
-                                <p><strong>Important:</strong> While the <code>response_format</code> parameter may change the Content-Type header in the response, it does not actually convert the audio format. The audio is always returned as MP3 from the upstream service.</p>
-                            </div>
 
                             <h4>Error Responses</h4>
                             <table class="error-table">

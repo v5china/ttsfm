@@ -105,6 +105,17 @@
                                 <option value="verse">Verse</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label for="playground-format">响应格式</label>
+                            <select id="playground-format">
+                                <option value="mp3">MP3</option>
+                                <option value="opus">Opus</option>
+                                <option value="aac">AAC</option>
+                                <option value="flac">FLAC</option>
+                                <option value="wav">WAV</option>
+                                <option value="pcm">PCM</option>
+                            </select>
+                        </div>
                         <button id="playground-submit" class="playground-button">
                             <i class="fas fa-play"></i> 生成语音
                         </button>
@@ -247,10 +258,10 @@ else:
                                     <td><em>发送到后端服务时映射为 "prompt" 参数。可用于指导语音情感或风格。</em></td>
                                 </tr>
                                 <tr>
-                                    <td class="compat-param">response_format</td>
+                                    <td class="partial-param">response_format</td>
                                     <td>string</td>
                                     <td>否</td>
-                                    <td><em>仅用于 OpenAI 兼容性 - 仅更改 Content-Type 标头，不改变实际音频格式。可能导致错误的 Content-Type 标头。音频始终为 MP3。</em></td>
+                                    <td>音频响应的格式。支持的格式：mp3、opus、aac、flac、wav、pcm。默认为 mp3。</td>
                                 </tr>
                                 <tr>
                                     <td class="compat-param">model</td>
@@ -267,7 +278,7 @@ else:
                             </table>
 
                             <div class="compatibility-notice">
-                                <p><strong>注意：</strong> <span class="compat-inline">灰色</span> 的参数完全被服务忽略或可能导致误导行为。只有 <code>input</code>、<code>voice</code> 和 <code>instructions</code> 会影响实际的 TTS 输出。</p>
+                                <p><strong>注意：</strong> <span class="compat-inline">灰色</span> 的参数完全被服务忽略或可能导致误导行为。只有 <code>input</code>、<code>voice</code> <code>response_format</code> 和 <code>instructions</code> 会影响实际的 TTS 输出。</p>
                             </div>
 
                             <!-- Instructions Parameter Details -->
@@ -288,15 +299,11 @@ else:
                             </div>
 
                             <h4>响应格式</h4>
-                            <p>API 始终返回二进制 MP3 音频文件，具有以下标头：</p>
+                            <p>API 以请求的格式返回音频，具有以下标头：</p>
                             <ul>
-                                <li><code>Content-Type</code>: "audio/mpeg"</li>
-                                <li><code>Access-Control-Allow-Origin</code>: "*" (启用 CORS)</li>
+                                <li><code>Content-Type</code>：根据请求的格式（例如，MP3 为 "audio/mpeg"）</li>
+                                <li><code>Access-Control-Allow-Origin</code>：*（启用 CORS）</li>
                             </ul>
-
-                            <div class="warning-box">
-                                <p><strong>重要：</strong> 虽然 <code>response_format</code> 参数可能会更改响应中的 Content-Type 标头，但它不会实际转换音频格式。音频始终从上游服务以 MP3 格式返回。</p>
-                            </div>
 
                             <h4>错误响应</h4>
                             <table class="error-table">
