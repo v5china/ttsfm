@@ -1108,6 +1108,7 @@ code[class*="language-"] {
     justify-content: center;
     gap: 0.5rem;
     transition: background-color 0.2s ease;
+    margin-top: 1rem;
 }
 
 .playground-button:hover {
@@ -1122,13 +1123,41 @@ code[class*="language-"] {
 .playground-output {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 2rem;
+}
+
+.audio-section {
+    background-color: #f8fafc;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.audio-section h3 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.audio-player {
+    background-color: white;
+    border-radius: 6px;
+    padding: 1rem;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+}
+
+.audio-player audio {
+    width: 100%;
 }
 
 .playground-status {
-    padding: 1rem;
+    padding: 0.75rem;
     border-radius: 6px;
     font-size: 0.9rem;
+    margin-bottom: 1rem;
 }
 
 .playground-status.error {
@@ -1143,28 +1172,47 @@ code[class*="language-"] {
     border: 1px solid #dcfce7;
 }
 
-.playground-audio {
-    background-color: #f8fafc;
-    border-radius: 6px;
-    padding: 1rem;
-    min-height: 100px;
+.voice-select-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.voice-select-container select {
+    flex: 1;
+}
+
+.sample-button {
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.playground-audio audio {
-    width: 100%;
-    max-width: 400px;
+.sample-button:hover {
+    background-color: #357abd;
+}
+
+.sample-button:active {
+    background-color: #2d6da3;
+}
+
+.sample-button i {
+    font-size: 14px;
 }
 
 @media (max-width: 768px) {
     .playground-container {
         grid-template-columns: 1fr;
     }
-}
-
-.indicator-error {
-    background-color: var(--error-color);
-    animation: pulse 2s infinite;
+    
+    .playground-output {
+        gap: 1.5rem;
+    }
 } 

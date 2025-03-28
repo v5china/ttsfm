@@ -260,4 +260,51 @@ document.addEventListener('DOMContentLoaded', function() {
         statusDiv.textContent = message;
         statusDiv.className = `playground-status ${type}`;
     }
+});
+
+// Voice sample functionality
+let currentSampleAudio = null;
+
+// Function to load and play voice sample
+async function loadVoiceSample(voice) {
+    const previewAudioDiv = document.getElementById('preview-audio');
+    
+    try {
+        // Create new audio element
+        const response = await fetch(`/api/voice-sample/${voice}`);
+        if (!response.ok) {
+            throw new Error(`Failed to load voice sample: ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        
+        // Create and configure audio element
+        currentSampleAudio = document.createElement('audio');
+        currentSampleAudio.controls = true;
+        currentSampleAudio.src = audioUrl;
+        
+        // Clear previous audio and add new one
+        previewAudioDiv.innerHTML = '';
+        previewAudioDiv.appendChild(currentSampleAudio);
+        
+    } catch (error) {
+        console.error('Error loading voice sample:', error);
+        // Show error in status
+        const statusDiv = document.getElementById('playground-status');
+        statusDiv.innerHTML = `<div class="error-message">Error loading voice sample: ${error.message}</div>`;
+    }
+}
+
+// Add voice selection change handler
+document.getElementById('playground-voice').addEventListener('change', function() {
+    loadVoiceSample(this.value);
+});
+
+// Load initial voice sample when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const voiceSelect = document.getElementById('playground-voice');
+    if (voiceSelect) {
+        loadVoiceSample(voiceSelect.value);
+    }
 }); 

@@ -30,6 +30,9 @@ RATE_LIMIT_WINDOW = config['rate_limit_window']  # seconds
 MAX_REQUESTS_PER_WINDOW = config['rate_limit_requests']
 ip_request_counts = defaultdict(list)
 
+# Voice samples directory
+VOICE_SAMPLES_DIR = Path('voices')
+
 def _get_headers() -> Dict[str, str]:
     """Generate more realistic browser headers with rotation"""
     browsers = [
@@ -364,4 +367,39 @@ async def handle_static(request: web.Request) -> web.Response:
         
     except Exception as e:
         logger.error(f"Error serving static file: {str(e)}")
-        return web.Response(text=str(e), status=500) 
+        return web.Response(text=str(e), status=500)
+
+async def handle_voice_sample(request: web.Request) -> web.Response:
+    """Handle GET requests for voice samples."""
+    try:
+        voice = request.match_info.get('voice')
+        if not voice:
+            return web.Response(
+                text=json.dumps({"error": "Voice parameter is required"}),
+                status=400,
+                content_type="application/json"
+            )
+            
+        sample_path = VOICE_SAMPLES_DIR / f"{voice}_sample.mp3"
+        if not sample_path.exists():
+            return web.Response(
+                text=json.dumps({"error": f"Sample not found for voice: {voice}"}),
+                status=404,
+                content_type="application/json"
+            )
+            
+        return web.FileResponse(
+            path=sample_path,
+            headers={
+                "Content-Type": "audio/mpeg",
+                "Access-Control-Allow-Origin": "*"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error serving voice sample: {str(e)}")
+        return web.Response(
+            text=json.dumps({"error": str(e)}),
+            status=500,
+            content_type="application/json"
+        ) 

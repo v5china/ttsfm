@@ -13,7 +13,7 @@ from typing import Optional
 import random
 from utils.config import load_config
 
-from server.handlers import handle_openai_speech, handle_queue_size, handle_static, process_tts_request
+from server.handlers import handle_openai_speech, handle_queue_size, handle_static, process_tts_request, handle_voice_sample
 
 # Configure logging
 logging.basicConfig(
@@ -72,6 +72,7 @@ class TTSServer:
         # OpenAI compatible endpoint
         self.app.router.add_post('/v1/audio/speech', self._handle_openai_speech)
         self.app.router.add_get('/api/queue-size', self._handle_queue_size)
+        self.app.router.add_get('/api/voice-sample/{voice}', handle_voice_sample)
         self.app.router.add_get('/{tail:.*}', handle_static)
     
     async def _handle_openai_speech(self, request):
