@@ -7,9 +7,6 @@
 > ⚠️ **免责声明**  
 > 此项目仅用于学习测试，生产环境请使用 [OpenAI 官方 TTS 服务](https://platform.openai.com/docs/guides/audio)。
 
-> ⚠️ **开发公告**  
-> v2 分支目前正在积极开发中，不建议用于生产环境。请使用最新的稳定发布版本。
-
 [English](README.md) | 中文
 
 ## 🌟 项目简介
@@ -73,9 +70,6 @@ docker run -d \
 - `MAX_QUEUE_SIZE`：队列最大任务数（默认：100）
 - `RATE_LIMIT_REQUESTS`：每个时间窗口的最大请求数（默认：30）
 - `RATE_LIMIT_WINDOW`：速率限制的时间窗口（秒）（默认：60）
-
-> 💡 **重要提示**  
-> 请始终使用 `latest` 标签获取最稳定的版本。v2 分支正在开发中，不建议用于生产环境。
 
 > 💡 **提示**  
 > MacOS 用户若遇到端口冲突，可替换端口号：  
