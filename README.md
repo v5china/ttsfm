@@ -7,6 +7,9 @@
 > ⚠️ **Disclaimer**  
 > This project is for learning and testing purposes only. For production environments, please use [OpenAI's official TTS service](https://platform.openai.com/docs/guides/audio).
 
+> ⚠️ **Development Notice**  
+> The v2 branch is currently under active development and is not recommended for production use. Please use the latest stable release version instead.
+
 English | [中文](README_CN.md)
 
 ## 🌟 Project Introduction
@@ -73,6 +76,9 @@ Available environment variables:
 > 💡 **Tip**  
 > MacOS users experiencing port conflicts can use alternative ports:  
 > `docker run -p 5051:7000 dbcccc/ttsfm:latest`
+
+> 💡 **Important**  
+> Always use the `latest` tag for the most stable version. The v2 branch is under development and not recommended for production use.
 
 ### 📦 Manual Installation
 
