@@ -211,10 +211,24 @@ def openai_speech() -> Response:
         if error:
             return jsonify({"error": error}), status_code
         
+        # Determine content type from validation or default
+        validated_content_type = "audio/mpeg" # Default
+        if 'response_format' in body:
+            format_mapping = {
+                'mp3': 'audio/mpeg',
+                'opus': 'audio/opus',
+                'aac': 'audio/aac',
+                'flac': 'audio/flac',
+                'wav': 'audio/wav',
+                'pcm': 'audio/pcm'
+            }
+            requested_format = body['response_format'].lower()
+            if requested_format in format_mapping:
+                validated_content_type = format_mapping[requested_format]
+
         # Create task data
         task_data = {
             'data': openai_fm_data,
-            'content_type': "audio/mpeg",  # Default content type
             'timestamp': datetime.now().isoformat()
         }
         
@@ -230,7 +244,7 @@ def openai_speech() -> Response:
             
             return Response(
                 audio_data,
-                mimetype=task_data['content_type']
+                mimetype=validated_content_type # Use the correctly determined content type
             )
         except TimeoutError:
             logger.error(f"Task timeout: {task.id}")
