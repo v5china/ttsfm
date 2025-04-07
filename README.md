@@ -48,110 +48,122 @@ ttsfm/
 ## 🚀 Quick Start
 
 ### System Requirements
-- Docker and Docker Compose
-- or Python ≥ 3.8 with Redis
+- Python 3.13 or higher
+- Redis server
+- Docker (optional)
 
-### 🐳 Docker Run (Recommended)
-
-Basic usage:
+### Using Docker (Recommended)
 ```bash
-docker run -p 7000:7000 -p 6379:6379 dbcccc/ttsfm:latest
-```
+# Pull the latest image
+docker pull dbcccc/ttsfm:latest
 
-Custom configuration with environment variables:
-```bash
+# Run the container
 docker run -d \
+  --name ttsfm \
   -p 7000:7000 \
   -p 6379:6379 \
-  -e HOST=0.0.0.0 \
-  -e PORT=7000 \
-  -e VERIFY_SSL=true \
-  -e MAX_QUEUE_SIZE=100 \
-  -e RATE_LIMIT_REQUESTS=30 \
-  -e RATE_LIMIT_WINDOW=60 \
-  -e CELERY_BROKER_URL=redis://localhost:6379/0 \
-  -e CELERY_RESULT_BACKEND=redis://localhost:6379/0 \
+  -v $(pwd)/voices:/app/voices \
   dbcccc/ttsfm:latest
 ```
 
-Available environment variables:
-- `HOST`: Server host (default: 0.0.0.0)
-- `PORT`: Server port (default: 7000)
-- `VERIFY_SSL`: Verify SSL certificates (default: true)
-- `MAX_QUEUE_SIZE`: Maximum queue size (default: 100)
-- `RATE_LIMIT_REQUESTS`: Maximum requests per time window (default: 30)
-- `RATE_LIMIT_WINDOW`: Rate limit time window in seconds (default: 60)
-- `CELERY_BROKER_URL`: Redis broker URL (default: redis://localhost:6379/0)
-- `CELERY_RESULT_BACKEND`: Redis result backend URL (default: redis://localhost:6379/0)
-
-### 📦 Manual Installation
-
+### Manual Installation
 1. Clone the repository:
 ```bash
 git clone https://github.com/dbccccccc/ttsfm.git
 cd ttsfm
 ```
 
-2. Install dependencies and start:
+2. Install dependencies:
 ```bash
-cd flask_app
 pip install -r requirements.txt
+```
 
-# Start Redis server
+3. Start Redis server:
+```bash
+# On Windows
 redis-server
 
-# In a new terminal, start Celery worker
+# On Linux/macOS
+sudo service redis-server start
+```
+
+4. Start Celery worker:
+```bash
 celery -A celery_worker.celery worker --pool=solo -l info
+```
 
-# In another terminal, start Flask application
+5. Start the server:
+```bash
+# Development (not recommended for production)
 python app.py
+
+# Production (recommended)
+waitress-serve --host=0.0.0.0 --port=7000 app:app
 ```
 
-## 📚 Usage Guide
-
-### Web Interface
-Visit `http://localhost:7000` for the interactive demo
-
-### API Endpoints
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/v1/audio/speech` | POST | Text to Speech |
-| `/api/queue-size` | GET | Query task queue |
-| `/api/voice-sample/<voice>` | GET | Get voice sample |
-| `/api/version` | GET | Get API version |
-
-> 🔍 Complete API documentation is available in the web interface after local deployment
-
-## 🔧 Architecture
-
-The application uses a distributed task queue architecture:
-
-1. **Flask Application**: Handles HTTP requests and serves the web interface
-2. **Celery**: Manages asynchronous task processing
-3. **Redis**: Acts as message broker and result backend
-4. **Task Queue**: Processes TTS requests asynchronously
-
-```mermaid
-graph TD
-    A[Client] -->|HTTP Request| B[Flask App]
-    B -->|Task| C[Celery]
-    C -->|Queue| D[Redis]
-    D -->|Process| E[Celery Worker]
-    E -->|Result| D
-    D -->|Response| B
-    B -->|HTTP Response| A
+### Environment Variables
+Copy `.env.example` to `.env` and modify as needed:
+```bash
+cp .env.example .env
 ```
 
-## 🤝 Contributing
+## 🔧 Configuration
 
-We welcome all forms of contributions! You can participate by:
+### Server Configuration
+- `HOST`: Server host (default: 0.0.0.0)
+- `PORT`: Server port (default: 7000)
+- `VERIFY_SSL`: SSL verification (default: true)
+- `MAX_QUEUE_SIZE`: Maximum queue size (default: 100)
+- `RATE_LIMIT_REQUESTS`: Rate limit requests per window (default: 30)
+- `RATE_LIMIT_WINDOW`: Rate limit window in seconds (default: 60)
 
-- Submitting [Issues](https://github.com/dbccccccc/ttsfm/issues) to report problems
-- Creating [Pull Requests](https://github.com/dbccccccc/ttsfm/pulls) to improve code
-- Sharing usage experiences and suggestions
+### Celery Configuration
+- `CELERY_BROKER_URL`: Redis broker URL (default: redis://localhost:6379/0)
+- `CELERY_RESULT_BACKEND`: Redis result backend URL (default: redis://localhost:6379/0)
 
-📜 Project licensed under [MIT License](LICENSE)
+## 📚 API Documentation
 
-## 📈 Project Activity
+### Text-to-Speech
+```http
+POST /v1/audio/speech
+```
 
-[![Star History Chart](https://api.star-history.com/svg?repos=dbccccccc/ttsfm&type=Date)](https://star-history.com/#dbccccccc/ttsfm&Date) 
+Request body:
+```json
+{
+  "input": "Hello, world!",
+  "voice": "alloy",
+  "response_format": "mp3"
+}
+```
+
+### Queue Status
+```http
+GET /api/queue-size
+```
+
+### Voice Samples
+```http
+GET /api/voice-sample/{voice}
+```
+
+### Version
+```http
+GET /api/version
+```
+
+## 🧪 Testing
+Run the test suite:
+```bash
+python test_api.py
+python test_queue.py
+```
+
+## 📝 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+- [OpenAI](https://openai.com/) for the TTS API format
+- [Flask](https://flask.palletsprojects.com/) for the web framework
+- [Celery](https://docs.celeryq.dev/) for task queue management
+- [Waitress](https://docs.pylonsproject.org/projects/waitress/) for the production WSGI server 

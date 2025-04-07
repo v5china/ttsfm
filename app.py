@@ -6,17 +6,18 @@ Main entry point for the Flask application.
 import os
 import json
 import logging
-import uuid
-from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
+from typing import Dict, Any, Tuple, Optional
 from flask import Flask, request, jsonify, send_file, Response, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from celery.result import AsyncResult
 from celery_worker import celery, process_tts_request
+from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
 import os.path
+import re
 
 # Configure logging
 logging.basicConfig(
@@ -33,120 +34,105 @@ HOST = os.getenv("HOST", "localhost")
 PORT = int(os.getenv("PORT", "7000"))
 VERIFY_SSL = os.getenv("VERIFY_SSL", "true").lower() != "false"
 MAX_QUEUE_SIZE = int(os.getenv("MAX_QUEUE_SIZE", "100"))
-RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "30"))
-RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))
 
-# Rate limiting per IP
-ip_request_counts = defaultdict(list)
+# Security configuration
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max request size
 
 # Create Flask app
 app = Flask(__name__, 
             static_folder='static',
             template_folder='templates')
 
-# Configure CORS to allow requests from any origin
-CORS(app)
+# Configure CORS with specific routes and security
+CORS(app, resources={
+    r"/v1/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "max_age": 3600
+    },
+    r"/api/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["GET", "OPTIONS"],
+        "allow_headers": ["Content-Type"],
+        "max_age": 3600
+    }
+})
+
+# Set maximum content length
+app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
 # Voice samples directory
 VOICE_SAMPLES_DIR = Path('voices')
 
-def _is_rate_limited(ip):
-    """Check if IP is rate limited"""
-    now = datetime.now()
-    window_start = now - timedelta(seconds=RATE_LIMIT_WINDOW)
-    
-    # Clean old requests
-    ip_request_counts[ip] = [t for t in ip_request_counts[ip] if t > window_start]
-    
-    # Check if rate limited
-    if len(ip_request_counts[ip]) >= RATE_LIMIT_REQUESTS:
-        return True
-    
-    # Add current request
-    ip_request_counts[ip].append(now)
-    return False
+def _sanitize_input(text: str) -> str:
+    """Sanitize user input to prevent XSS and other attacks"""
+    # Remove any HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+    # Remove any script tags
+    text = re.sub(r'<script.*?</script>', '', text, flags=re.DOTALL)
+    # Remove any potentially dangerous characters
+    text = re.sub(r'[<>"\']', '', text)
+    return text.strip()
+
+# Error handlers
+@app.errorhandler(HTTPException)
+def handle_http_error(error: HTTPException) -> Tuple[Dict[str, str], int]:
+    """Handle HTTP errors"""
+    logger.warning(f"HTTP error: {error.code} - {error.description}")
+    return jsonify({"error": error.description}), error.code
+
+@app.errorhandler(Exception)
+def handle_generic_error(error: Exception) -> Tuple[Dict[str, str], int]:
+    """Handle unexpected errors"""
+    logger.error(f"Unexpected error: {str(error)}", exc_info=True)
+    return jsonify({"error": "Internal Server Error"}), 500
+
+@app.after_request
+def add_security_headers(response: Response) -> Response:
+    """Add security headers to all responses"""
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['Content-Security-Policy'] = "default-src 'self'"
+    return response
 
 @app.route('/')
-def index():
+def index() -> Response:
     """Render the main index page"""
     return send_from_directory('static', 'index.html')
 
-@app.route('/<path:path>')
-def serve_static_files(path):
-    """Serve static files"""
-    if path == '':
-        return send_from_directory('static', 'index.html')
-    
-    # Secure the filename and prevent path traversal
-    secure_path = secure_filename(path)
-    if not secure_path or secure_path != path:
-        return "Invalid path", 400
-    
-    # Normalize and validate the path
-    base_path = os.path.abspath('static')
-    full_path = os.path.normpath(os.path.join(base_path, secure_path))
-    
-    # Ensure the path is within the static directory
-    if not full_path.startswith(base_path):
-        return "Invalid path", 400
-    
-    if os.path.exists(full_path):
-        # Determine content type
-        content_type = {
-            '.html': 'text/html',
-            '.css': 'text/css',
-            '.js': 'application/javascript',
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.gif': 'image/gif',
-            '.ico': 'image/x-icon'
-        }.get(os.path.splitext(full_path)[1], 'application/octet-stream')
-        
-        return send_file(full_path, mimetype=content_type)
-    
-    return "Not found", 404
-
-@app.route('/v1/audio/speech', methods=['POST'])
-def openai_speech():
-    """Handle POST requests to /v1/audio/speech (OpenAI compatible API)"""
+def validate_tts_request(body: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]], Optional[str], Optional[int]]:
+    """Validate TTS request parameters"""
     try:
-        # Rate limiting check
-        client_ip = request.remote_addr
-        if _is_rate_limited(client_ip):
-            return jsonify({
-                "error": "Rate limit exceeded. Please try again later.",
-                "retry_after": RATE_LIMIT_WINDOW
-            }), 429, {"Retry-After": str(RATE_LIMIT_WINDOW)}
-
-        # Check queue size from Celery
-        active_tasks = celery.control.inspect().active()
-        if active_tasks and sum(len(tasks) for tasks in active_tasks.values()) >= MAX_QUEUE_SIZE:
-            return jsonify({
-                "error": "Queue is full. Please try again later.",
-                "queue_size": MAX_QUEUE_SIZE
-            }), 429
-
-        # Read JSON data
-        body = request.get_json()
-        
-        # Map OpenAI format to our internal format
-        openai_fm_data = {}
-        content_type = "audio/mpeg"
-        
-        # Required parameters
+        # Validate required parameters
         if 'input' not in body or 'voice' not in body:
-            return jsonify({
-                "error": "Missing required parameters: input and voice"
-            }), 400
+            return None, "Missing required parameters: input and voice", 400
         
-        openai_fm_data['input'] = body['input']
-        openai_fm_data['voice'] = body['voice']
+        # Sanitize input
+        sanitized_input = _sanitize_input(body['input'])
+        if not sanitized_input:
+            return None, "Input text cannot be empty", 400
         
-        # Map 'instructions' to 'prompt' if provided
+        # Validate voice parameter
+        if not isinstance(body['voice'], str) or not body['voice']:
+            return None, "Invalid voice parameter", 400
+        
+        openai_fm_data = {
+            'input': sanitized_input,
+            'voice': body['voice']
+        }
+        
+        # Validate and sanitize instructions if provided
         if 'instructions' in body:
-            openai_fm_data['prompt'] = body['instructions']
+            if not isinstance(body['instructions'], str):
+                return None, "Instructions must be a string", 400
+            openai_fm_data['prompt'] = _sanitize_input(body['instructions'])
         
-        # Check for response_format
+        # Validate response format
+        content_type = "audio/mpeg"
         if 'response_format' in body:
             format_mapping = {
                 'mp3': 'audio/mpeg',
@@ -158,18 +144,61 @@ def openai_speech():
             }
             requested_format = body['response_format'].lower()
             if requested_format not in format_mapping:
-                return jsonify({
-                    "error": f"Unsupported response format: {requested_format}. Supported formats are: {', '.join(format_mapping.keys())}"
-                }), 400
+                return None, f"Unsupported response format: {requested_format}. Supported formats are: {', '.join(format_mapping.keys())}", 400
             content_type = format_mapping[requested_format]
             openai_fm_data['format'] = requested_format
+        
+        return openai_fm_data, None, None
+    except Exception as e:
+        logger.error(f"Error validating request: {str(e)}")
+        return None, "Invalid request format", 400
+
+def get_queue_size() -> int:
+    """Get the current queue size from Celery"""
+    try:
+        i = celery.control.inspect()
+        active = i.active()
+        reserved = i.reserved()
+        scheduled = i.scheduled()
+        
+        total_size = 0
+        if active:
+            total_size += sum(len(tasks) for tasks in active.values())
+        if reserved:
+            total_size += sum(len(tasks) for tasks in reserved.values())
+        if scheduled:
+            total_size += sum(len(tasks) for tasks in scheduled.values())
+            
+        return total_size
+    except Exception as e:
+        logger.error(f"Error calculating queue size: {str(e)}")
+        return 0
+
+@app.route('/v1/audio/speech', methods=['POST'])
+def openai_speech() -> Response:
+    """Handle POST requests to /v1/audio/speech (OpenAI compatible API)"""
+    try:
+        # Check queue size from Celery
+        current_size = get_queue_size()
+        if current_size >= MAX_QUEUE_SIZE:
+            logger.warning(f"Queue is full. Current size: {current_size}, Max size: {MAX_QUEUE_SIZE}")
+            return jsonify({
+                "error": "Queue is full. Please try again later.",
+                "queue_size": current_size,
+                "max_queue_size": MAX_QUEUE_SIZE
+            }), 429
+
+        # Read and validate JSON data
+        body = request.get_json()
+        openai_fm_data, error, status_code = validate_tts_request(body)
+        if error:
+            return jsonify({"error": error}), status_code
         
         # Create task data
         task_data = {
             'data': openai_fm_data,
-            'content_type': content_type,
-            'timestamp': datetime.now().isoformat(),
-            'client_ip': client_ip
+            'content_type': "audio/mpeg",  # Default content type
+            'timestamp': datetime.now().isoformat()
         }
         
         # Submit task to Celery
@@ -178,70 +207,47 @@ def openai_speech():
         # Wait for result with timeout
         try:
             audio_data, error, status_code = task.get(timeout=30)
-            
             if error:
+                logger.error(f"Task error: {error}")
                 return jsonify({"error": error}), status_code
             
-            # Return the audio data
             return Response(
                 audio_data,
-                mimetype=task_data['content_type'],
-                headers={
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "POST, OPTIONS",
-                    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-                }
+                mimetype=task_data['content_type']
             )
         except TimeoutError:
+            logger.error(f"Task timeout: {task.id}")
             return jsonify({
                 "error": "Request timed out. Please try again.",
                 "task_id": task.id
             }), 408
                 
     except json.JSONDecodeError:
+        logger.error("Invalid JSON in request body")
         return jsonify({"error": "Invalid JSON in request body"}), 400
     except Exception as e:
-        logger.error(f"Error handling request: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Unexpected error in speech endpoint: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
 
 @app.route('/api/queue-size', methods=['GET'])
-def queue_size():
+def queue_size() -> Response:
     """Handle GET requests to /api/queue-size"""
     try:
-        # Get queue information from Celery
-        i = celery.control.inspect()
-        active = i.active()
-        reserved = i.reserved()
-        
-        # Calculate current queue size
-        current_size = 0
-        if active:
-            current_size += sum(len(tasks) for tasks in active.values())
-        if reserved:
-            current_size += sum(len(tasks) for tasks in reserved.values())
-        
+        current_size = get_queue_size()
         return jsonify({
             "queue_size": current_size,
             "max_queue_size": MAX_QUEUE_SIZE
-        }), 200, {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type"
-        }
+        })
     except Exception as e:
         logger.error(f"Error getting queue size: {str(e)}")
         return jsonify({
             "queue_size": 0,
             "max_queue_size": MAX_QUEUE_SIZE,
             "error": "Failed to get queue status"
-        }), 500, {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type"
-        }
+        }), 500
 
 @app.route('/api/voice-sample/<voice>', methods=['GET'])
-def voice_sample(voice):
+def voice_sample(voice: str) -> Response:
     """Handle GET requests for voice samples"""
     try:
         if not voice:
@@ -252,6 +258,7 @@ def voice_sample(voice):
         # Secure the voice parameter and prevent path traversal
         secure_voice = secure_filename(voice)
         if not secure_voice or secure_voice != voice:
+            logger.warning(f"Invalid voice parameter: {voice}")
             return jsonify({
                 "error": "Invalid voice parameter"
             }), 400
@@ -262,11 +269,13 @@ def voice_sample(voice):
         
         # Ensure the path is within the voice samples directory
         if not sample_path.startswith(base_path):
+            logger.warning(f"Path traversal attempt: {sample_path}")
             return jsonify({
                 "error": "Invalid path"
             }), 400
             
         if not os.path.exists(sample_path):
+            logger.warning(f"Sample not found for voice: {voice}")
             return jsonify({
                 "error": f"Sample not found for voice: {voice}"
             }), 404
@@ -281,36 +290,12 @@ def voice_sample(voice):
     except Exception as e:
         logger.error(f"Error serving voice sample: {str(e)}")
         return jsonify({
-            "error": str(e)
+            "error": "Internal Server Error"
         }), 500
 
 @app.route('/api/version', methods=['GET'])
-def get_version():
+def get_version() -> Response:
     """Handle GET requests for API version"""
     return jsonify({
         "version": "v2.0.0-alpha1"
-    }), 200, {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-    }
-
-# Handle OPTIONS requests for CORS
-@app.route('/v1/audio/speech', methods=['OPTIONS'])
-def handle_options_speech():
-    return '', 200, {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-
-@app.route('/api/queue-size', methods=['OPTIONS'])
-def handle_options_queue():
-    return '', 200, {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-    }
-
-if __name__ == '__main__':
-    app.run(host=HOST, port=PORT, debug=False) 
+    })

@@ -16,5 +16,5 @@ celery -A celery_worker.celery worker --pool=solo -l info &
 # Wait for Celery to initialize
 sleep 2
 
-# Start Flask application
-python app.py 
+# Start Flask application with Waitress
+waitress-serve --host=$HOST --port=$PORT app:app 
