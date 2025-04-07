@@ -133,13 +133,32 @@ POST /v1/audio/speech
 {
   "input": "你好，世界！",
   "voice": "alloy",
-  "response_format": "mp3"
+  "response_format": "mp3",
+  "instructions": "用欢快的语气说话"
 }
 ```
+
+#### 参数
+- `input` (必需): 要转换为语音的文本
+- `voice` (必需): 要使用的语音。
+- `response_format` (可选): 音频输出格式。默认: mp3。支持的格式: mp3, opus, aac, flac, wav, pcm
+- `instructions` (可选): 语音调制的额外指令
+
+#### 响应
+- 成功: 返回音频数据和相应的内容类型
+- 错误: 返回包含错误信息和状态码的 JSON
 
 ### 队列状态
 ```http
 GET /api/queue-size
+```
+
+响应:
+```json
+{
+  "queue_size": 5,
+  "max_queue_size": 100
+}
 ```
 
 ### 语音样本
@@ -147,16 +166,23 @@ GET /api/queue-size
 GET /api/voice-sample/{voice}
 ```
 
+#### 参数
+- `voice` (必需): 要获取样本的语音。必须是以下之一: alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse
+
+#### 响应
+- 成功: 返回 MP3 音频样本
+- 错误: 返回包含错误信息和状态码的 JSON
+
 ### 版本
 ```http
 GET /api/version
 ```
 
-## 🧪 测试
-运行测试套件:
-```bash
-python test_api.py
-python test_queue.py
+响应:
+```json
+{
+  "version": "v2.0.0-alpha1"
+}
 ```
 
 ## 📝 许可证

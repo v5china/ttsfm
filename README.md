@@ -133,13 +133,32 @@ Request body:
 {
   "input": "Hello, world!",
   "voice": "alloy",
-  "response_format": "mp3"
+  "response_format": "mp3",
+  "instructions": "Speak in a cheerful tone"
 }
 ```
+
+#### Parameters
+- `input` (required): The text to convert to speech
+- `voice` (required): The voice to use. Supported voices: alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse
+- `response_format` (optional): The format of the audio output. Default: mp3. Supported formats: mp3, opus, aac, flac, wav, pcm
+- `instructions` (optional): Additional instructions for voice modulation
+
+#### Response
+- Success: Returns audio data with appropriate content type
+- Error: Returns JSON with error message and status code
 
 ### Queue Status
 ```http
 GET /api/queue-size
+```
+
+Response:
+```json
+{
+  "queue_size": 5,
+  "max_queue_size": 100
+}
 ```
 
 ### Voice Samples
@@ -147,16 +166,23 @@ GET /api/queue-size
 GET /api/voice-sample/{voice}
 ```
 
+#### Parameters
+- `voice` (required): The voice to get a sample for. Must be one of: alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse
+
+#### Response
+- Success: Returns MP3 audio sample
+- Error: Returns JSON with error message and status code
+
 ### Version
 ```http
 GET /api/version
 ```
 
-## 🧪 Testing
-Run the test suite:
-```bash
-python test_api.py
-python test_queue.py
+Response:
+```json
+{
+  "version": "v2.0.0-alpha1"
+}
 ```
 
 ## 📝 License
