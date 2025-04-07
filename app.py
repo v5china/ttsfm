@@ -96,13 +96,28 @@ def add_security_headers(response: Response) -> Response:
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    response.headers['Content-Security-Policy'] = "default-src 'self'"
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "style-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "script-src 'self' https://cdnjs.cloudflare.com; "
+        "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
+        "img-src 'self' data:;"
+    )
     return response
 
 @app.route('/')
 def index() -> Response:
     """Render the main index page"""
     return send_from_directory('static', 'index.html')
+
+@app.route('/static/<path:filename>')
+def serve_static(filename: str) -> Response:
+    """Serve static files with correct MIME types"""
+    if filename.endswith('.css'):
+        return send_from_directory('static', filename, mimetype='text/css')
+    elif filename.endswith('.js'):
+        return send_from_directory('static', filename, mimetype='application/javascript')
+    return send_from_directory('static', filename)
 
 def validate_tts_request(body: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]], Optional[str], Optional[int]]:
     """Validate TTS request parameters"""
@@ -297,5 +312,5 @@ def voice_sample(voice: str) -> Response:
 def get_version() -> Response:
     """Handle GET requests for API version"""
     return jsonify({
-        "version": "v2.0.0-alpha1"
+        "version": "v2.0.0-alpha_x"
     })
