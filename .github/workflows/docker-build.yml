@@ -36,6 +36,8 @@ jobs:
             type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
           labels: |
             org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.description=TTS API server compatible with OpenAI's TTS API format
+            org.opencontainers.image.licenses=MIT
 
       - name: Build and push
         id: build-and-push
