@@ -128,30 +128,53 @@ async function updateQueueSize() {
         }
         const data = await response.json();
         
-        // Update text values
-        document.getElementById('queue-size').textContent = data.queue_size;
-        document.getElementById('max-queue-size').textContent = data.max_queue_size;
+        // Get elements
+        const queueSizeElement = document.getElementById('queue-size');
+        const maxQueueSizeElement = document.getElementById('max-queue-size');
+        const queueProgressBar = document.getElementById('queue-progress-bar');
+        const statusIndicator = document.getElementById('status-indicator');
+        const queueLoadText = document.getElementById('queue-load-text');
+        
+        // Check if elements exist before updating
+        if (queueSizeElement) queueSizeElement.textContent = data.queue_size;
+        if (maxQueueSizeElement) maxQueueSizeElement.textContent = data.max_queue_size;
         
         // Calculate load percentage
         const loadPercentage = (data.queue_size / data.max_queue_size) * 100;
         
-        // Update progress bar width
-        queueProgressBar.style.width = `${Math.min(loadPercentage, 100)}%`;
+        // Update progress bar if it exists
+        if (queueProgressBar) {
+            queueProgressBar.style.width = `${Math.min(loadPercentage, 100)}%`;
+        }
         
-        // Update status indicators based on load
-        updateLoadStatus(loadPercentage);
+        // Update status indicators if they exist
+        if (statusIndicator && queueProgressBar && queueLoadText) {
+            updateLoadStatus(loadPercentage);
+        }
         
     } catch (error) {
         console.error('Error fetching queue size:', error);
-        // Show error state in UI
-        document.getElementById('queue-size').textContent = '?';
-        document.getElementById('max-queue-size').textContent = '?';
-        queueProgressBar.style.width = '0%';
-        statusIndicator.classList.remove('indicator-low', 'indicator-medium', 'indicator-high');
-        statusIndicator.classList.add('indicator-error');
-        queueProgressBar.classList.remove('progress-low', 'progress-medium', 'progress-high');
-        queueLoadText.classList.remove('low-load', 'medium-load', 'high-load');
-        queueLoadText.textContent = 'Error';
+        // Show error state in UI if elements exist
+        const queueSizeElement = document.getElementById('queue-size');
+        const maxQueueSizeElement = document.getElementById('max-queue-size');
+        const queueProgressBar = document.getElementById('queue-progress-bar');
+        const statusIndicator = document.getElementById('status-indicator');
+        const queueLoadText = document.getElementById('queue-load-text');
+        
+        if (queueSizeElement) queueSizeElement.textContent = '?';
+        if (maxQueueSizeElement) maxQueueSizeElement.textContent = '?';
+        if (queueProgressBar) queueProgressBar.style.width = '0%';
+        if (statusIndicator) {
+            statusIndicator.classList.remove('indicator-low', 'indicator-medium', 'indicator-high');
+            statusIndicator.classList.add('indicator-error');
+        }
+        if (queueProgressBar) {
+            queueProgressBar.classList.remove('progress-low', 'progress-medium', 'progress-high');
+        }
+        if (queueLoadText) {
+            queueLoadText.classList.remove('low-load', 'medium-load', 'high-load');
+            queueLoadText.textContent = 'Error';
+        }
     }
 }
 
