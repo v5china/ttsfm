@@ -101,7 +101,9 @@ def add_security_headers(response: Response) -> Response:
         "style-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
         "script-src 'self' https://cdnjs.cloudflare.com; "
         "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
-        "img-src 'self' data:;"
+        "img-src 'self' data:; "
+        "media-src 'self' blob:; "
+        "connect-src 'self'"
     )
     return response
 

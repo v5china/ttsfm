@@ -380,10 +380,14 @@ data = {
 
 response = requests.post(url, json=data, headers=headers)
 if response.status_code == 200:
-    # Save the audio file in the requested format
-    with open("output.${format}", "wb") as f:
+    # Get the appropriate file extension based on format
+    format = data.get("response_format", "mp3")
+    filename = f"output.{format}"
+    
+    # Save the audio file
+    with open(filename, "wb") as f:
         f.write(response.content)
-    print(f"Audio saved as output.${format}")
+    print(f"Audio saved as {filename}")
 else:
     print(f"Error: {response.status_code}, {response.json()}")`;
     }
