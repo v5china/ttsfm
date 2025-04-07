@@ -56,6 +56,28 @@ const translations = {
     }
 };
 
+// Function to fetch and update version
+async function updateVersion() {
+    const versionElement = document.getElementById('version');
+    if (!versionElement) return;
+
+    // Set loading text based on language
+    const isChinesePage = window.location.pathname.includes('_zh.html');
+    versionElement.textContent = isChinesePage ? '加载中...' : 'Loading...';
+
+    try {
+        const response = await fetch('/api/version');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        versionElement.textContent = data.version;
+    } catch (error) {
+        console.error('Error fetching version:', error);
+        versionElement.textContent = isChinesePage ? '未知' : 'Unknown';
+    }
+}
+
 // Language switching functionality
 document.addEventListener('DOMContentLoaded', function() {
     const langButtons = document.querySelectorAll('.lang-btn');
@@ -75,6 +97,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initial queue size update
     updateQueueSize();
+    
+    // Initial version update
+    updateVersion();
 });
 
 function updateProcessingStatus(requestCount) {
