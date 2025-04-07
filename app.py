@@ -15,6 +15,8 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from celery.result import AsyncResult
 from celery_worker import celery, process_tts_request
+from werkzeug.utils import secure_filename
+import os.path
 
 # Configure logging
 logging.basicConfig(
@@ -75,9 +77,20 @@ def serve_static_files(path):
     if path == '':
         return send_from_directory('static', 'index.html')
     
-    full_path = Path('static') / path
+    # Secure the filename and prevent path traversal
+    secure_path = secure_filename(path)
+    if not secure_path or secure_path != path:
+        return "Invalid path", 400
     
-    if full_path.exists():
+    # Normalize and validate the path
+    base_path = os.path.abspath('static')
+    full_path = os.path.normpath(os.path.join(base_path, secure_path))
+    
+    # Ensure the path is within the static directory
+    if not full_path.startswith(base_path):
+        return "Invalid path", 400
+    
+    if os.path.exists(full_path):
         # Determine content type
         content_type = {
             '.html': 'text/html',
@@ -87,7 +100,7 @@ def serve_static_files(path):
             '.jpg': 'image/jpeg',
             '.gif': 'image/gif',
             '.ico': 'image/x-icon'
-        }.get(full_path.suffix, 'application/octet-stream')
+        }.get(os.path.splitext(full_path)[1], 'application/octet-stream')
         
         return send_file(full_path, mimetype=content_type)
     
@@ -236,8 +249,24 @@ def voice_sample(voice):
                 "error": "Voice parameter is required"
             }), 400
             
-        sample_path = VOICE_SAMPLES_DIR / f"{voice}_sample.mp3"
-        if not sample_path.exists():
+        # Secure the voice parameter and prevent path traversal
+        secure_voice = secure_filename(voice)
+        if not secure_voice or secure_voice != voice:
+            return jsonify({
+                "error": "Invalid voice parameter"
+            }), 400
+            
+        # Normalize and validate the path
+        base_path = os.path.abspath(VOICE_SAMPLES_DIR)
+        sample_path = os.path.normpath(os.path.join(base_path, f"{secure_voice}_sample.mp3"))
+        
+        # Ensure the path is within the voice samples directory
+        if not sample_path.startswith(base_path):
+            return jsonify({
+                "error": "Invalid path"
+            }), 400
+            
+        if not os.path.exists(sample_path):
             return jsonify({
                 "error": f"Sample not found for voice: {voice}"
             }), 404
@@ -246,7 +275,7 @@ def voice_sample(voice):
             sample_path,
             mimetype="audio/mpeg",
             as_attachment=False,
-            download_name=f"{voice}_sample.mp3"
+            download_name=f"{secure_voice}_sample.mp3"
         )
         
     except Exception as e:
