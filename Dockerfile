@@ -11,13 +11,13 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copy requirements first to leverage Docker cache
-COPY flask_app/requirements.txt .
+COPY requirements.txt .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy Flask application
-COPY flask_app/ .
+# Copy application files
+COPY . .
 
 # Create directory for Redis data
 RUN mkdir -p /data/redis
