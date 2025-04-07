@@ -3,6 +3,9 @@ name: Docker Build and Push
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - v2
 
 jobs:
   build-and-push:
@@ -34,6 +37,8 @@ jobs:
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
+            type=raw,value=alpha,enable=${{ github.ref == 'refs/heads/v2' }}
+            type=raw,value=alpha-{{date 'YYYYMMDD'}}-{{shortSha}},enable=${{ github.ref == 'refs/heads/v2' }}
           labels: |
             org.opencontainers.image.source=${{ github.repositoryUrl }}
             org.opencontainers.image.description=TTS API server compatible with OpenAI's TTS API format
