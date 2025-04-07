@@ -7,6 +7,9 @@
 > ⚠️ **Disclaimer**  
 > This project is for learning & testing purposes only. For production use, please use the [official OpenAI TTS service](https://platform.openai.com/docs/guides/audio).
 
+> ⚠️ **Development Notice**  
+> The v2 branch is currently under active development and is not recommended for production use. Please use the latest stable release version instead.
+
 English | [中文](README_CN.md)
 
 ## 🌟 Project Overview

@@ -259,7 +259,7 @@ def voice_sample(voice):
 def get_version():
     """Handle GET requests for API version"""
     return jsonify({
-        "version": "v2.0.0"
+        "version": "v2.0.0-alpha1"
     }), 200, {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
