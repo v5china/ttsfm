@@ -7,6 +7,7 @@ import random
 import logging
 import uuid
 from fake_useragent import UserAgent
+import re
 
 # Load environment variables
 load_dotenv()
@@ -41,42 +42,59 @@ celery.conf.update(
 
 def _get_headers():
     """Generate realistic browser headers with rotation"""
-    browsers = [
-        {
-            "User-Agent": ua.chrome,
-            "Sec-Ch-Ua": '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
-            "Sec-Ch-Ua-Mobile": "?0",
-            "Sec-Ch-Ua-Platform": '"Windows"',
-        },
-        {
-            "User-Agent": ua.firefox,
-            "Sec-Ch-Ua": '"Not A(Brand";v="8", "Chromium";v="121"',
-            "Sec-Ch-Ua-Mobile": "?0",
-            "Sec-Ch-Ua-Platform": '"Windows"',
-        },
-        {
-            "User-Agent": ua.edge,
-            "Sec-Ch-Ua": '"Not A(Brand";v="8", "Chromium";v="121", "Microsoft Edge";v="121"',
-            "Sec-Ch-Ua-Mobile": "?0",
-            "Sec-Ch-Ua-Platform": '"Windows"',
-        }
-    ]
     
-    browser = random.choice(browsers)
-    return {
-        "Authority": "www.openai.fm",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+    # Get a random User-Agent
+    user_agent = ua.random
+    
+    # Base headers common to most browsers
+    headers = {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
         "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Language": random.choice(["en-US,en;q=0.9", "en-GB,en;q=0.8", "en-CA,en;q=0.7"]),
         "Cache-Control": "no-cache",
-        "Dnt": "1",
-        "Referer": "https://www.openai.fm/",
+        "Dnt": "1", # Do Not Track
+        "Pragma": "no-cache",
+        "Referer": "https://www.openai.fm/", 
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-origin",
-        "X-Requested-With": "XMLHttpRequest",
-        **browser
+        "User-Agent": user_agent,
+        "X-Requested-With": "XMLHttpRequest", # Often used in AJAX requests
     }
+
+    # Add browser-specific headers (Sec-CH-UA) if applicable
+    # These are primarily for Chromium-based browsers (Chrome, Edge, Opera, etc.)
+    if 'chrome' in user_agent.lower() or 'edge' in user_agent.lower() or 'chromium' in user_agent.lower():
+        # Extract major version number (handle cases where it might not be present)
+        version_match = re.search(r'(?:Chrome|Edge|Chromium)/(\d+)', user_agent)
+        major_version = version_match.group(1) if version_match else "121" # Default if not found
+
+        brands = []
+        if 'google chrome' in user_agent.lower():
+            brands.append(f'"Google Chrome";v="{major_version}"')
+            brands.append(f'"Chromium";v="{major_version}"')
+            brands.append('"Not A(Brand";v="99"')
+        elif 'microsoft edge' in user_agent.lower():
+            brands.append(f'"Microsoft Edge";v="{major_version}"')
+            brands.append(f'"Chromium";v="{major_version}"')
+            brands.append('"Not A(Brand";v="99"')
+        else: # Generic Chromium or others
+             brands.append(f'"Chromium";v="{major_version}"')
+             brands.append('"Not A(Brand";v="8"')
+
+
+        headers["Sec-Ch-Ua"] = ", ".join(brands)
+        headers["Sec-Ch-Ua-Mobile"] = "?0" # Assuming desktop
+        headers["Sec-Ch-Ua-Platform"] = random.choice(['"Windows"', '"macOS"', '"Linux"'])
+    
+    # Add Upgrade-Insecure-Requests sometimes (common for initial navigation)
+    if random.random() < 0.5:
+        headers["Upgrade-Insecure-Requests"] = "1"
+
+    # Use Authority or Host - Authority is more common with HTTP/2
+    headers["Authority"] = "www.openai.fm" # Prefer Authority for HTTP/2
+
+    return headers
 
 def _get_random_delay():
     """Get random delay time (1-5 seconds) with jitter"""
