@@ -61,8 +61,16 @@
                         </div>
                         <div class="queue-stats">
                             <div class="stat-item">
-                                <span class="stat-label">活动请求:</span>
-                                <span class="stat-value" id="queue-size">0</span>
+                                <span class="stat-label">正在处理:</span>
+                                <span class="stat-value" id="processing-tasks">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">队列等待:</span>
+                                <span class="stat-value" id="waiting-tasks">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">报告总数:</span>
+                                <span class="stat-value" id="total-tasks">0</span>
                             </div>
                             <div class="stat-item">
                                 <span class="stat-label">最大容量:</span>
@@ -73,6 +81,7 @@
                             <div class="queue-progress-bar" id="queue-progress-bar"></div>
                         </div>
                         <div class="queue-load-text" id="queue-load-text">无负载</div>
+                        <div class="queue-error-text" id="queue-error-text" style="display: none; color: red; margin-top: 5px;"></div>
                     </div>
                 </div>
             </section>
@@ -397,10 +406,14 @@ generateSpeech(text, voice, 'wav', instructions);</code></pre>
 
                         <h4>队列状态端点</h4>
                         <pre><code class="language-http">GET /api/queue-size</code></pre>
-                        <p>返回包含队列信息的 JSON：</p>
+                        <p>返回包含详细队列信息的 JSON：</p>
                         <pre><code class="language-json">{
-    "queue_size": 0,        // 当前队列中的请求数
-    "max_queue_size": 100   // 队列最大容量
+    "active_tasks": 1,        // 当前正在处理的任务数
+    "reserved_tasks": 0,      // 已被工作节点获取、即将开始的任务数
+    "scheduled_tasks": 2,     // 已计划稍后执行的任务数
+    "total_reported_by_workers": 3, // 活动工作节点已知的总任务数 (活动 + 预留 + 计划)
+    "max_queue_size_limit": 100, // 队列最大容量
+    "error": null             // 如果检查失败则包含错误信息，否则为 null
 }</code></pre>
 
                         <div class="response-codes">

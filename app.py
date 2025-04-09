@@ -170,39 +170,64 @@ def validate_tts_request(body: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]]
         logger.error(f"Error validating request: {str(e)}")
         return None, "Invalid request format", 400
 
-def get_queue_size() -> int:
-    """Get the current queue size from Celery"""
+def get_queue_details() -> Dict[str, Any]:
+    """Get detailed queue counts from Celery workers."""
+    details = {
+        'active': 0,
+        'reserved': 0,
+        'scheduled': 0,
+        'total_reported_by_workers': 0,
+        'error': None
+    }
     try:
-        i = celery.control.inspect()
-        active = i.active()
-        reserved = i.reserved()
-        scheduled = i.scheduled()
+        i = celery.control.inspect(timeout=1.0) # Add timeout
+        if not i:
+             details['error'] = "Could not connect to Celery workers for inspection."
+             return details
+             
+        active_tasks = i.active()
+        reserved_tasks = i.reserved()
+        scheduled_tasks = i.scheduled()
         
-        total_size = 0
-        if active:
-            total_size += sum(len(tasks) for tasks in active.values())
-        if reserved:
-            total_size += sum(len(tasks) for tasks in reserved.values())
-        if scheduled:
-            total_size += sum(len(tasks) for tasks in scheduled.values())
+        if active_tasks:
+            details['active'] = sum(len(tasks) for tasks in active_tasks.values())
+        if reserved_tasks:
+            details['reserved'] = sum(len(tasks) for tasks in reserved_tasks.values())
+        if scheduled_tasks:
+            details['scheduled'] = sum(len(tasks) for tasks in scheduled_tasks.values())
             
-        return total_size
+        details['total_reported_by_workers'] = details['active'] + details['reserved'] + details['scheduled']
+            
     except Exception as e:
-        logger.error(f"Error calculating queue size: {str(e)}")
-        return 0
+        logger.error(f"Error calculating queue details: {str(e)}")
+        details['error'] = f"Failed to inspect Celery workers: {str(e)}"
+        # Reset counts to 0 on error to avoid misleading data
+        details['active'] = 0
+        details['reserved'] = 0
+        details['scheduled'] = 0
+        details['total_reported_by_workers'] = 0
+        
+    return details
 
 @app.route('/v1/audio/speech', methods=['POST'])
 def openai_speech() -> Response:
     """Handle POST requests to /v1/audio/speech (OpenAI compatible API)"""
     try:
-        # Check queue size from Celery
-        current_size = get_queue_size()
-        if current_size >= MAX_QUEUE_SIZE:
-            logger.warning(f"Queue is full. Current size: {current_size}, Max size: {MAX_QUEUE_SIZE}")
+        # Check queue size from Celery worker reports
+        queue_details = get_queue_details()
+        current_total = queue_details['total_reported_by_workers']
+        
+        # Check for inspection errors
+        if queue_details['error']:
+             logger.warning(f"Could not determine queue size due to inspection error: {queue_details['error']}. Allowing request.")
+             # Optionally, you could reject here, but allowing might be safer if inspection is flaky
+        
+        elif current_total >= MAX_QUEUE_SIZE:
+            logger.warning(f"Queue is full based on worker reports. Current total: {current_total}, Max size: {MAX_QUEUE_SIZE}")
             return jsonify({
                 "error": "Queue is full. Please try again later.",
-                "queue_size": current_size,
-                "max_queue_size": MAX_QUEUE_SIZE
+                "queue_details": queue_details, # Provide detailed counts
+                "max_queue_size_limit": MAX_QUEUE_SIZE
             }), 429
 
         # Read and validate JSON data
@@ -262,19 +287,34 @@ def openai_speech() -> Response:
 
 @app.route('/api/queue-size', methods=['GET'])
 def queue_size() -> Response:
-    """Handle GET requests to /api/queue-size"""
+    """Handle GET requests to /api/queue-size with detailed counts"""
     try:
-        current_size = get_queue_size()
-        return jsonify({
-            "queue_size": current_size,
-            "max_queue_size": MAX_QUEUE_SIZE
-        })
+        queue_details = get_queue_details()
+        
+        response_data = {
+            "active_tasks": queue_details['active'],
+            "reserved_tasks": queue_details['reserved'],
+            "scheduled_tasks": queue_details['scheduled'],
+            "total_reported_by_workers": queue_details['total_reported_by_workers'],
+            "max_queue_size_limit": MAX_QUEUE_SIZE,
+            "error": queue_details['error']
+        }
+        
+        # Determine status code based on whether there was an inspection error
+        status_code = 500 if queue_details['error'] else 200
+        
+        return jsonify(response_data), status_code
+        
     except Exception as e:
-        logger.error(f"Error getting queue size: {str(e)}")
+        # This handles errors in the route handler itself, not inspection errors
+        logger.error(f"Error in /api/queue-size endpoint: {str(e)}")
         return jsonify({
-            "queue_size": 0,
-            "max_queue_size": MAX_QUEUE_SIZE,
-            "error": "Failed to get queue status"
+            "active_tasks": 0,
+            "reserved_tasks": 0,
+            "scheduled_tasks": 0,
+            "total_reported_by_workers": 0,
+            "max_queue_size_limit": MAX_QUEUE_SIZE,
+            "error": "Failed to process queue status request"
         }), 500
 
 @app.route('/api/voice-sample/<voice>', methods=['GET'])

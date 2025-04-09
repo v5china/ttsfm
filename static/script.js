@@ -28,12 +28,16 @@ const translations = {
         availableVoices: "Available Voices",
         apiReference: "API Reference",
         queueStatus: "Queue Status",
-        activeRequests: "Active Requests",
+        processingNow: "Processing Now",
+        waitingInQueue: "Waiting in Queue",
+        totalReported: "Total Reported",
         maxCapacity: "Maximum Capacity",
         noLoad: "No Load",
         lowLoad: "Low Load",
         mediumLoad: "Medium Load",
-        highLoad: "High Load"
+        highLoad: "High Load",
+        error: "Error",
+        queueError: "Queue status unavailable"
     },
     zh: {
         title: "OpenAI TTS API 文档",
@@ -47,12 +51,16 @@ const translations = {
         availableVoices: "可用语音",
         apiReference: "API 参考",
         queueStatus: "队列状态",
-        activeRequests: "活动请求",
+        processingNow: "正在处理",
+        waitingInQueue: "队列等待",
+        totalReported: "报告总数",
         maxCapacity: "最大容量",
         noLoad: "无负载",
         lowLoad: "低负载",
         mediumLoad: "中负载",
-        highLoad: "高负载"
+        highLoad: "高负载",
+        error: "错误",
+        queueError: "队列状态不可用"
     }
 };
 
@@ -121,60 +129,95 @@ function updateLastUpdate() {
 
 // Function to update queue size with visual indicators
 async function updateQueueSize() {
+    const processingTasksElement = document.getElementById('processing-tasks');
+    const waitingTasksElement = document.getElementById('waiting-tasks');
+    const totalTasksElement = document.getElementById('total-tasks');
+    const maxQueueSizeElement = document.getElementById('max-queue-size');
+    const queueProgressBar = document.getElementById('queue-progress-bar');
+    const statusIndicator = document.getElementById('status-indicator');
+    const queueLoadText = document.getElementById('queue-load-text');
+    const queueErrorTextElement = document.getElementById('queue-error-text');
+
     try {
         const response = await fetch('/api/queue-size');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Don't throw immediately for non-200, as 500 might contain error info
+        const data = await response.json(); 
+
+        if (!response.ok || data.error) {
+            // Handle error reported by the API (e.g., inspection failure)
+             console.error('Error fetching queue size:', data.error || `HTTP error! status: ${response.status}`);
+             showQueueErrorState(data.error || `HTTP ${response.status}`);
+             return; // Stop processing if there's an error
         }
-        const data = await response.json();
         
-        // Get elements
-        const queueSizeElement = document.getElementById('queue-size');
-        const maxQueueSizeElement = document.getElementById('max-queue-size');
-        const queueProgressBar = document.getElementById('queue-progress-bar');
-        const statusIndicator = document.getElementById('status-indicator');
-        const queueLoadText = document.getElementById('queue-load-text');
+        // Clear any previous error message
+        if (queueErrorTextElement) {
+            queueErrorTextElement.textContent = '';
+            queueErrorTextElement.style.display = 'none';
+        }
         
-        // Check if elements exist before updating
-        if (queueSizeElement) queueSizeElement.textContent = data.queue_size;
-        if (maxQueueSizeElement) maxQueueSizeElement.textContent = data.max_queue_size;
+        // Calculate waiting tasks
+        const waitingTasks = data.reserved_tasks + data.scheduled_tasks;
         
-        // Calculate load percentage
-        const loadPercentage = (data.queue_size / data.max_queue_size) * 100;
+        // Update text content
+        if (processingTasksElement) processingTasksElement.textContent = data.active_tasks;
+        if (waitingTasksElement) waitingTasksElement.textContent = waitingTasks;
+        if (totalTasksElement) totalTasksElement.textContent = data.total_reported_by_workers;
+        if (maxQueueSizeElement) maxQueueSizeElement.textContent = data.max_queue_size_limit;
         
-        // Update progress bar if it exists
+        // Calculate load percentage based on total reported tasks
+        // Avoid division by zero if max_queue_size_limit is 0 or undefined
+        const maxLimit = data.max_queue_size_limit || 1; // Use 1 to prevent division by zero
+        const loadPercentage = (data.total_reported_by_workers / maxLimit) * 100;
+        
+        // Update progress bar
         if (queueProgressBar) {
             queueProgressBar.style.width = `${Math.min(loadPercentage, 100)}%`;
         }
         
-        // Update status indicators if they exist
+        // Update status indicators
         if (statusIndicator && queueProgressBar && queueLoadText) {
             updateLoadStatus(loadPercentage);
         }
         
     } catch (error) {
-        console.error('Error fetching queue size:', error);
-        // Show error state in UI if elements exist
-        const queueSizeElement = document.getElementById('queue-size');
-        const maxQueueSizeElement = document.getElementById('max-queue-size');
-        const queueProgressBar = document.getElementById('queue-progress-bar');
-        const statusIndicator = document.getElementById('status-indicator');
-        const queueLoadText = document.getElementById('queue-load-text');
-        
-        if (queueSizeElement) queueSizeElement.textContent = '?';
-        if (maxQueueSizeElement) maxQueueSizeElement.textContent = '?';
-        if (queueProgressBar) queueProgressBar.style.width = '0%';
-        if (statusIndicator) {
-            statusIndicator.classList.remove('indicator-low', 'indicator-medium', 'indicator-high');
-            statusIndicator.classList.add('indicator-error');
-        }
-        if (queueProgressBar) {
-            queueProgressBar.classList.remove('progress-low', 'progress-medium', 'progress-high');
-        }
-        if (queueLoadText) {
-            queueLoadText.classList.remove('low-load', 'medium-load', 'high-load');
-            queueLoadText.textContent = 'Error';
-        }
+        // Handle network errors or JSON parsing errors
+        console.error('Failed to fetch or parse queue size:', error);
+        showQueueErrorState(translations[currentLang].queueError || 'Queue status unavailable');
+    }
+}
+
+// Function to display error state in the queue status UI
+function showQueueErrorState(errorMessage) {
+    const processingTasksElement = document.getElementById('processing-tasks');
+    const waitingTasksElement = document.getElementById('waiting-tasks');
+    const totalTasksElement = document.getElementById('total-tasks');
+    const maxQueueSizeElement = document.getElementById('max-queue-size');
+    const queueProgressBar = document.getElementById('queue-progress-bar');
+    const statusIndicator = document.getElementById('status-indicator');
+    const queueLoadText = document.getElementById('queue-load-text');
+    const queueErrorTextElement = document.getElementById('queue-error-text');
+    
+    if (processingTasksElement) processingTasksElement.textContent = '?';
+    if (waitingTasksElement) waitingTasksElement.textContent = '?';
+    if (totalTasksElement) totalTasksElement.textContent = '?';
+    if (maxQueueSizeElement) maxQueueSizeElement.textContent = '?';
+    
+    if (queueProgressBar) {
+        queueProgressBar.style.width = '0%';
+        queueProgressBar.classList.remove('progress-low', 'progress-medium', 'progress-high');
+    }
+    if (statusIndicator) {
+        statusIndicator.classList.remove('indicator-low', 'indicator-medium', 'indicator-high');
+        statusIndicator.classList.add('indicator-error');
+    }
+    if (queueLoadText) {
+        queueLoadText.classList.remove('low-load', 'medium-load', 'high-load');
+        queueLoadText.textContent = translations[currentLang].error || 'Error';
+    }
+    if (queueErrorTextElement) {
+        queueErrorTextElement.textContent = errorMessage;
+        queueErrorTextElement.style.display = 'block';
     }
 }
 

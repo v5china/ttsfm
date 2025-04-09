@@ -59,12 +59,20 @@
                             <div class="status-indicator" id="status-indicator"></div>
                         </div>
                         <div class="queue-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">Active Requests:</span>
-                                <span class="stat-value" id="queue-size">0</span>
+                             <div class="stat-item">
+                                <span class="stat-label">Processing Now:</span>
+                                <span class="stat-value" id="processing-tasks">0</span>
+                            </div>
+                             <div class="stat-item">
+                                <span class="stat-label">Waiting in Queue:</span>
+                                <span class="stat-value" id="waiting-tasks">0</span>
+                            </div>
+                             <div class="stat-item">
+                                <span class="stat-label">Total Reported:</span>
+                                <span class="stat-value" id="total-tasks">0</span>
                             </div>
                             <div class="stat-item">
-                                <span class="stat-label">Maximum Capacity:</span>
+                                <span class="stat-label">Max Capacity:</span>
                                 <span class="stat-value" id="max-queue-size">-</span>
                             </div>
                         </div>
@@ -72,6 +80,7 @@
                             <div class="queue-progress-bar" id="queue-progress-bar"></div>
                         </div>
                         <div class="queue-load-text" id="queue-load-text">No Load</div>
+                        <div class="queue-error-text" id="queue-error-text" style="display: none; color: red; margin-top: 5px;"></div>
                     </div>
                 </div>
             </section>
@@ -396,10 +405,14 @@ generateSpeech(text, voice, 'wav', instructions);</code></pre>
 
                         <h4>Queue Status Endpoint</h4>
                         <pre><code class="language-http">GET /api/queue-size</code></pre>
-                        <p>Returns JSON with queue information:</p>
+                        <p>Returns JSON with detailed queue information:</p>
                         <pre><code class="language-json">{
-    "queue_size": 0,        // Current number of requests in queue
-    "max_queue_size": 100   // Maximum queue capacity
+    "active_tasks": 1,        // Tasks currently being processed
+    "reserved_tasks": 0,      // Tasks fetched by workers, about to start
+    "scheduled_tasks": 2,     // Tasks scheduled for later execution
+    "total_reported_by_workers": 3, // Total tasks known by active workers (active + reserved + scheduled)
+    "max_queue_size_limit": 100, // Maximum queue capacity
+    "error": null             // Error message if inspection failed, otherwise null
 }</code></pre>
 
                         <div class="response-codes">
