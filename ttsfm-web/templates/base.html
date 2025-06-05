@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TTSFM - Text-to-Speech{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+
+    <!-- Additional Performance Optimizations -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>">
+
+    <!-- Meta tags for better SEO and social sharing -->
+    <meta name="description" content="TTSFM - A Python client for text-to-speech APIs. Simple to use with support for multiple voices and audio formats.">
+    <meta name="keywords" content="text-to-speech, TTS, python, API, voice synthesis, audio generation">
+    <meta name="author" content="TTSFM">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:title" content="{% block og_title %}TTSFM - Python Text-to-Speech Client{% endblock %}">
+    <meta property="og:description" content="A Python client for text-to-speech APIs. Simple to use with support for multiple voices and audio formats.">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary">
+    <meta property="twitter:url" content="{{ request.url }}">
+    <meta property="twitter:title" content="{% block twitter_title %}TTSFM - Python Text-to-Speech Client{% endblock %}">
+    <meta property="twitter:description" content="A Python client for text-to-speech APIs. Simple to use with support for multiple voices and audio formats.">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Skip to content link for accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Enhanced Navigation -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-microphone-alt me-2"></i>
+                <span class="fw-bold">TTSFM</span>
+                <span class="badge bg-primary ms-2 small">v3.0</span>
+            </a>
+
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}" aria-label="Home page">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('playground') }}" aria-label="Interactive playground">
+                            <i class="fas fa-play me-1"></i>Playground
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('docs') }}" aria-label="API documentation">
+                            <i class="fas fa-book me-1"></i>Documentation
+                        </a>
+                    </li>
+                </ul>
+
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="navbar-text d-flex align-items-center">
+                            <span id="status-indicator" class="status-indicator status-offline" aria-hidden="true"></span>
+                            <span id="status-text" class="small">Checking...</span>
+                        </span>
+                    </li>
+                    <li class="nav-item ms-2">
+                        <a class="btn btn-outline-primary btn-sm" href="https://github.com/dbccccccc/ttsfm" target="_blank" rel="noopener noreferrer" aria-label="View source code on GitHub">
+                            <i class="fab fa-github me-1"></i>GitHub
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content" style="padding-top: 76px;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Enhanced Footer -->
+    <footer class="footer" role="contentinfo">
+        <div class="container position-relative">
+            <div class="row">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="footer-brand">
+                        <h5 class="d-flex align-items-center mb-3">
+                            <i class="fas fa-microphone-alt me-2"></i>TTSFM
+                        </h5>
+                        <p class="mb-3">
+                            Free text-to-speech using openai.fm's service. No API keys required,
+                            just install and start generating speech.
+                        </p>
+                        <div class="footer-stats">
+                            <small class="d-block mb-1">
+                                <i class="fas fa-code me-2"></i>Open Source
+                            </small>
+                            <small class="d-block mb-1">
+                                <i class="fas fa-python me-2"></i>Python Package
+                            </small>
+                            <small class="d-block">
+                                <i class="fas fa-heart me-2"></i>MIT License
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="fw-bold mb-3">Product</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a href="{{ url_for('playground') }}" class="text-decoration-none">
+                                <i class="fas fa-play me-2"></i>Playground
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{{ url_for('docs') }}" class="text-decoration-none">
+                                <i class="fas fa-book me-2"></i>Documentation
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="https://pypi.org/project/ttsfm/" class="text-decoration-none" target="_blank" rel="noopener noreferrer">
+                                <i class="fas fa-download me-2"></i>PyPI Package
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="fw-bold mb-3">Resources</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a href="https://github.com/dbccccccc/ttsfm" class="text-decoration-none" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-github me-2"></i>GitHub
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="https://github.com/dbccccccc/ttsfm/issues" class="text-decoration-none" target="_blank" rel="noopener noreferrer">
+                                <i class="fas fa-question-circle me-2"></i>Issues
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="https://github.com/dbccccccc/ttsfm/discussions" class="text-decoration-none" target="_blank" rel="noopener noreferrer">
+                                <i class="fas fa-comments me-2"></i>Discussions
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <h6 class="fw-bold mb-3">About</h6>
+                    <p class="mb-3">TTSFM is an open-source Python package for text-to-speech functionality.</p>
+                    <div class="d-flex gap-3 mb-3">
+                        <a href="https://github.com/dbccccccc/ttsfm" class="btn btn-outline-light btn-sm" target="_blank" rel="noopener noreferrer" aria-label="Star on GitHub">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    </div>
+                    <div class="footer-tech-info">
+                        <small class="d-block mb-1">
+                            <i class="fas fa-code me-2"></i>Built with Python & Flask
+                        </small>
+                        <small class="d-block">
+                            <i class="fas fa-balance-scale me-2"></i>MIT License
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
+
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">
+                        <small>&copy; 2024 TTSFM. Released under the MIT License.</small>
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">
+                        <small>
+                            <span id="footer-status" class="d-inline-flex align-items-center">
+                                <span class="status-indicator status-offline me-2"></span>
+                                Service Status: <span id="footer-status-text" class="ms-1">Checking...</span>
+                            </span>
+                        </small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Enhanced Common JavaScript -->
+    <script>
+        // Enhanced service status checking
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+
+                const indicator = document.getElementById('status-indicator');
+                const text = document.getElementById('status-text');
+                const footerIndicator = document.querySelector('#footer-status .status-indicator');
+                const footerText = document.getElementById('footer-status-text');
+
+                if (response.ok && data.status === 'healthy') {
+                    // Update navbar status
+                    indicator.className = 'status-indicator status-online';
+                    text.textContent = 'Online';
+
+                    // Update footer status
+                    if (footerIndicator) footerIndicator.className = 'status-indicator status-online';
+                    if (footerText) footerText.textContent = 'Online';
+                } else {
+                    // Update navbar status
+                    indicator.className = 'status-indicator status-offline';
+                    text.textContent = 'Offline';
+
+                    // Update footer status
+                    if (footerIndicator) footerIndicator.className = 'status-indicator status-offline';
+                    if (footerText) footerText.textContent = 'Offline';
+                }
+            } catch (error) {
+                // Update navbar status
+                const indicator = document.getElementById('status-indicator');
+                const text = document.getElementById('status-text');
+                indicator.className = 'status-indicator status-offline';
+                text.textContent = 'Offline';
+
+                // Update footer status
+                const footerIndicator = document.querySelector('#footer-status .status-indicator');
+                const footerText = document.getElementById('footer-status-text');
+                if (footerIndicator) footerIndicator.className = 'status-indicator status-offline';
+                if (footerText) footerText.textContent = 'Offline';
+            }
+        }
+
+        // Enhanced page initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check status immediately and periodically
+            checkStatus();
+            setInterval(checkStatus, 30000); // Check every 30 seconds
+
+            // Initialize tooltips
+            if (typeof bootstrap !== 'undefined') {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }
+
+            // Add smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        e.preventDefault();
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // Add fade-in animation to main content
+            const mainContent = document.querySelector('main');
+            if (mainContent) {
+                mainContent.classList.add('fade-in');
+            }
+
+            // Add loading states to external links
+            document.querySelectorAll('a[target="_blank"]').forEach(link => {
+                link.addEventListener('click', function() {
+                    this.style.opacity = '0.7';
+                    setTimeout(() => {
+                        this.style.opacity = '1';
+                    }, 1000);
+                });
+            });
+        });
+
+        // Enhanced utility function to show loading state
+        function setLoading(button, loading) {
+            if (loading) {
+                button.classList.add('loading');
+                button.disabled = true;
+                button.style.cursor = 'wait';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = false;
+                button.style.cursor = 'pointer';
+            }
+        }
+
+        // Enhanced utility function to show alerts
+        function showAlert(message, type = 'info', duration = 5000) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show fade-in`;
+            alertDiv.style.position = 'relative';
+            alertDiv.style.zIndex = '1050';
+            alertDiv.innerHTML = `
+                <i class="fas fa-${getAlertIcon(type)} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+
+            // Find the best container to insert the alert
+            const container = document.querySelector('main .container') || document.querySelector('.container') || document.body;
+            if (container) {
+                container.insertBefore(alertDiv, container.firstChild);
+
+                // Auto-dismiss after specified duration
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.classList.remove('show');
+                        setTimeout(() => {
+                            if (alertDiv.parentNode) {
+                                alertDiv.remove();
+                            }
+                        }, 150);
+                    }
+                }, duration);
+
+                // Scroll to alert if it's not visible
+                alertDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        // Helper function to get appropriate icon for alert type
+        function getAlertIcon(type) {
+            const icons = {
+                'success': 'check-circle',
+                'danger': 'exclamation-triangle',
+                'warning': 'exclamation-triangle',
+                'info': 'info-circle',
+                'primary': 'info-circle'
+            };
+            return icons[type] || 'info-circle';
+        }
+
+        // Enhanced error handling for fetch requests
+        async function safeFetch(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response;
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showAlert(`Network error: ${error.message}`, 'danger');
+                throw error;
+            }
+        }
+
+        // Performance monitoring
+        window.addEventListener('load', function() {
+            // Log page load time
+            const loadTime = performance.now();
+            console.log(`Page loaded in ${Math.round(loadTime)}ms`);
+
+            // Check for slow loading resources
+            if (loadTime > 3000) {
+                console.warn('Page load time is slow. Consider optimizing resources.');
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Alt + H for home
+            if (e.altKey && e.key === 'h') {
+                e.preventDefault();
+                window.location.href = '{{ url_for("index") }}';
+            }
+
+            // Alt + P for playground
+            if (e.altKey && e.key === 'p') {
+                e.preventDefault();
+                window.location.href = '{{ url_for("playground") }}';
+            }
+
+            // Alt + D for docs
+            if (e.altKey && e.key === 'd') {
+                e.preventDefault();
+                window.location.href = '{{ url_for("docs") }}';
+            }
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

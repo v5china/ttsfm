@@ -1,12 +1,30 @@
 name: Docker Build and Push
 
 on:
+  push:
+    branches:
+      - main
+      - v3-preview
+    tags:
+      - 'v*'
   release:
     types: [published]
+  pull_request:
+    branches:
+      - main
+      - v3-preview
+
+env:
+  REGISTRY_DOCKERHUB: docker.io
+  REGISTRY_GHCR: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,10 +38,19 @@ jobs:
           driver: docker-container
 
       - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
         id: meta
@@ -31,13 +58,21 @@ jobs:
         with:
           images: |
             ${{ secrets.DOCKERHUB_USERNAME }}/ttsfm
+            ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
           tags: |
+            type=ref,event=branch
+            type=ref,event=pr
             type=ref,event=tag
-            type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.source=${{ github.repositoryUrl }}
-            org.opencontainers.image.description=TTS API server compatible with OpenAI's TTS API format
+            org.opencontainers.image.description=Free TTS API server compatible with OpenAI's TTS API format using openai.fm
             org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.title=TTSFM - Free TTS API Server
+            org.opencontainers.image.vendor=TTSFM Team
 
       - name: Build and push
         id: build-and-push
@@ -45,13 +80,35 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Test Docker image
+        if: github.event_name == 'pull_request'
+        run: |
+          # Build image for testing
+          docker build -t ttsfm-test .
+          # Run container
+          docker run --rm -d -p 8000:8000 --name ttsfm-test ttsfm-test
+          # Wait for startup
+          sleep 30
+          # Test health endpoint
+          curl -f http://localhost:8000/api/health || exit 1
+          # Test OpenAI-compatible endpoint
+          curl -X POST http://localhost:8000/v1/audio/speech \
+            -H "Content-Type: application/json" \
+            -d '{"model":"gpt-4o-mini-tts","input":"Hello world","voice":"alloy","response_format":"mp3"}' \
+            --output test.mp3 || exit 1
+          # Check if file was created
+          test -f test.mp3 || exit 1
+          # Stop container
+          docker stop ttsfm-test
+
       - name: Show image info
+        if: github.event_name != 'pull_request'
         run: |
           echo "Pushed tags: ${{ steps.meta.outputs.tags }}"
           echo "Image digest: ${{ steps.build-and-push.outputs.digest }}"
