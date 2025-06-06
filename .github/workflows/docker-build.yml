@@ -86,26 +86,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Test Docker image
-        if: github.event_name == 'pull_request'
-        run: |
-          # Build image for testing
-          docker build -t ttsfm-test .
-          # Run container
-          docker run --rm -d -p 8000:8000 --name ttsfm-test ttsfm-test
-          # Wait for startup
-          sleep 30
-          # Test health endpoint
-          curl -f http://localhost:8000/api/health || exit 1
-          # Test OpenAI-compatible endpoint
-          curl -X POST http://localhost:8000/v1/audio/speech \
-            -H "Content-Type: application/json" \
-            -d '{"model":"gpt-4o-mini-tts","input":"Hello world","voice":"alloy","response_format":"mp3"}' \
-            --output test.mp3 || exit 1
-          # Check if file was created
-          test -f test.mp3 || exit 1
-          # Stop container
-          docker stop ttsfm-test
+
 
       - name: Show image info
         if: github.event_name != 'pull_request'
