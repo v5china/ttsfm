@@ -6,5 +6,4 @@ python-dotenv>=1.0.0
 
 # TTSFM package (install from local directory or PyPI)
 # For local development: pip install -e ../
-# For production: pip install ttsfm>=3.0.0
-ttsfm>=3.0.0
+# For Docker/production: installed via pyproject.toml[web] dependencies

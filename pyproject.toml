@@ -7,7 +7,7 @@ name = "ttsfm"
 version = "3.0.0"
 description = "Text-to-Speech API Client with OpenAI compatibility"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "MIT"
 authors = [
     {name = "TTSFM Team", email = "support@ttsfm.dev"}
 ]
@@ -17,7 +17,7 @@ maintainers = [
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
