@@ -1,37 +1,16 @@
-name: Release to PyPI
+name: Release and Publish
 
 on:
   push:
     tags:
-      - 'v*'  # Triggers on version tags like v1.0.0, v3.0.0, etc.
+      - 'v*'  # Triggers on version tags like v1.0.0, v3.0.1, etc.
+
+permissions:
+  contents: write
+  id-token: write
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8, 3.9, '3.10', '3.11', '3.12']
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .
-
-    - name: Test package import
-      run: |
-        python -c "import ttsfm; print(f'TTSFM imported successfully')"
-        python -c "from ttsfm import TTSClient; print('TTSClient imported successfully')"
-
-  build:
-    needs: test
+  release-and-publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -42,38 +21,27 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install build dependencies
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install build twine
 
+    - name: Test package import
+      run: |
+        pip install -e .
+        python -c "import ttsfm; print(f'✅ TTSFM imported successfully')"
+        python -c "from ttsfm import TTSClient; print('✅ TTSClient imported successfully')"
+
     - name: Build package
       run: |
         python -m build
+        echo "📦 Package built successfully"
+        ls -la dist/
 
     - name: Check package
       run: |
         twine check dist/*
-        ls -la dist/
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: dist
-        path: dist/
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Download build artifacts
-      uses: actions/download-artifact@v3
-      with:
-        name: dist
-        path: dist/
+        echo "✅ Package validation passed"
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
@@ -84,19 +52,39 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         body: |
-          ## TTSFM ${{ github.ref_name }}
+          ## 🎉 TTSFM ${{ github.ref_name }}
 
-          Automated release of TTSFM package.
+          New release of TTSFM - Free Text-to-Speech API with OpenAI compatibility.
 
-          ### Installation
+          ### 📦 Installation
           ```bash
-          pip install ttsfm
+          pip install ttsfm==${{ github.ref_name }}
           ```
 
-          ### Features
-          - Text-to-Speech API client with OpenAI compatibility
-          - Support for multiple voices and audio formats
-          - Async and sync interfaces
-          - Web interface for testing
+          ### 🚀 Quick Start
+          ```python
+          from ttsfm import TTSClient
+
+          client = TTSClient()
+          response = client.generate_speech("Hello from TTSFM!")
+          response.save_to_file("hello")
+          ```
+
+          ### 🐳 Docker
+          ```bash
+          docker run -p 8000:8000 dbcccc/ttsfm:latest
+          ```
+
+          ### ✨ Features
+          - 🆓 Completely free (uses openai.fm service)
+          - 🎯 OpenAI-compatible API
+          - 🗣️ 11 voices available
+          - 🎵 6 audio formats (MP3, WAV, OPUS, AAC, FLAC, PCM)
+          - ⚡ Async and sync clients
+          - 🌐 Web interface included
+          - 🔧 CLI tool available
+
+          ### 📚 Documentation
+          See [README](https://github.com/dbccccccc/ttsfm#readme) for full documentation.
         draft: false
         prerelease: false
