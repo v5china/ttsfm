@@ -9,17 +9,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Install dependencies
 RUN apt-get update && apt-get install -y gcc curl && rm -rf /var/lib/apt/lists/*
 
-# Copy and install requirements
-COPY requirements.txt ttsfm-web/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy source code
+# Copy source code first
 COPY ttsfm/ ./ttsfm/
 COPY ttsfm-web/ ./ttsfm-web/
 COPY pyproject.toml ./
+COPY requirements.txt ./
 
-# Install package
-RUN pip install -e .
+# Install the TTSFM package with web dependencies
+RUN pip install --no-cache-dir -e .[web]
+
+# Install additional web dependencies
+RUN pip install --no-cache-dir python-dotenv>=1.0.0
 
 # Create non-root user
 RUN useradd --create-home ttsfm && chown -R ttsfm:ttsfm /app
