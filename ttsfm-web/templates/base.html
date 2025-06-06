@@ -47,8 +47,8 @@
     <!-- Skip to content link for accessibility -->
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
-    <!-- Enhanced Navigation -->
-    <nav class="navbar navbar-expand-lg fixed-top">
+    <!-- Clean Navigation -->
+    <nav class="navbar navbar-expand-lg fixed-top" style="background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #e5e7eb;">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <i class="fas fa-microphone-alt me-2"></i>
@@ -101,111 +101,43 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Enhanced Footer -->
-    <footer class="footer" role="contentinfo">
-        <div class="container position-relative">
-            <div class="row">
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="footer-brand">
-                        <h5 class="d-flex align-items-center mb-3">
-                            <i class="fas fa-microphone-alt me-2"></i>TTSFM
-                        </h5>
-                        <p class="mb-3">
-                            Free text-to-speech using openai.fm's service. No API keys required,
-                            just install and start generating speech.
-                        </p>
-                        <div class="footer-stats">
-                            <small class="d-block mb-1">
-                                <i class="fas fa-code me-2"></i>Open Source
-                            </small>
-                            <small class="d-block mb-1">
-                                <i class="fas fa-python me-2"></i>Python Package
-                            </small>
-                            <small class="d-block">
-                                <i class="fas fa-heart me-2"></i>MIT License
-                            </small>
-                        </div>
+    <!-- Simplified Footer -->
+    <footer class="footer py-4" style="background-color: #f8fafc; border-top: 1px solid #e5e7eb;" role="contentinfo">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center mb-2 mb-md-0">
+                        <i class="fas fa-microphone-alt me-2 text-primary"></i>
+                        <strong class="text-dark">TTSFM</strong>
+                        <span class="ms-2 text-muted">Free Text-to-Speech for Python</span>
                     </div>
                 </div>
-
-                <div class="col-lg-2 col-md-6 mb-4">
-                    <h6 class="fw-bold mb-3">Product</h6>
-                    <ul class="list-unstyled">
-                        <li class="mb-2">
-                            <a href="{{ url_for('playground') }}" class="text-decoration-none">
-                                <i class="fas fa-play me-2"></i>Playground
-                            </a>
-                        </li>
-                        <li class="mb-2">
-                            <a href="{{ url_for('docs') }}" class="text-decoration-none">
-                                <i class="fas fa-book me-2"></i>Documentation
-                            </a>
-                        </li>
-                        <li class="mb-2">
-                            <a href="https://pypi.org/project/ttsfm/" class="text-decoration-none" target="_blank" rel="noopener noreferrer">
-                                <i class="fas fa-download me-2"></i>PyPI Package
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="col-lg-2 col-md-6 mb-4">
-                    <h6 class="fw-bold mb-3">Resources</h6>
-                    <ul class="list-unstyled">
-                        <li class="mb-2">
-                            <a href="https://github.com/dbccccccc/ttsfm" class="text-decoration-none" target="_blank" rel="noopener noreferrer">
-                                <i class="fab fa-github me-2"></i>GitHub
-                            </a>
-                        </li>
-                        <li class="mb-2">
-                            <a href="https://github.com/dbccccccc/ttsfm/issues" class="text-decoration-none" target="_blank" rel="noopener noreferrer">
-                                <i class="fas fa-question-circle me-2"></i>Issues
-                            </a>
-                        </li>
-                        <li class="mb-2">
-                            <a href="https://github.com/dbccccccc/ttsfm/discussions" class="text-decoration-none" target="_blank" rel="noopener noreferrer">
-                                <i class="fas fa-comments me-2"></i>Discussions
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <h6 class="fw-bold mb-3">About</h6>
-                    <p class="mb-3">TTSFM is an open-source Python package for text-to-speech functionality.</p>
-                    <div class="d-flex gap-3 mb-3">
-                        <a href="https://github.com/dbccccccc/ttsfm" class="btn btn-outline-light btn-sm" target="_blank" rel="noopener noreferrer" aria-label="Star on GitHub">
-                            <i class="fab fa-github"></i>
+                <div class="col-md-6 text-md-end">
+                    <div class="d-flex justify-content-md-end gap-3">
+                        <a href="{{ url_for('playground') }}" class="text-decoration-none" style="color: #6b7280;">
+                            <i class="fas fa-play me-1"></i>Demo
                         </a>
-                    </div>
-                    <div class="footer-tech-info">
-                        <small class="d-block mb-1">
-                            <i class="fas fa-code me-2"></i>Built with Python & Flask
-                        </small>
-                        <small class="d-block">
-                            <i class="fas fa-balance-scale me-2"></i>MIT License
-                        </small>
+                        <a href="{{ url_for('docs') }}" class="text-decoration-none" style="color: #6b7280;">
+                            <i class="fas fa-book me-1"></i>Docs
+                        </a>
+                        <a href="https://github.com/dbccccccc/ttsfm" class="text-decoration-none" style="color: #6b7280;" target="_blank" rel="noopener noreferrer">
+                            <i class="fab fa-github me-1"></i>GitHub
+                        </a>
                     </div>
                 </div>
             </div>
-
-            <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
-
+            <hr class="my-3" style="border-color: #e5e7eb;">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <p class="mb-0">
-                        <small>&copy; 2024 TTSFM. Released under the MIT License.</small>
-                    </p>
+                    <small class="text-muted">&copy; 2024 TTSFM. MIT License.</small>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <p class="mb-0">
-                        <small>
-                            <span id="footer-status" class="d-inline-flex align-items-center">
-                                <span class="status-indicator status-offline me-2"></span>
-                                Service Status: <span id="footer-status-text" class="ms-1">Checking...</span>
-                            </span>
-                        </small>
-                    </p>
+                    <small class="text-muted">
+                        <span id="footer-status" class="d-inline-flex align-items-center">
+                            <span class="status-indicator status-offline me-2"></span>
+                            Status: <span id="footer-status-text" class="ms-1">Checking...</span>
+                        </span>
+                    </small>
                 </div>
             </div>
         </div>

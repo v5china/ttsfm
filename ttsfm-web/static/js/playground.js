@@ -34,6 +34,7 @@ function setupEventListeners() {
 
     // Enhanced button events
     document.getElementById('validate-text-btn').addEventListener('click', validateText);
+    document.getElementById('random-text-btn').addEventListener('click', loadRandomText);
     document.getElementById('download-btn').addEventListener('click', downloadAudio);
     document.getElementById('download-all-btn').addEventListener('click', downloadAllAudio);
 
@@ -43,10 +44,7 @@ function setupEventListeners() {
         clearTextBtn.addEventListener('click', clearText);
     }
 
-    const exampleTextBtn = document.getElementById('example-text-btn');
-    if (exampleTextBtn) {
-        exampleTextBtn.addEventListener('click', loadExampleText);
-    }
+
 
     const resetFormBtn = document.getElementById('reset-form-btn');
     if (resetFormBtn) {
@@ -116,7 +114,7 @@ async function loadVoices() {
         
     } catch (error) {
         console.error('Failed to load voices:', error);
-        showAlert('Failed to load voices. Please refresh the page.', 'warning');
+        console.log('Failed to load voices. Please refresh the page.');
     }
 }
 
@@ -140,7 +138,7 @@ async function loadFormats() {
         
     } catch (error) {
         console.error('Failed to load formats:', error);
-        showAlert('Failed to load formats. Please refresh the page.', 'warning');
+        console.log('Failed to load formats. Please refresh the page.');
     }
 }
 
@@ -191,7 +189,7 @@ async function validateText() {
     const maxLength = parseInt(document.getElementById('max-length-input').value) || 4096;
     
     if (!text) {
-        showAlert('Please enter some text to validate', 'warning');
+        console.log('Please enter some text to validate');
         return;
     }
     
@@ -247,7 +245,7 @@ async function validateText() {
         
     } catch (error) {
         console.error('Validation failed:', error);
-        showAlert('Failed to validate text. Please try again.', 'danger');
+        console.log('Failed to validate text. Please try again.');
     } finally {
         setLoading(validateBtn, false);
     }
@@ -256,7 +254,7 @@ async function validateText() {
 function enableAutoSplit() {
     document.getElementById('auto-split-check').checked = true;
     updateGenerateButton();
-    showAlert('Auto-split enabled! Click Generate Speech to process in batch mode.', 'info');
+    console.log('Auto-split enabled! Click Generate Speech to process in batch mode.');
 }
 
 async function generateSpeech(event) {
@@ -288,7 +286,7 @@ async function generateSpeech(event) {
         }
     } catch (error) {
         console.error('Generation failed:', error);
-        showAlert(`Failed to generate speech: ${error.message}`, 'danger');
+        console.log(`Failed to generate speech: ${error.message}`);
     } finally {
         setLoading(button, false);
     }
@@ -308,15 +306,15 @@ function getFormData() {
 
 function validateFormData(formData) {
     if (!formData.text || !formData.voice || !formData.format) {
-        showAlert('Please fill in all required fields', 'warning');
+        console.log('Please fill in all required fields');
         return false;
     }
-    
+
     if (formData.text.length > formData.maxLength && formData.validateLength && !formData.autoSplit) {
-        showAlert(`Text is too long (${formData.text.length} characters). Enable auto-split or reduce text length.`, 'warning');
+        console.log(`Text is too long (${formData.text.length} characters). Enable auto-split or reduce text length.`);
         return false;
     }
-    
+
     return true;
 }
 
@@ -337,42 +335,7 @@ function setLoading(button, loading) {
     }
 }
 
-function showAlert(message, type = 'info') {
-    // Create alert element
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show fade-in`;
-    alertDiv.innerHTML = `
-        <i class="fas fa-${getAlertIcon(type)} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    // Insert at top of container
-    const container = document.querySelector('.container');
-    if (container) {
-        container.insertBefore(alertDiv, container.firstChild);
-        
-        // Auto-dismiss after 5 seconds
-        setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.remove();
-            }
-        }, 5000);
-        
-        // Scroll to alert
-        alertDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-}
 
-function getAlertIcon(type) {
-    const icons = {
-        'success': 'check-circle',
-        'danger': 'exclamation-triangle',
-        'warning': 'exclamation-triangle',
-        'info': 'info-circle'
-    };
-    return icons[type] || 'info-circle';
-}
 
 async function generateSingleSpeech(formData) {
     const audioResult = document.getElementById('audio-result');
@@ -408,7 +371,7 @@ async function generateSingleSpeech(formData) {
     // Use enhanced display function
     displayAudioResult(audioBlob, formData.format, formData.voice, formData.text);
 
-    showAlert('🎉 Speech generated successfully! Click play to listen.', 'success');
+    console.log('Speech generated successfully! Click play to listen.');
 
     // Auto-play if user prefers
     if (localStorage.getItem('autoPlay') === 'true') {
@@ -461,7 +424,7 @@ async function generateBatchSpeech(formData) {
     batchResult.classList.remove('d-none');
     batchResult.classList.add('fade-in');
 
-    showAlert(`Batch processing completed! Generated ${data.successful_chunks} audio files. 🎵`, 'success');
+    console.log(`Batch processing completed! Generated ${data.successful_chunks} audio files.`);
 }
 
 function displayBatchChunks(results, format) {
@@ -552,7 +515,7 @@ function displayBatchChunks(results, format) {
 
 function downloadAudio() {
     if (!currentAudioBlob) {
-        showAlert('No audio to download', 'warning');
+        console.log('No audio to download');
         return;
     }
 
@@ -565,11 +528,11 @@ function downloadAudio() {
 function downloadAllAudio() {
     const downloadButtons = document.querySelectorAll('.download-chunk');
     if (downloadButtons.length === 0) {
-        showAlert('No batch audio files to download', 'warning');
+        console.log('No batch audio files to download');
         return;
     }
 
-    showAlert(`Starting download of ${downloadButtons.length} files...`, 'info');
+    console.log(`Starting download of ${downloadButtons.length} files...`);
 
     downloadButtons.forEach((btn, index) => {
         setTimeout(() => {
@@ -603,23 +566,49 @@ function clearText() {
     document.getElementById('text-input').value = '';
     updateCharCount();
     clearResults();
-    showAlert('Text cleared successfully', 'info', 2000);
+    console.log('Text cleared successfully');
 }
 
-function loadExampleText() {
-    const examples = [
-        "Welcome to TTSFM! Experience the future of text-to-speech technology with our premium AI voices.",
+function loadRandomText() {
+    const randomTexts = [
+        // News & Information
         "Breaking news: Scientists have discovered a revolutionary new method for generating incredibly natural synthetic speech using advanced neural networks and machine learning algorithms.",
-        "Once upon a time, in a digital realm far beyond the clouds, there lived an AI that could speak with the voices of angels and the wisdom of ages.",
-        "The TTSFM API provides enterprise-grade text-to-speech capabilities with multiple voice options, audio formats, and seamless integration for modern applications.",
-        "Imagine a world where every piece of text can be transformed into beautiful, natural speech with just a simple API call. That world is here with TTSFM."
+        "Weather update: Today will be partly cloudy with temperatures reaching 75 degrees Fahrenheit. Light winds from the southwest at 5 to 10 miles per hour.",
+        "Technology report: The latest advancements in artificial intelligence are revolutionizing how we interact with digital devices and services.",
+
+        // Educational & Informative
+        "The human brain contains approximately 86 billion neurons, each connected to thousands of others, creating a complex network that enables consciousness, memory, and thought.",
+        "Photosynthesis is the process by which plants convert sunlight, carbon dioxide, and water into glucose and oxygen, forming the foundation of most life on Earth.",
+        "The speed of light in a vacuum is exactly 299,792,458 meters per second, making it one of the fundamental constants of physics.",
+
+        // Creative & Storytelling
+        "Once upon a time, in a land far away, there lived a wise old wizard who could speak to the stars and understand their ancient secrets.",
+        "The mysterious lighthouse stood alone on the rocky cliff, its beacon cutting through the fog like a sword of light, guiding lost ships safely home.",
+        "In the depths of the enchanted forest, where sunbeams danced through emerald leaves, a young adventurer discovered a hidden path to destiny.",
+
+        // Business & Professional
+        "Our quarterly results demonstrate strong growth across all market segments, with revenue increasing by 23% compared to the same period last year.",
+        "The new product launch exceeded expectations, capturing 15% market share within the first six months and establishing our brand as an industry leader.",
+        "We are committed to sustainable business practices that benefit our customers, employees, and the environment for generations to come.",
+
+        // Technical & Programming
+        "The TTSFM package provides a comprehensive API for text-to-speech generation with support for multiple voices and audio formats.",
+        "Machine learning algorithms process vast amounts of data to identify patterns and make predictions with remarkable accuracy.",
+        "Cloud computing has transformed how businesses store, process, and access their data, enabling scalability and flexibility like never before.",
+
+        // Conversational & Casual
+        "Welcome to TTSFM! Experience the future of text-to-speech technology with our premium AI voices.",
+        "Good morning! Today is a beautiful day to learn something new and explore the possibilities of text-to-speech technology.",
+        "Have you ever wondered what it would be like if your computer could speak with perfect human-like intonation and emotion?"
     ];
 
-    const randomExample = examples[Math.floor(Math.random() * examples.length)];
-    document.getElementById('text-input').value = randomExample;
+    const randomText = randomTexts[Math.floor(Math.random() * randomTexts.length)];
+    document.getElementById('text-input').value = randomText;
     updateCharCount();
-    showAlert('Example text loaded! Try generating speech now.', 'success', 3000);
+    console.log('Random text loaded successfully');
 }
+
+
 
 function resetForm() {
     // Reset form to default values
@@ -634,7 +623,7 @@ function resetForm() {
     updateCharCount();
     updateGenerateButton();
     clearResults();
-    showAlert('Form reset to default values', 'info', 2000);
+    console.log('Form reset to default values');
 }
 
 function replayAudio() {
@@ -642,7 +631,7 @@ function replayAudio() {
     if (audioPlayer && audioPlayer.src) {
         audioPlayer.currentTime = 0;
         audioPlayer.play().catch(() => {
-            showAlert('Unable to replay audio. Please check your browser settings.', 'warning');
+            console.log('Unable to replay audio. Please check your browser settings.');
         });
     }
 }
@@ -670,9 +659,9 @@ function copyAudioLink() {
     const audioPlayer = document.getElementById('audio-player');
     if (audioPlayer && audioPlayer.src) {
         navigator.clipboard.writeText(audioPlayer.src).then(() => {
-            showAlert('Audio link copied to clipboard!', 'success', 2000);
+            console.log('Audio link copied to clipboard!');
         }).catch(() => {
-            showAlert('Unable to copy link. Please try downloading the audio instead.', 'warning');
+            console.log('Unable to copy link. Please try downloading the audio instead.');
         });
     }
 }
@@ -709,7 +698,7 @@ function updateFormatInfo() {
 
 function previewVoice(voiceId) {
     // This would typically play a short preview of the voice
-    showAlert(`Voice preview for ${voiceId} - Feature coming soon!`, 'info', 2000);
+    console.log(`Voice preview for ${voiceId} - Feature coming soon!`);
 }
 
 // Enhanced audio result display
@@ -751,5 +740,5 @@ function displayAudioResult(audioBlob, format, voice, text) {
 // Export functions for use in HTML
 window.enableAutoSplit = enableAutoSplit;
 window.clearText = clearText;
-window.loadExampleText = loadExampleText;
+window.loadRandomText = loadRandomText;
 window.resetForm = resetForm;

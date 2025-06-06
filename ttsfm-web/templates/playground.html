@@ -3,19 +3,19 @@
 {% block title %}TTSFM Playground - Try Text-to-Speech{% endblock %}
 
 {% block content %}
-<!-- Enhanced Playground Header -->
-<section class="py-5 bg-gradient-primary text-white">
+<!-- Clean Playground Header -->
+<section class="py-5" style="background-color: white; border-bottom: 1px solid #e5e7eb;">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-8">
                 <div class="fade-in">
-                    <div class="badge bg-light text-primary mb-3 px-3 py-2">
+                    <div class="badge bg-primary text-white mb-3 px-3 py-2">
                         <i class="fas fa-flask me-2"></i>Demo
                     </div>
-                    <h1 class="display-4 fw-bold mb-3">
-                        <i class="fas fa-play-circle me-3"></i>TTS Playground
+                    <h1 class="display-4 fw-bold mb-3 text-dark">
+                        <i class="fas fa-play-circle me-3 text-primary"></i>TTS Playground
                     </h1>
-                    <p class="lead mb-4">
+                    <p class="lead mb-4 text-muted">
                         Test the TTSFM text-to-speech functionality with different voices and formats.
                     </p>
                 </div>
@@ -23,7 +23,7 @@
             <div class="col-lg-4 text-center">
                 <div class="playground-visual fade-in" style="animation-delay: 0.3s;">
                     <div class="playground-icon">
-                        <i class="fas fa-waveform-lines"></i>
+                        <i class="fas fa-waveform-lines text-primary"></i>
                         <div class="pulse-ring"></div>
                         <div class="pulse-ring pulse-ring-delay"></div>
                     </div>
@@ -82,14 +82,14 @@
                                     <button type="button" class="btn btn-sm btn-outline-primary" id="validate-text-btn">
                                         <i class="fas fa-check me-1"></i>Validate
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="example-text-btn">
-                                        <i class="fas fa-magic me-1"></i>Example
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="random-text-btn">
+                                        <i class="fas fa-dice me-1"></i>Random
                                     </button>
                                 </div>
                             </div>
                             <div id="validation-result" class="mt-2 d-none"></div>
                         </div>
-                        
+
                         <div class="row">
                             <!-- Enhanced Voice Selection -->
                             <div class="col-md-6 mb-4">
@@ -119,7 +119,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Advanced Options -->
                         <div class="row">
                             <div class="col-md-6 mb-4">
@@ -173,7 +173,7 @@
                                 Provide optional instructions for voice modulation
                             </div>
                         </div>
-                        
+
                         <!-- Enhanced Generate Button -->
                         <div class="text-center mb-4">
                             <div class="d-grid gap-2 d-md-block">
@@ -191,7 +191,7 @@
                             </div>
                         </div>
                     </form>
-                    
+
                     <!-- Enhanced Audio Player -->
                     <div id="audio-result" class="d-none">
                         <div class="border-top pt-4 mt-4">
@@ -273,62 +273,6 @@
                         <div class="mt-3">
                             <button type="button" class="btn btn-outline-primary" id="download-all-btn">
                                 <i class="fas fa-download me-2"></i>Download All Audio Files
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Examples Section -->
-    <div class="row mt-5">
-        <div class="col-12">
-            <h3 class="text-center mb-4">Example Texts</h3>
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h6 class="card-title">News Article</h6>
-                            <p class="card-text small">
-                                "Breaking news: Scientists have discovered a new method for generating 
-                                high-quality synthetic speech using advanced neural networks."
-                            </p>
-                            <button class="btn btn-sm btn-outline-primary use-example" 
-                                    data-text="Breaking news: Scientists have discovered a new method for generating high-quality synthetic speech using advanced neural networks.">
-                                Use This Text
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h6 class="card-title">Storytelling</h6>
-                            <p class="card-text small">
-                                "Once upon a time, in a land far away, there lived a wise old wizard 
-                                who could speak to the stars and understand their ancient secrets."
-                            </p>
-                            <button class="btn btn-sm btn-outline-primary use-example" 
-                                    data-text="Once upon a time, in a land far away, there lived a wise old wizard who could speak to the stars and understand their ancient secrets.">
-                                Use This Text
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h6 class="card-title">Technical</h6>
-                            <p class="card-text small">
-                                "The TTSFM package provides a comprehensive API for text-to-speech 
-                                generation with support for multiple voices and audio formats."
-                            </p>
-                            <button class="btn btn-sm btn-outline-primary use-example" 
-                                    data-text="The TTSFM package provides a comprehensive API for text-to-speech generation with support for multiple voices and audio formats.">
-                                Use This Text
                             </button>
                         </div>
                     </div>

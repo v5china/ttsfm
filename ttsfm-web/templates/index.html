@@ -1,281 +1,81 @@
 {% extends "base.html" %}
 
-{% block title %}TTSFM - Modern Text-to-Speech API{% endblock %}
+{% block title %}TTSFM - Free Text-to-Speech for Python{% endblock %}
 
 {% block content %}
 <!-- Hero Section -->
-<section class="hero-section position-relative overflow-hidden">
-    <div class="hero-background-animation"></div>
-    <div class="container position-relative">
+<section class="hero-section">
+    <div class="container">
         <div class="row align-items-center min-vh-75">
-            <div class="col-lg-6">
+            <div class="col-lg-8 mx-auto text-center">
                 <div class="hero-content">
-                    <div class="badge bg-light text-primary mb-3 px-3 py-2">
+                    <div class="badge bg-primary text-white mb-3 px-3 py-2">
                         <i class="fas fa-code me-2"></i>Python Package
                     </div>
-                    <h1 class="display-3 fw-bold mb-4 text-gradient-hero">
-                        Free Text-to-Speech
-                        <span class="text-white">for Python</span>
+                    <h1 class="display-4 fw-bold mb-4">
+                        Free Text-to-Speech for Python
                     </h1>
-                    <p class="lead mb-4 text-light-emphasis">
+                    <p class="lead mb-4">
                         Access free text-to-speech using openai.fm's service. No API keys required,
                         just install and use immediately.
                     </p>
-                    <div class="hero-stats mb-4">
-                        <div class="row text-center">
-                            <div class="col-4">
-                                <div class="stat-item">
-                                    <h3 class="fw-bold text-white mb-1">Free</h3>
-                                    <small class="text-light-emphasis">No API Keys</small>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="stat-item">
-                                    <h3 class="fw-bold text-white mb-1">Easy</h3>
-                                    <small class="text-light-emphasis">Installation</small>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="stat-item">
-                                    <h3 class="fw-bold text-white mb-1">Open</h3>
-                                    <small class="text-light-emphasis">Source</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="d-flex flex-wrap gap-3">
-                        <a href="{{ url_for('playground') }}" class="btn btn-primary btn-lg px-4 py-3">
+                    <div class="d-flex flex-wrap gap-3 justify-content-center">
+                        <a href="{{ url_for('playground') }}" class="btn btn-primary btn-lg">
                             <i class="fas fa-play me-2"></i>Try Demo
                         </a>
-                        <a href="{{ url_for('docs') }}" class="btn btn-outline-light btn-lg px-4 py-3">
+                        <a href="{{ url_for('docs') }}" class="btn btn-outline-secondary btn-lg">
                             <i class="fas fa-book me-2"></i>Documentation
                         </a>
-                        <a href="https://github.com/dbccccccc/ttsfm" class="btn btn-outline-light btn-lg px-4 py-3" target="_blank" rel="noopener noreferrer">
+                        <a href="https://github.com/dbccccccc/ttsfm" class="btn btn-outline-secondary btn-lg" target="_blank" rel="noopener noreferrer">
                             <i class="fab fa-github me-2"></i>GitHub
                         </a>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
-                <div class="hero-visual text-center position-relative">
-                    <div class="floating-icon-container">
-                        <div class="floating-icon floating-icon-1">
-                            <i class="fas fa-microphone-alt"></i>
-                        </div>
-                        <div class="floating-icon floating-icon-2">
-                            <i class="fas fa-volume-up"></i>
-                        </div>
-                        <div class="floating-icon floating-icon-3">
-                            <i class="fas fa-waveform-lines"></i>
-                        </div>
-                        <div class="floating-icon floating-icon-4">
-                            <i class="fas fa-headphones"></i>
-                        </div>
-                    </div>
-                    <div class="hero-main-icon">
-                        <i class="fas fa-microphone-alt"></i>
-                        <div class="pulse-ring"></div>
-                        <div class="pulse-ring pulse-ring-delay"></div>
-                    </div>
-                </div>
-            </div>
         </div>
-    </div>
-    <div class="hero-scroll-indicator">
-        <i class="fas fa-chevron-down"></i>
     </div>
 </section>
 
 <!-- Features Section -->
-<section class="py-5 features-section">
+<section class="py-5" style="background-color: #f8fafc;">
     <div class="container">
         <div class="row">
             <div class="col-12 text-center mb-5">
-                <div class="section-badge">
-                    <i class="fas fa-star me-2"></i>Features
-                </div>
-                <h2 class="display-4 fw-bold mb-4">Why Choose TTSFM</h2>
-                <p class="lead text-muted col-lg-8 mx-auto">
-                    Free text-to-speech using openai.fm's service. No registration, no API keys,
-                    no costs - just install and start generating speech immediately.
+                <h2 class="fw-bold mb-4">Key Features</h2>
+                <p class="lead text-muted">
+                    Simple, free, and powerful text-to-speech for Python developers.
                 </p>
             </div>
         </div>
 
-        <div class="row g-4 mb-5">
-            <div class="col-lg-4 col-md-6">
-                <div class="feature-card-enhanced h-100">
-                    <div class="feature-icon-wrapper">
-                        <div class="feature-icon bg-primary">
-                            <i class="fas fa-code"></i>
-                        </div>
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="text-center">
+                    <div class="feature-icon text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 4rem; height: 4rem; background-color: #2563eb;">
+                        <i class="fas fa-key"></i>
                     </div>
-                    <div class="feature-content">
-                        <h5 class="feature-title">No API Keys Required</h5>
-                        <p class="feature-description">
-                            Uses openai.fm's free service - no registration, no API keys, no costs.
-                            Just install and start generating speech immediately.
-                        </p>
-                        <ul class="feature-benefits">
-                            <li><i class="fas fa-check text-success me-2"></i>Completely free</li>
-                            <li><i class="fas fa-check text-success me-2"></i>No registration needed</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Works out of the box</li>
-                        </ul>
-                    </div>
+                    <h5 class="fw-bold">No API Keys</h5>
+                    <p class="text-muted">Completely free service with no registration or API keys required.</p>
                 </div>
             </div>
 
-            <div class="col-lg-4 col-md-6">
-                <div class="feature-card-enhanced h-100">
-                    <div class="feature-icon-wrapper">
-                        <div class="feature-icon bg-warning">
-                            <i class="fas fa-bolt"></i>
-                        </div>
+            <div class="col-lg-4">
+                <div class="text-center">
+                    <div class="feature-icon text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 4rem; height: 4rem; background-color: #10b981;">
+                        <i class="fas fa-bolt"></i>
                     </div>
-                    <div class="feature-content">
-                        <h5 class="feature-title">Async Support</h5>
-                        <p class="feature-description">
-                            Built with modern Python features including async/await support
-                            for better performance in concurrent applications.
-                        </p>
-                        <ul class="feature-benefits">
-                            <li><i class="fas fa-check text-success me-2"></i>Async/await support</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Concurrent requests</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Error handling</li>
-                        </ul>
-                    </div>
+                    <h5 class="fw-bold">Easy to Use</h5>
+                    <p class="text-muted">Simple Python API with both sync and async support for all use cases.</p>
                 </div>
             </div>
 
-            <div class="col-lg-4 col-md-6">
-                <div class="feature-card-enhanced h-100">
-                    <div class="feature-icon-wrapper">
-                        <div class="feature-icon bg-success">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
+            <div class="col-lg-4">
+                <div class="text-center">
+                    <div class="feature-icon text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 4rem; height: 4rem; background-color: #64748b;">
+                        <i class="fas fa-microphone-alt"></i>
                     </div>
-                    <div class="feature-content">
-                        <h5 class="feature-title">OpenAI Compatible</h5>
-                        <p class="feature-description">
-                            Drop-in replacement for OpenAI's TTS API. Use the same
-                            interface you're already familiar with.
-                        </p>
-                        <ul class="feature-benefits">
-                            <li><i class="fas fa-check text-success me-2"></i>Same API structure</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Familiar parameters</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Easy migration</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4 col-md-6">
-                <div class="feature-card-enhanced h-100">
-                    <div class="feature-icon-wrapper">
-                        <div class="feature-icon bg-info">
-                            <i class="fas fa-microphone-alt"></i>
-                        </div>
-                    </div>
-                    <div class="feature-content">
-                        <h5 class="feature-title">Multiple Voices</h5>
-                        <p class="feature-description">
-                            Access to openai.fm's voice collection including popular options
-                            like Alloy, Echo, Fable, Nova, and more.
-                        </p>
-                        <ul class="feature-benefits">
-                            <li><i class="fas fa-check text-success me-2"></i>Various voice personalities</li>
-                            <li><i class="fas fa-check text-success me-2"></i>High-quality audio output</li>
-                            <li><i class="fas fa-check text-success me-2"></i>WAV format support</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4 col-md-6">
-                <div class="feature-card-enhanced h-100">
-                    <div class="feature-icon-wrapper">
-                        <div class="feature-icon bg-danger">
-                            <i class="fas fa-file-audio"></i>
-                        </div>
-                    </div>
-                    <div class="feature-content">
-                        <h5 class="feature-title">Multiple Formats</h5>
-                        <p class="feature-description">
-                            Support for MP3, WAV, OPUS, AAC, FLAC, and PCM formats
-                            to meet any technical requirement.
-                        </p>
-                        <ul class="feature-benefits">
-                            <li><i class="fas fa-check text-success me-2"></i>6 audio formats</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Optimized quality</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Flexible output</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4 col-md-6">
-                <div class="feature-card-enhanced h-100">
-                    <div class="feature-icon-wrapper">
-                        <div class="feature-icon bg-secondary">
-                            <i class="fas fa-cogs"></i>
-                        </div>
-                    </div>
-                    <div class="feature-content">
-                        <h5 class="feature-title">Enterprise Ready</h5>
-                        <p class="feature-description">
-                            Comprehensive error handling, logging, and monitoring
-                            capabilities for production environments.
-                        </p>
-                        <ul class="feature-benefits">
-                            <li><i class="fas fa-check text-success me-2"></i>Error handling</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Detailed logging</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Health monitoring</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Statistics Section -->
-<section class="py-5 stats-section">
-    <div class="container">
-        <div class="row text-center">
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stat-number" data-target="10000">0</div>
-                    <div class="stat-label">Active Developers</div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-volume-up"></i>
-                    </div>
-                    <div class="stat-number" data-target="1000000">0</div>
-                    <div class="stat-label">Audio Files Generated</div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <div class="stat-number" data-target="99.9">0</div>
-                    <div class="stat-label">% Uptime</div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-globe"></i>
-                    </div>
-                    <div class="stat-number" data-target="50">0</div>
-                    <div class="stat-label">Countries Served</div>
+                    <h5 class="fw-bold">Multiple Voices</h5>
+                    <p class="text-muted">Access to various voice options and audio formats for your needs.</p>
                 </div>
             </div>
         </div>
@@ -283,554 +83,64 @@
 </section>
 
 <!-- Quick Start Section -->
-<section class="py-5 bg-light quick-start-section">
+<section class="py-5">
     <div class="container">
         <div class="row">
             <div class="col-12 text-center mb-5">
-                <div class="section-badge">
-                    <i class="fas fa-rocket me-2"></i>Quick Start
-                </div>
-                <h2 class="display-4 fw-bold mb-4">Getting Started</h2>
-                <p class="lead text-muted col-lg-8 mx-auto">
-                    Install TTSFM and start generating speech from text with a few lines of code.
+                <h2 class="fw-bold mb-4">Getting Started</h2>
+                <p class="lead text-muted">
+                    Install TTSFM and start generating speech with just a few lines of code.
                 </p>
             </div>
         </div>
 
         <div class="row g-4">
-            <div class="col-lg-6 mb-4">
-                <div class="code-card">
-                    <div class="code-header">
-                        <h4><i class="fas fa-download me-2 text-primary"></i>1. Installation</h4>
-                        <button class="btn btn-sm btn-outline-primary copy-btn" data-clipboard-text="pip install ttsfm">
-                            <i class="fas fa-copy me-1"></i>Copy
-                        </button>
-                    </div>
-                    <pre class="code-content"><code class="language-bash">pip install ttsfm</code></pre>
-                    <div class="code-footer">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>Requires Python 3.8+
-                        </small>
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-download me-2 text-primary"></i>Installation
+                        </h5>
+                        <pre class="bg-light p-3 rounded"><code>pip install ttsfm</code></pre>
+                        <small class="text-muted">Requires Python 3.8+</small>
                     </div>
                 </div>
             </div>
 
-            <div class="col-lg-6 mb-4">
-                <div class="code-card">
-                    <div class="code-header">
-                        <h4><i class="fas fa-play me-2 text-success"></i>2. Basic Usage</h4>
-                        <button class="btn btn-sm btn-outline-primary copy-btn" data-clipboard-text='from ttsfm import TTSClient
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-play me-2 text-success"></i>Basic Usage
+                        </h5>
+                        <pre class="bg-light p-3 rounded"><code>from ttsfm import TTSClient
 
-# No API keys needed - uses openai.fm free service
 client = TTSClient()
-
-# Generate speech for free
 response = client.generate_speech(
-    text="Hello, world! This is free TTS.",
+    text="Hello, world!",
     voice="alloy"
 )
-
-# Save to file
-response.save_to_file("hello.wav")
-print("Speech generated successfully!")'>
-                            <i class="fas fa-copy me-1"></i>Copy
-                        </button>
-                    </div>
-                    <pre class="code-content"><code class="language-python">from ttsfm import TTSClient
-
-# No API keys needed - uses openai.fm free service
-client = TTSClient()
-
-# Generate speech for free
-response = client.generate_speech(
-    text="Hello, world! This is free TTS.",
-    voice="alloy"
-)
-
-# Save to file
-response.save_to_file("hello.wav")
-print("Speech generated successfully!")</code></pre>
-                    <div class="code-footer">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>Synchronous client for simple use cases
-                        </small>
+response.save_to_file("hello.wav")</code></pre>
+                        <small class="text-muted">No API keys required</small>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row g-4">
-            <div class="col-lg-6 mb-4">
-                <div class="code-card">
-                    <div class="code-header">
-                        <h4><i class="fas fa-rocket me-2 text-warning"></i>3. Async Usage</h4>
-                        <button class="btn btn-sm btn-outline-primary copy-btn" data-clipboard-text='from ttsfm import AsyncTTSClient
-
-async with AsyncTTSClient() as client:
-    response = await client.generate_speech(
-        text="Hello, async world!",
-        voice="nova"
-    )
-    response.save_to_file("hello_async.mp3")'>
-                            <i class="fas fa-copy me-1"></i>Copy
-                        </button>
-                    </div>
-                    <pre class="code-content"><code class="language-python">from ttsfm import AsyncTTSClient
-
-async with AsyncTTSClient() as client:
-    response = await client.generate_speech(
-        text="Hello, async world!",
-        voice="nova"
-    )
-    response.save_to_file("hello_async.mp3")</code></pre>
-                    <div class="code-footer">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>Async client for high-performance applications
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6 mb-4">
-                <div class="code-card">
-                    <div class="code-header">
-                        <h4><i class="fas fa-layer-group me-2 text-info"></i>4. Batch Processing</h4>
-                        <button class="btn btn-sm btn-outline-primary copy-btn" data-clipboard-text='from ttsfm import AsyncTTSClient, TTSRequest
-
-requests = [
-    TTSRequest(input="First text", voice="alloy"),
-    TTSRequest(input="Second text", voice="echo")
-]
-
-async with AsyncTTSClient() as client:
-    responses = await client.generate_speech_batch(requests)'>
-                            <i class="fas fa-copy me-1"></i>Copy
-                        </button>
-                    </div>
-                    <pre class="code-content"><code class="language-python">from ttsfm import AsyncTTSClient, TTSRequest
-
-requests = [
-    TTSRequest(input="First text", voice="alloy"),
-    TTSRequest(input="Second text", voice="echo")
-]
-
-async with AsyncTTSClient() as client:
-    responses = await client.generate_speech_batch(requests)</code></pre>
-                    <div class="code-footer">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>Process multiple texts efficiently
-                        </small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mt-5">
+        <div class="row mt-4">
             <div class="col-12 text-center">
-                <div class="quick-start-cta">
-                    <h4 class="mb-3">Ready to start building?</h4>
-                    <div class="d-flex justify-content-center gap-3 flex-wrap">
-                        <a href="{{ url_for('playground') }}" class="btn btn-primary btn-lg">
-                            <i class="fas fa-play me-2"></i>Try Interactive Demo
-                        </a>
-                        <a href="{{ url_for('docs') }}" class="btn btn-outline-primary btn-lg">
-                            <i class="fas fa-book me-2"></i>Read Full Documentation
-                        </a>
-                        <a href="https://github.com/dbccccccc/ttsfm" class="btn btn-outline-secondary btn-lg" target="_blank">
-                            <i class="fab fa-github me-2"></i>View on GitHub
-                        </a>
-                    </div>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{{ url_for('playground') }}" class="btn btn-primary">
+                        <i class="fas fa-play me-2"></i>Try Demo
+                    </a>
+                    <a href="{{ url_for('docs') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-book me-2"></i>Documentation
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Use Cases Section -->
-<section class="py-5 use-cases-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center mb-5">
-                <div class="section-badge">
-                    <i class="fas fa-lightbulb me-2"></i>Use Cases
-                </div>
-                <h2 class="display-4 fw-bold mb-4">Perfect For Every Project</h2>
-                <p class="lead text-muted col-lg-8 mx-auto">
-                    From simple prototypes to enterprise applications, TTSFM adapts to your needs.
-                </p>
-            </div>
-        </div>
 
-        <div class="row g-4">
-            <div class="col-lg-4 col-md-6">
-                <div class="use-case-card">
-                    <div class="use-case-icon">
-                        <i class="fas fa-podcast"></i>
-                    </div>
-                    <h5 class="use-case-title">Content Creation</h5>
-                    <p class="use-case-description">
-                        Generate voiceovers for videos, podcasts, and audiobooks with natural-sounding voices.
-                    </p>
-                    <div class="use-case-examples">
-                        <span class="badge bg-light text-dark me-2">YouTube Videos</span>
-                        <span class="badge bg-light text-dark me-2">Podcasts</span>
-                        <span class="badge bg-light text-dark">Audiobooks</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4 col-md-6">
-                <div class="use-case-card">
-                    <div class="use-case-icon">
-                        <i class="fas fa-universal-access"></i>
-                    </div>
-                    <h5 class="use-case-title">Accessibility</h5>
-                    <p class="use-case-description">
-                        Make your applications accessible with screen reader support and audio content.
-                    </p>
-                    <div class="use-case-examples">
-                        <span class="badge bg-light text-dark me-2">Screen Readers</span>
-                        <span class="badge bg-light text-dark me-2">Voice UI</span>
-                        <span class="badge bg-light text-dark">Audio Alerts</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4 col-md-6">
-                <div class="use-case-card">
-                    <div class="use-case-icon">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <h5 class="use-case-title">E-Learning</h5>
-                    <p class="use-case-description">
-                        Create engaging educational content with dynamic narration and interactive lessons.
-                    </p>
-                    <div class="use-case-examples">
-                        <span class="badge bg-light text-dark me-2">Online Courses</span>
-                        <span class="badge bg-light text-dark me-2">Language Learning</span>
-                        <span class="badge bg-light text-dark">Tutorials</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4 col-md-6">
-                <div class="use-case-card">
-                    <div class="use-case-icon">
-                        <i class="fas fa-robot"></i>
-                    </div>
-                    <h5 class="use-case-title">Chatbots & AI</h5>
-                    <p class="use-case-description">
-                        Add voice capabilities to chatbots, virtual assistants, and AI applications.
-                    </p>
-                    <div class="use-case-examples">
-                        <span class="badge bg-light text-dark me-2">Virtual Assistants</span>
-                        <span class="badge bg-light text-dark me-2">Chatbots</span>
-                        <span class="badge bg-light text-dark">AI Agents</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4 col-md-6">
-                <div class="use-case-card">
-                    <div class="use-case-icon">
-                        <i class="fas fa-mobile-alt"></i>
-                    </div>
-                    <h5 class="use-case-title">Mobile Apps</h5>
-                    <p class="use-case-description">
-                        Integrate voice features into mobile applications for better user experience.
-                    </p>
-                    <div class="use-case-examples">
-                        <span class="badge bg-light text-dark me-2">Navigation</span>
-                        <span class="badge bg-light text-dark me-2">Notifications</span>
-                        <span class="badge bg-light text-dark">Voice Feedback</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4 col-md-6">
-                <div class="use-case-card">
-                    <div class="use-case-icon">
-                        <i class="fas fa-broadcast-tower"></i>
-                    </div>
-                    <h5 class="use-case-title">Broadcasting</h5>
-                    <p class="use-case-description">
-                        Automate announcements, news reading, and live content generation.
-                    </p>
-                    <div class="use-case-examples">
-                        <span class="badge bg-light text-dark me-2">News Reading</span>
-                        <span class="badge bg-light text-dark me-2">Announcements</span>
-                        <span class="badge bg-light text-dark">Live Content</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Technical Specifications Section -->
-<section class="py-5 bg-light tech-specs-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center mb-5">
-                <div class="section-badge">
-                    <i class="fas fa-cogs me-2"></i>Technical Details
-                </div>
-                <h2 class="display-4 fw-bold mb-4">Built for Performance</h2>
-                <p class="lead text-muted col-lg-8 mx-auto">
-                    Enterprise-grade features and specifications designed for production environments.
-                </p>
-            </div>
-        </div>
-
-        <div class="row g-4">
-            <div class="col-lg-6">
-                <div class="tech-spec-card">
-                    <h4 class="mb-4"><i class="fas fa-microphone me-2 text-primary"></i>Voice Options</h4>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Alloy</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Echo</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Fable</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Onyx</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Nova</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Shimmer</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Coral</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Sage</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Breeze</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Cove</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Ember</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="tech-spec-card">
-                    <h4 class="mb-4"><i class="fas fa-file-audio me-2 text-success"></i>Audio Formats</h4>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>MP3 (default)</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>WAV</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>OPUS</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>AAC</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>FLAC</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>PCM</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4 mt-4">
-            <div class="col-lg-4">
-                <div class="tech-spec-card text-center">
-                    <div class="tech-spec-icon">
-                        <i class="fas fa-tachometer-alt"></i>
-                    </div>
-                    <h5>Performance</h5>
-                    <ul class="list-unstyled">
-                        <li>Async/await support</li>
-                        <li>Concurrent processing</li>
-                        <li>Automatic retries</li>
-                        <li>Rate limiting</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="tech-spec-card text-center">
-                    <div class="tech-spec-icon">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <h5>Reliability</h5>
-                    <ul class="list-unstyled">
-                        <li>Error handling</li>
-                        <li>Timeout management</li>
-                        <li>Health monitoring</li>
-                        <li>Logging support</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="tech-spec-card text-center">
-                    <div class="tech-spec-icon">
-                        <i class="fas fa-code"></i>
-                    </div>
-                    <h5>Developer Experience</h5>
-                    <ul class="list-unstyled">
-                        <li>Type hints</li>
-                        <li>IDE autocomplete</li>
-                        <li>Comprehensive docs</li>
-                        <li>Example code</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- FAQ Section -->
-<section class="py-5 faq-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center mb-5">
-                <div class="section-badge">
-                    <i class="fas fa-question-circle me-2"></i>FAQ
-                </div>
-                <h2 class="display-4 fw-bold mb-4">Frequently Asked Questions</h2>
-                <p class="lead text-muted col-lg-8 mx-auto">
-                    Get answers to common questions about TTSFM.
-                </p>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <div class="accordion" id="faqAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="faq1">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
-                                Is TTSFM compatible with OpenAI's TTS API?
-                            </button>
-                        </h2>
-                        <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body">
-                                Yes! TTSFM is designed as a drop-in replacement for OpenAI's TTS API. You can use the same parameters, voice names, and audio formats. Simply change your base URL and you're ready to go.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="faq2">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
-                                What's the maximum text length supported?
-                            </button>
-                        </h2>
-                        <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body">
-                                TTSFM supports up to 4,096 characters per request by default. For longer texts, you can use our automatic text splitting feature or batch processing to handle larger documents efficiently.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="faq3">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
-                                Can I use TTSFM in production applications?
-                            </button>
-                        </h2>
-                        <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body">
-                                Absolutely! TTSFM is built for production use with features like automatic retries, error handling, rate limiting, and comprehensive logging. It includes both synchronous and asynchronous clients for different use cases.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="faq4">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">
-                                What programming languages are supported?
-                            </button>
-                        </h2>
-                        <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body">
-                                TTSFM is a Python package that requires Python 3.8 or higher. It includes full type hints and works great with modern Python development tools and IDEs.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="faq5">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse5">
-                                How do I get started with TTSFM?
-                            </button>
-                        </h2>
-                        <div id="collapse5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body">
-                                Getting started is easy! Install with <code>pip install ttsfm</code>, then follow our quick start guide above. You can also try our interactive playground to test different voices and features before integrating into your project.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Final CTA Section -->
-<section class="py-5 final-cta-section position-relative overflow-hidden">
-    <div class="cta-background-animation"></div>
-    <div class="container text-center position-relative">
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <div class="cta-content">
-                    <h2 class="display-4 fw-bold text-white mb-4">
-                        Transform Your Ideas into Voice
-                    </h2>
-                    <p class="lead text-light mb-5">
-                        Join thousands of developers who trust TTSFM for their text-to-speech needs.
-                        Start building amazing voice-enabled applications today.
-                    </p>
-
-                    <div class="cta-buttons mb-5">
-                        <a href="{{ url_for('playground') }}" class="btn btn-light btn-lg me-3 mb-3 cta-btn-primary">
-                            <i class="fas fa-play me-2"></i>Try Interactive Demo
-                            <small class="d-block">No signup required • Free to use</small>
-                        </a>
-                        <a href="{{ url_for('docs') }}" class="btn btn-outline-light btn-lg me-3 mb-3 cta-btn-secondary">
-                            <i class="fas fa-book me-2"></i>Read Documentation
-                            <small class="d-block">Complete API reference</small>
-                        </a>
-                        <a href="https://github.com/dbccccccc/ttsfm" class="btn btn-outline-light btn-lg mb-3 cta-btn-secondary" target="_blank">
-                            <i class="fab fa-github me-2"></i>View on GitHub
-                            <small class="d-block">Open source • MIT License</small>
-                        </a>
-                    </div>
-
-                    <div class="cta-stats">
-                        <div class="row text-center">
-                            <div class="col-md-3 col-6 mb-3">
-                                <div class="cta-stat">
-                                    <h4 class="text-white mb-1">10K+</h4>
-                                    <small class="text-light">Developers</small>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-6 mb-3">
-                                <div class="cta-stat">
-                                    <h4 class="text-white mb-1">1M+</h4>
-                                    <small class="text-light">Audio Files</small>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-6 mb-3">
-                                <div class="cta-stat">
-                                    <h4 class="text-white mb-1">99.9%</h4>
-                                    <small class="text-light">Uptime</small>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-6 mb-3">
-                                <div class="cta-stat">
-                                    <h4 class="text-white mb-1">50+</h4>
-                                    <small class="text-light">Countries</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
 {% endblock %}
