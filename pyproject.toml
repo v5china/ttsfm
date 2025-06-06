@@ -9,10 +9,10 @@ description = "Text-to-Speech API Client with OpenAI compatibility"
 readme = "README.md"
 license = "MIT"
 authors = [
-    {name = "TTSFM Team", email = "support@ttsfm.dev"}
+    {name = "dbcccc", email = "120614547+dbccccccc@users.noreply.github.com"}
 ]
 maintainers = [
-    {name = "TTSFM Team", email = "support@ttsfm.dev"}
+    {name = "dbcccc", email = "120614547+dbccccccc@users.noreply.github.com"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

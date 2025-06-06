@@ -31,8 +31,8 @@ from .utils import (
 )
 
 __version__ = "3.0.0"
-__author__ = "TTSFM Team"
-__email__ = "support@ttsfm.dev"
+__author__ = "dbcccc"
+__email__ = "120614547+dbccccccc@users.noreply.github.com"
 __description__ = "Text-to-Speech API Client with OpenAI compatibility"
 __url__ = "https://github.com/dbccccccc/ttsfm"
 
