@@ -1,0 +1,9 @@
+# Web application dependencies
+flask>=2.0.0
+flask-cors>=3.0.10
+waitress>=3.0.0
+python-dotenv>=1.0.0
+
+# TTSFM package (install from local directory or PyPI)
+# For local development: pip install -e ../
+# For Docker/production: installed via pyproject.toml[web] dependencies

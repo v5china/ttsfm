@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}TTSFM Playground - Try Text-to-Speech{% endblock %}
+
+{% block content %}
+<!-- Clean Playground Header -->
+<section class="py-5" style="background-color: white; border-bottom: 1px solid #e5e7eb;">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="fade-in">
+                    <div class="badge bg-primary text-white mb-3 px-3 py-2">
+                        <i class="fas fa-flask me-2"></i>Demo
+                    </div>
+                    <h1 class="display-4 fw-bold mb-3 text-dark">
+                        <i class="fas fa-play-circle me-3 text-primary"></i>TTS Playground
+                    </h1>
+                    <p class="lead mb-4 text-muted">
+                        Test the TTSFM text-to-speech functionality with different voices and formats.
+                    </p>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center">
+                <div class="playground-visual fade-in" style="animation-delay: 0.3s;">
+                    <div class="playground-icon">
+                        <i class="fas fa-waveform-lines text-primary"></i>
+                        <div class="pulse-ring"></div>
+                        <div class="pulse-ring pulse-ring-delay"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container py-5 playground">
+
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-lg-custom border-0 fade-in">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h4 class="mb-0 d-flex align-items-center">
+                        <i class="fas fa-microphone me-2"></i>
+                        Text-to-Speech Generator
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form id="tts-form">
+                        <!-- Enhanced Text Input -->
+                        <div class="mb-4">
+                            <label for="text-input" class="form-label fw-bold d-flex align-items-center">
+                                <i class="fas fa-edit me-2 text-primary"></i>
+                                Text to Convert
+                            </label>
+                            <div class="position-relative">
+                                <textarea
+                                    class="form-control shadow-sm"
+                                    id="text-input"
+                                    rows="4"
+                                    placeholder="Enter the text you want to convert to speech..."
+                                    required
+                                >Hello! This is a test of the TTSFM text-to-speech system.</textarea>
+                                <div class="position-absolute top-0 end-0 p-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-text-btn" title="Clear text">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-text d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="text-muted">
+                                        <i class="fas fa-keyboard me-1"></i>
+                                        <span id="char-count">0</span> characters
+                                    </span>
+                                    <span id="length-status" class=""></span>
+                                    <span class="text-muted small">
+                                        <i class="fas fa-lightbulb me-1"></i>
+                                        Tip: Use Ctrl+Enter to generate
+                                    </span>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="validate-text-btn">
+                                        <i class="fas fa-check me-1"></i>Validate
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="random-text-btn">
+                                        <i class="fas fa-dice me-1"></i>Random
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="validation-result" class="mt-2 d-none"></div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Enhanced Voice Selection -->
+                            <div class="col-md-6 mb-4">
+                                <label for="voice-select" class="form-label fw-bold d-flex align-items-center">
+                                    <i class="fas fa-microphone me-2 text-primary"></i>
+                                    Voice
+                                </label>
+                                <select class="form-select shadow-sm" id="voice-select" required>
+                                    <option value="">Loading voices...</option>
+                                </select>
+                                <div class="form-text">
+                                    <span>Choose from available voices</span>
+                                </div>
+                            </div>
+
+                            <!-- Enhanced Format Selection -->
+                            <div class="col-md-6 mb-4">
+                                <label for="format-select" class="form-label fw-bold d-flex align-items-center">
+                                    <i class="fas fa-file-audio me-2 text-primary"></i>
+                                    Audio Format
+                                </label>
+                                <select class="form-select shadow-sm" id="format-select" required>
+                                    <option value="">Loading formats...</option>
+                                </select>
+                                <div class="form-text">
+                                    <span>Select your preferred audio format</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Options -->
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label for="max-length-input" class="form-label fw-bold">
+                                    <i class="fas fa-ruler me-2"></i>Max Length
+                                </label>
+                                <input
+                                    type="number"
+                                    class="form-control"
+                                    id="max-length-input"
+                                    value="4096"
+                                    min="100"
+                                    max="10000"
+                                >
+                                <div class="form-text">
+                                    Maximum characters per request (default: 4096)
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-cog me-2"></i>Options
+                                </label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="validate-length-check" checked>
+                                    <label class="form-check-label" for="validate-length-check">
+                                        Enable length validation
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="auto-split-check">
+                                    <label class="form-check-label" for="auto-split-check">
+                                        Auto-split long text
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Instructions (Optional) -->
+                        <div class="mb-4">
+                            <label for="instructions-input" class="form-label fw-bold">
+                                <i class="fas fa-magic me-2"></i>Instructions (Optional)
+                            </label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="instructions-input"
+                                placeholder="e.g., Speak in a cheerful and upbeat tone"
+                            >
+                            <div class="form-text">
+                                Provide optional instructions for voice modulation
+                            </div>
+                        </div>
+
+                        <!-- Enhanced Generate Button -->
+                        <div class="text-center mb-4">
+                            <div class="d-grid gap-2 d-md-block">
+                                <button type="submit" class="btn btn-primary btn-lg px-4 py-3" id="generate-btn">
+                                    <span class="btn-text">
+                                        <i class="fas fa-magic me-2"></i>Generate Speech
+                                    </span>
+                                    <span class="loading-spinner">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Generating...
+                                    </span>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-lg ms-md-3" id="reset-form-btn">
+                                    <i class="fas fa-redo me-2"></i>Reset
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Enhanced Audio Player -->
+                    <div id="audio-result" class="d-none">
+                        <div class="border-top pt-4 mt-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <h5 class="mb-0 d-flex align-items-center">
+                                    <i class="fas fa-volume-up me-2 text-success"></i>
+                                    Generated Audio
+                                    <span class="badge bg-success ms-2">
+                                        <i class="fas fa-check me-1"></i>Ready
+                                    </span>
+                                </h5>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="replay-btn" title="Replay audio">
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="share-btn" title="Share audio">
+                                        <i class="fas fa-share"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="audio-player-container bg-light rounded p-3 mb-3">
+                                <audio controls class="audio-player w-100" id="audio-player" preload="metadata">
+                                    Your browser does not support the audio element.
+                                </audio>
+                                <div class="audio-controls mt-2 d-flex justify-content-between align-items-center">
+                                    <div class="audio-info">
+                                        <span id="audio-info" class="text-muted small"></span>
+                                    </div>
+                                    <div class="audio-actions">
+                                        <button type="button" class="btn btn-success btn-sm" id="download-btn">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="audio-stats row text-center">
+                                <div class="col-md-3 col-6">
+                                    <div class="stat-item">
+                                        <i class="fas fa-clock text-primary"></i>
+                                        <div class="stat-value" id="audio-duration">--</div>
+                                        <div class="stat-label">Duration</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="stat-item">
+                                        <i class="fas fa-file text-info"></i>
+                                        <div class="stat-value" id="audio-size">--</div>
+                                        <div class="stat-label">File Size</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="stat-item">
+                                        <i class="fas fa-microphone text-warning"></i>
+                                        <div class="stat-value" id="audio-voice">--</div>
+                                        <div class="stat-label">Voice</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="stat-item">
+                                        <i class="fas fa-music text-success"></i>
+                                        <div class="stat-value" id="audio-format">--</div>
+                                        <div class="stat-label">Format</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Batch Results -->
+                    <div id="batch-result" class="d-none">
+                        <hr>
+                        <h5 class="mb-3">
+                            <i class="fas fa-layer-group me-2"></i>Batch Processing Results
+                        </h5>
+                        <div class="alert alert-info" id="batch-summary"></div>
+                        <div id="batch-chunks" class="row g-3"></div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary" id="download-all-btn">
+                                <i class="fas fa-download me-2"></i>Download All Audio Files
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Playground JavaScript -->
+<script src="{{ url_for('static', filename='js/playground.js') }}"></script>
+<script>
+    // Additional playground-specific functionality
+    console.log('TTSFM Playground loaded successfully!');
+
+
+</script>
+{% endblock %}
