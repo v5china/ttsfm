@@ -1,13 +1,8 @@
 # TTSFM - Text-to-Speech API Client
 
-[![PyPI version](https://img.shields.io/pypi/v/ttsfm?style=flat-square&logo=pypi)](https://pypi.org/project/ttsfm/)
-[![Python 3.8+](https://img.shields.io/pypi/pyversions/ttsfm?style=flat-square&logo=python)](https://www.python.org/downloads/)
-[![Downloads](https://img.shields.io/pypi/dm/ttsfm?style=flat-square&logo=pypi)](https://pypi.org/project/ttsfm/)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dbcccc/ttsfm?style=flat-square&logo=docker)](https://hub.docker.com/r/dbcccc/ttsfm)
 [![GitHub Stars](https://img.shields.io/github/stars/dbccccccc/ttsfm?style=social)](https://github.com/dbccccccc/ttsfm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/dbccccccc/ttsfm/release.yml?style=flat-square&logo=github)](https://github.com/dbccccccc/ttsfm/actions)
-[![Code Coverage](https://img.shields.io/codecov/c/github/dbccccccc/ttsfm?style=flat-square&logo=codecov)](https://codecov.io/gh/dbccccccc/ttsfm)
 
 🎤 **A modern, free Text-to-Speech API client with OpenAI compatibility**
 
