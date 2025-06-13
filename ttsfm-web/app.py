@@ -96,19 +96,66 @@ def get_formats():
     try:
         formats = [
             {
-                "id": fmt.value,
-                "name": fmt.value.upper(),
-                "mime_type": f"audio/{fmt.value}",
-                "description": f"{fmt.value.upper()} audio format"
+                "id": "mp3",
+                "name": "MP3",
+                "mime_type": "audio/mpeg",
+                "description": "MP3 audio format - good quality, small file size",
+                "quality": "Good",
+                "file_size": "Small",
+                "use_case": "Web, mobile apps, general use"
+            },
+            {
+                "id": "opus",
+                "name": "OPUS",
+                "mime_type": "audio/opus",
+                "description": "OPUS audio format - excellent quality, small file size",
+                "quality": "Excellent",
+                "file_size": "Small",
+                "use_case": "Web streaming, VoIP"
+            },
+            {
+                "id": "aac",
+                "name": "AAC",
+                "mime_type": "audio/aac",
+                "description": "AAC audio format - good quality, medium file size",
+                "quality": "Good",
+                "file_size": "Medium",
+                "use_case": "Apple devices, streaming"
+            },
+            {
+                "id": "flac",
+                "name": "FLAC",
+                "mime_type": "audio/flac",
+                "description": "FLAC audio format - lossless quality, large file size",
+                "quality": "Lossless",
+                "file_size": "Large",
+                "use_case": "High-quality archival"
+            },
+            {
+                "id": "wav",
+                "name": "WAV",
+                "mime_type": "audio/wav",
+                "description": "WAV audio format - lossless quality, large file size",
+                "quality": "Lossless",
+                "file_size": "Large",
+                "use_case": "Professional audio"
+            },
+            {
+                "id": "pcm",
+                "name": "PCM",
+                "mime_type": "audio/pcm",
+                "description": "PCM audio format - raw audio data, large file size",
+                "quality": "Raw",
+                "file_size": "Large",
+                "use_case": "Audio processing"
             }
-            for fmt in AudioFormat
         ]
-        
+
         return jsonify({
             "formats": formats,
             "count": len(formats)
         })
-        
+
     except Exception as e:
         logger.error(f"Error getting formats: {e}")
         return jsonify({"error": "Failed to get formats"}), 500

@@ -122,20 +122,21 @@ async function loadFormats() {
     try {
         const response = await fetch('/api/formats');
         const data = await response.json();
-        
+
         const select = document.getElementById('format-select');
         select.innerHTML = '';
-        
+
         data.formats.forEach(format => {
             const option = document.createElement('option');
             option.value = format.id;
-            option.textContent = `${format.name} (${format.mime_type})`;
+            option.textContent = `${format.name} - ${format.description}`;
             select.appendChild(option);
         });
-        
+
         // Select default format
         select.value = 'mp3';
-        
+        updateFormatInfo();
+
     } catch (error) {
         console.error('Failed to load formats:', error);
         console.log('Failed to load formats. Please refresh the page.');
@@ -683,12 +684,12 @@ function updateFormatInfo() {
     const formatInfo = document.getElementById('format-info');
 
     const formatDescriptions = {
-        'mp3': 'MP3 - Best for web and general use',
-        'wav': 'WAV - Uncompressed, highest quality',
-        'opus': 'OPUS - Efficient compression',
-        'aac': 'AAC - Good quality, small size',
-        'flac': 'FLAC - Lossless compression',
-        'pcm': 'PCM - Raw audio data'
+        'mp3': '🎵 MP3 - Good quality, small file size. Best for web and general use.',
+        'opus': '📻 OPUS - Excellent quality, small file size. Best for streaming and VoIP.',
+        'aac': '📱 AAC - Good quality, medium file size. Best for Apple devices and streaming.',
+        'flac': '💿 FLAC - Lossless quality, large file size. Best for archival and high-quality audio.',
+        'wav': '🎧 WAV - Lossless quality, large file size. Best for professional audio production.',
+        'pcm': '🔊 PCM - Raw audio data, large file size. Best for audio processing.'
     };
 
     if (formatInfo && formatSelect.value) {

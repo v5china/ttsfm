@@ -56,17 +56,19 @@ class TTSClient:
         timeout: float = 30.0,
         max_retries: int = 3,
         verify_ssl: bool = True,
+        preferred_format: Optional[AudioFormat] = None,
         **kwargs
     ):
         """
         Initialize the TTS client.
-        
+
         Args:
             base_url: Base URL for the TTS service
             api_key: API key for authentication
             timeout: Request timeout in seconds
             max_retries: Maximum retry attempts
             verify_ssl: Whether to verify SSL certificates
+            preferred_format: Preferred audio format (affects header selection)
             **kwargs: Additional configuration options
         """
         self.base_url = base_url.rstrip('/')
@@ -74,6 +76,7 @@ class TTSClient:
         self.timeout = timeout
         self.max_retries = max_retries
         self.verify_ssl = verify_ssl
+        self.preferred_format = preferred_format or AudioFormat.WAV
         
         # Validate base URL
         if not validate_url(self.base_url):
@@ -81,7 +84,7 @@ class TTSClient:
         
         # Setup HTTP session with retry strategy
         self.session = requests.Session()
-        
+
         # Configure retry strategy
         retry_strategy = Retry(
             total=max_retries,
@@ -89,19 +92,49 @@ class TTSClient:
             allowed_methods=["HEAD", "GET", "POST"],  # Updated parameter name
             backoff_factor=1
         )
-        
+
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
-        
+
         # Set default headers
         self.session.headers.update(get_realistic_headers())
-        
+
         if self.api_key:
             self.session.headers["Authorization"] = f"Bearer {self.api_key}"
         
         logger.info(f"Initialized TTS client with base URL: {self.base_url}")
-    
+
+    def _get_headers_for_format(self, requested_format: AudioFormat) -> Dict[str, str]:
+        """
+        Get appropriate headers to get the desired format from openai.fm.
+
+        Based on testing, openai.fm returns:
+        - MP3: When using simple/minimal headers
+        - WAV: When using full Chrome security headers
+
+        Args:
+            requested_format: The desired audio format
+
+        Returns:
+            Dict[str, str]: HTTP headers optimized for the requested format
+        """
+        from .models import get_supported_format
+
+        # Map requested format to supported format
+        target_format = get_supported_format(requested_format)
+
+        if target_format == AudioFormat.MP3:
+            # Use minimal headers to get MP3 response
+            return {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                'Accept': 'audio/*,*/*;q=0.9'
+            }
+        else:
+            # Use full realistic headers to get WAV response
+            # This works for WAV, OPUS, AAC, FLAC, PCM formats
+            return get_realistic_headers()
+
     def generate_speech(
         self,
         text: str,
@@ -237,7 +270,8 @@ class TTSClient:
         form_data = {
             'input': request.input,
             'voice': request.voice.value,
-            'generation': str(uuid.uuid4())
+            'generation': str(uuid.uuid4()),
+            'response_format': request.response_format.value if hasattr(request.response_format, 'value') else str(request.response_format)
         }
 
         # Add prompt/instructions if provided
@@ -255,7 +289,19 @@ class TTSClient:
                 "Emotion: Warm and engaging, conveying the intended message effectively."
             )
 
+        # Get optimized headers for the requested format
+        # Convert string format to AudioFormat enum if needed
+        requested_format = request.response_format
+        if isinstance(requested_format, str):
+            try:
+                requested_format = AudioFormat(requested_format.lower())
+            except ValueError:
+                requested_format = AudioFormat.WAV  # Default to WAV for unknown formats
+
+        format_headers = self._get_headers_for_format(requested_format)
+
         logger.info(f"Generating speech for text: '{request.input[:50]}...' with voice: {request.voice}")
+        logger.debug(f"Using headers optimized for {requested_format.value} format")
 
         # Make request with retries
         for attempt in range(self.max_retries + 1):
@@ -270,6 +316,7 @@ class TTSClient:
                 response = self.session.post(
                     url,
                     data=form_data,
+                    headers=format_headers,
                     timeout=self.timeout,
                     verify=self.verify_ssl
                 )
@@ -371,6 +418,29 @@ class TTSClient:
         # Estimate duration based on text length (rough approximation)
         estimated_duration = estimate_audio_duration(request.input)
 
+        # Check if returned format differs from requested format
+        requested_format = request.response_format
+        if isinstance(requested_format, str):
+            try:
+                requested_format = AudioFormat(requested_format.lower())
+            except ValueError:
+                requested_format = AudioFormat.WAV  # Default fallback
+
+        # Import here to avoid circular imports
+        from .models import get_supported_format, maps_to_wav
+
+        # Check if format differs from request
+        if actual_format != requested_format:
+            if maps_to_wav(requested_format.value) and actual_format.value == "wav":
+                logger.debug(
+                    f"Format '{requested_format.value}' requested, returning WAV format."
+                )
+            else:
+                logger.warning(
+                    f"Requested format '{requested_format.value}' but received '{actual_format.value}' "
+                    f"from service."
+                )
+
         # Create response object
         tts_response = TTSResponse(
             audio_data=audio_data,
@@ -384,7 +454,9 @@ class TTSClient:
                 "url": str(response.url),
                 "service": "openai.fm",
                 "voice": request.voice.value,
-                "original_text": request.input[:100] + "..." if len(request.input) > 100 else request.input
+                "original_text": request.input[:100] + "..." if len(request.input) > 100 else request.input,
+                "requested_format": requested_format.value,
+                "actual_format": actual_format.value
             }
         )
 

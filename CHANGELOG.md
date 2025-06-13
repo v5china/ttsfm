@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2024-12-19
+
+### 🔧 Format Support Improvements
+
+This release focuses on fixing audio format handling and improving format delivery optimization.
+
+### ✨ Added
+
+- **Smart Header Selection**: Intelligent HTTP header selection to optimize format delivery from openai.fm service
+- **Format Mapping Functions**: Helper functions for better format handling and optimization
+- **Enhanced Web Interface**: Improved format selection with detailed descriptions for each format
+- **Comprehensive Format Documentation**: Updated README and documentation with complete format information
+
+### 🔄 Changed
+
+- **File Naming Logic**: Files are now saved with extensions based on the actual returned format, not the requested format
+- **Enhanced Logging**: Added format-specific log messages for better debugging
+- **Web API Enhancement**: `/api/formats` endpoint now provides detailed information about all supported formats
+- **Documentation Updates**: README and package documentation now include comprehensive format guides
+
+### 🐛 Fixed
+
+- **MAJOR FIX**: Resolved file naming issue where files were saved with incorrect double extensions (e.g., `test.wav.mp3`, `test.opus.wav`)
+- **Correct File Extensions**: Files now save with proper single extensions based on actual audio format (e.g., `test.mp3`, `test.wav`)
+- **Format Optimization**: Improved format delivery through smart request optimization
+- **Format Handling**: Better handling of all supported audio formats
+
+### 📝 Technical Details
+
+- **Format Optimization**: Smart request optimization to deliver the best quality for each format
+- **Backward Compatibility**: Existing code continues to work unchanged
+- **Enhanced Format Support**: Improved support for all 6 audio formats (MP3, WAV, OPUS, AAC, FLAC, PCM)
+
 ## [3.0.0] - 2025-06-06
 
 ### 🎉 First Python Package Release

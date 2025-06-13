@@ -255,15 +255,19 @@ TTSFM supports **6 audio formats** with different quality and compression option
 
 | Format | Extension | Quality | File Size | Use Case |
 |--------|-----------|---------|-----------|----------|
-| `mp3` | `.mp3` | Good | Small | Web, mobile apps |
+| `mp3` | `.mp3` | Good | Small | Web, mobile apps, general use |
 | `opus` | `.opus` | Excellent | Small | Web streaming, VoIP |
 | `aac` | `.aac` | Good | Medium | Apple devices, streaming |
 | `flac` | `.flac` | Lossless | Large | High-quality archival |
 | `wav` | `.wav` | Lossless | Large | Professional audio |
 | `pcm` | `.pcm` | Raw | Large | Audio processing |
 
+### **Usage Examples**
+
 ```python
-from ttsfm import AudioFormat
+from ttsfm import TTSClient, AudioFormat
+
+client = TTSClient()
 
 # Generate in different formats
 formats = [
@@ -282,6 +286,42 @@ for fmt in formats:
     )
     response.save_to_file(f"test.{fmt.value}")
 ```
+
+### **Format Selection Guide**
+
+- **Choose MP3** for:
+  - Web applications
+  - Mobile apps
+  - Smaller file sizes
+  - General-purpose audio
+
+- **Choose OPUS** for:
+  - Web streaming
+  - VoIP applications
+  - Best compression ratio
+  - Real-time audio
+
+- **Choose AAC** for:
+  - Apple devices
+  - Streaming services
+  - Good quality/size balance
+
+- **Choose FLAC** for:
+  - Archival purposes
+  - Lossless compression
+  - Professional workflows
+
+- **Choose WAV** for:
+  - Professional audio production
+  - Maximum compatibility
+  - When file size is not a concern
+
+- **Choose PCM** for:
+  - Audio processing
+  - Raw audio data
+  - Custom applications
+
+> **Note**: The library automatically optimizes requests to deliver the best quality for your chosen format. Files are always saved with the correct extension based on the audio format.
 
 
 

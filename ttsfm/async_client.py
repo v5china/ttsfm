@@ -284,7 +284,8 @@ class AsyncTTSClient:
             form_data = {
                 'input': request.input,
                 'voice': request.voice.value,
-                'generation': str(uuid.uuid4())
+                'generation': str(uuid.uuid4()),
+                'response_format': request.response_format.value if hasattr(request.response_format, 'value') else str(request.response_format)
             }
 
             # Add prompt/instructions if provided
@@ -408,6 +409,29 @@ class AsyncTTSClient:
         # Estimate duration based on text length
         estimated_duration = estimate_audio_duration(request.input)
 
+        # Check if returned format differs from requested format
+        requested_format = request.response_format
+        if isinstance(requested_format, str):
+            try:
+                requested_format = AudioFormat(requested_format.lower())
+            except ValueError:
+                requested_format = AudioFormat.MP3  # Default fallback
+
+        # Import here to avoid circular imports
+        from .models import maps_to_wav
+
+        # Check if format differs from request
+        if actual_format != requested_format:
+            if maps_to_wav(requested_format.value) and actual_format.value == "wav":
+                logger.debug(
+                    f"Format '{requested_format.value}' requested, returning WAV format."
+                )
+            else:
+                logger.warning(
+                    f"Requested format '{requested_format.value}' but received '{actual_format.value}' "
+                    f"from service."
+                )
+
         # Create response object
         tts_response = TTSResponse(
             audio_data=audio_data,
@@ -421,7 +445,9 @@ class AsyncTTSClient:
                 "url": str(response.url),
                 "service": "openai.fm",
                 "voice": request.voice.value,
-                "original_text": request.input[:100] + "..." if len(request.input) > 100 else request.input
+                "original_text": request.input[:100] + "..." if len(request.input) > 100 else request.input,
+                "requested_format": requested_format.value,
+                "actual_format": actual_format.value
             }
         )
 

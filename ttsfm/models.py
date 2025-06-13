@@ -29,10 +29,10 @@ class Voice(str, Enum):
 class AudioFormat(str, Enum):
     """Supported audio output formats."""
     MP3 = "mp3"
+    WAV = "wav"
     OPUS = "opus"
     AAC = "aac"
     FLAC = "flac"
-    WAV = "wav"
     PCM = "pcm"
 
 
@@ -147,27 +147,39 @@ class TTSResponse:
     def save_to_file(self, filename: str) -> str:
         """
         Save audio data to a file.
-        
+
         Args:
             filename: Target filename (extension will be added if missing)
-            
+
         Returns:
             str: Final filename used
         """
         import os
-        
-        # Add extension if not present
-        if not filename.endswith(f".{self.format.value}"):
-            filename = f"{filename}.{self.format.value}"
-        
+
+        # Use the actual returned format for the extension, not any requested format
+        expected_extension = f".{self.format.value}"
+
+        # Check if filename already has the correct extension
+        if filename.endswith(expected_extension):
+            final_filename = filename
+        else:
+            # Remove any existing extension and add the correct one
+            base_name = filename
+            # Remove common audio extensions if present
+            for ext in ['.mp3', '.wav', '.opus', '.aac', '.flac', '.pcm']:
+                if base_name.endswith(ext):
+                    base_name = base_name[:-len(ext)]
+                    break
+            final_filename = f"{base_name}{expected_extension}"
+
         # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(filename) if os.path.dirname(filename) else ".", exist_ok=True)
-        
+        os.makedirs(os.path.dirname(final_filename) if os.path.dirname(final_filename) else ".", exist_ok=True)
+
         # Write audio data
-        with open(filename, "wb") as f:
+        with open(final_filename, "wb") as f:
             f.write(self.audio_data)
-        
-        return filename
+
+        return final_filename
 
 
 @dataclass
@@ -239,3 +251,33 @@ def get_content_type(format: Union[AudioFormat, str]) -> str:
 def get_format_from_content_type(content_type: str) -> AudioFormat:
     """Get audio format from MIME content type."""
     return FORMAT_FROM_CONTENT_TYPE.get(content_type, AudioFormat.MP3)
+
+
+def get_supported_format(requested_format: AudioFormat) -> AudioFormat:
+    """
+    Map requested format to supported format.
+
+    Args:
+        requested_format: The requested audio format
+
+    Returns:
+        AudioFormat: MP3 or WAV (the supported formats)
+    """
+    if requested_format == AudioFormat.MP3:
+        return AudioFormat.MP3
+    else:
+        # All other formats (WAV, OPUS, AAC, FLAC, PCM) return WAV
+        return AudioFormat.WAV
+
+
+def maps_to_wav(format_value: str) -> bool:
+    """
+    Check if a format maps to WAV.
+
+    Args:
+        format_value: Format string to check
+
+    Returns:
+        bool: True if the format maps to WAV
+    """
+    return format_value.lower() in ['wav', 'opus', 'aac', 'flac', 'pcm']

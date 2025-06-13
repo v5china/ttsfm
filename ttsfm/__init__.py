@@ -1,8 +1,56 @@
 """
-TTSFM - Text-to-Speech API Client
+TTSFM - Text-to-Speech for Free using OpenAI.fm
 
-A Python package for interacting with TTS services with OpenAI-compatible API.
-Provides both synchronous and asynchronous clients for easy integration.
+A Python library for generating high-quality text-to-speech audio using the free OpenAI.fm service.
+Supports multiple voices and audio formats with a simple, intuitive API.
+
+Features:
+- 🎤 6 premium AI voices (alloy, echo, fable, nova, onyx, shimmer)
+- 🎵 6 audio formats (MP3, WAV, OPUS, AAC, FLAC, PCM)
+- 🚀 Fast and reliable speech generation
+- 📝 Comprehensive text processing and validation
+- 🔄 Automatic retry with exponential backoff
+- 📊 Detailed response metadata and statistics
+- 🌐 Both synchronous and asynchronous APIs
+- 🎯 OpenAI-compatible API format
+- 🔧 Smart format optimization for best quality
+
+Audio Format Support:
+- MP3: Good quality, small file size - ideal for web and general use
+- WAV: Lossless quality, large file size - ideal for professional use
+- OPUS: High-quality compressed audio - ideal for streaming
+- AAC: Advanced audio codec - ideal for mobile devices
+- FLAC: Lossless compression - ideal for archival
+- PCM: Raw audio data - ideal for processing
+
+Example:
+    >>> from ttsfm import TTSClient, Voice, AudioFormat
+    >>>
+    >>> client = TTSClient()
+    >>>
+    >>> # Generate MP3 audio
+    >>> mp3_response = client.generate_speech(
+    ...     text="Hello, world!",
+    ...     voice=Voice.ALLOY,
+    ...     response_format=AudioFormat.MP3
+    ... )
+    >>> mp3_response.save_to_file("hello")  # Saves as hello.mp3
+    >>>
+    >>> # Generate WAV audio
+    >>> wav_response = client.generate_speech(
+    ...     text="High quality audio",
+    ...     voice=Voice.NOVA,
+    ...     response_format=AudioFormat.WAV
+    ... )
+    >>> wav_response.save_to_file("audio")  # Saves as audio.wav
+    >>>
+    >>> # Generate OPUS audio
+    >>> opus_response = client.generate_speech(
+    ...     text="Compressed audio",
+    ...     voice=Voice.ECHO,
+    ...     response_format=AudioFormat.OPUS
+    ... )
+    >>> opus_response.save_to_file("compressed")  # Saves as compressed.wav
 """
 
 from .client import TTSClient
