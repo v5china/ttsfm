@@ -4,6 +4,10 @@
 [![GitHub Stars](https://img.shields.io/github/stars/dbccccccc/ttsfm?style=social)](https://github.com/dbccccccc/ttsfm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=dbccccccc/ttsfm&type=Date)](https://www.star-history.com/#dbccccccc/ttsfm&Date)
+
 🎤 **A modern, free Text-to-Speech API client with OpenAI compatibility**
 
 TTSFM provides both synchronous and asynchronous Python clients for text-to-speech generation using the reverse-engineered openai.fm service. No API keys required - completely free to use!
