@@ -53,7 +53,7 @@
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <i class="fas fa-microphone-alt me-2"></i>
                 <span class="fw-bold">TTSFM</span>
-                <span class="badge bg-primary ms-2 small">v3.0</span>
+                <span class="badge bg-primary ms-2 small">v3.2</span>
             </a>
 
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -102,41 +102,21 @@
     </main>
 
     <!-- Simplified Footer -->
-    <footer class="footer py-4" style="background-color: #f8fafc; border-top: 1px solid #e5e7eb;" role="contentinfo">
+    <footer class="footer py-3" style="background-color: #f9fafb; border-top: 1px solid #e5e7eb;" role="contentinfo">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <div class="d-flex align-items-center mb-2 mb-md-0">
+                    <div class="d-flex align-items-center">
                         <i class="fas fa-microphone-alt me-2 text-primary"></i>
                         <strong class="text-dark">TTSFM</strong>
-                        <span class="ms-2 text-muted">Free Text-to-Speech for Python</span>
+                        <span class="ms-2 text-muted">v3.2</span>
                     </div>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <div class="d-flex justify-content-md-end gap-3">
-                        <a href="{{ url_for('playground') }}" class="text-decoration-none" style="color: #6b7280;">
-                            <i class="fas fa-play me-1"></i>Demo
-                        </a>
-                        <a href="{{ url_for('docs') }}" class="text-decoration-none" style="color: #6b7280;">
-                            <i class="fas fa-book me-1"></i>Docs
-                        </a>
-                        <a href="https://github.com/dbccccccc/ttsfm" class="text-decoration-none" style="color: #6b7280;" target="_blank" rel="noopener noreferrer">
-                            <i class="fab fa-github me-1"></i>GitHub
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <hr class="my-3" style="border-color: #e5e7eb;">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <small class="text-muted">&copy; 2024 TTSFM. MIT License.</small>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <small class="text-muted">
-                        <span id="footer-status" class="d-inline-flex align-items-center">
-                            <span class="status-indicator status-offline me-2"></span>
-                            Status: <span id="footer-status-text" class="ms-1">Checking...</span>
-                        </span>
+                        &copy; 2024 dbcccc •
+                        <a href="{{ url_for('docs') }}" class="text-decoration-none text-muted">Docs</a> •
+                        <a href="https://github.com/dbccccccc/ttsfm" class="text-decoration-none text-muted" target="_blank">GitHub</a>
                     </small>
                 </div>
             </div>
@@ -156,38 +136,19 @@
 
                 const indicator = document.getElementById('status-indicator');
                 const text = document.getElementById('status-text');
-                const footerIndicator = document.querySelector('#footer-status .status-indicator');
-                const footerText = document.getElementById('footer-status-text');
 
                 if (response.ok && data.status === 'healthy') {
-                    // Update navbar status
                     indicator.className = 'status-indicator status-online';
                     text.textContent = 'Online';
-
-                    // Update footer status
-                    if (footerIndicator) footerIndicator.className = 'status-indicator status-online';
-                    if (footerText) footerText.textContent = 'Online';
                 } else {
-                    // Update navbar status
                     indicator.className = 'status-indicator status-offline';
                     text.textContent = 'Offline';
-
-                    // Update footer status
-                    if (footerIndicator) footerIndicator.className = 'status-indicator status-offline';
-                    if (footerText) footerText.textContent = 'Offline';
                 }
             } catch (error) {
-                // Update navbar status
                 const indicator = document.getElementById('status-indicator');
                 const text = document.getElementById('status-text');
                 indicator.className = 'status-indicator status-offline';
                 text.textContent = 'Offline';
-
-                // Update footer status
-                const footerIndicator = document.querySelector('#footer-status .status-indicator');
-                const footerText = document.getElementById('footer-status-text');
-                if (footerIndicator) footerIndicator.className = 'status-indicator status-offline';
-                if (footerText) footerText.textContent = 'Offline';
             }
         }
 

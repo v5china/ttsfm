@@ -310,34 +310,35 @@ def generate_speech_batch():
         except ValueError as e:
             return jsonify({"error": f"Invalid voice or format: {e}"}), 400
 
-        # Split text into chunks
-        chunks = split_text_by_length(text, max_length, preserve_words)
+        # Use the new long text method
+        try:
+            responses = tts_client.generate_speech_long_text(
+                text=text,
+                voice=voice_enum,
+                response_format=format_enum,
+                instructions=instructions,
+                max_length=max_length,
+                preserve_words=preserve_words
+            )
+        except Exception as e:
+            logger.error(f"Long text generation failed: {e}")
+            return jsonify({"error": f"Long text generation failed: {str(e)}"}), 500
 
-        if not chunks:
+        if not responses:
             return jsonify({"error": "No valid text chunks found"}), 400
 
-        logger.info(f"Processing {len(chunks)} chunks for batch generation")
+        logger.info(f"Generated {len(responses)} chunks for batch generation")
 
-        # Generate speech for each chunk
+        # Process responses
         results = []
-        for i, chunk in enumerate(chunks):
+        for i, response in enumerate(responses):
             try:
-                response = tts_client.generate_speech(
-                    text=chunk,
-                    voice=voice_enum,
-                    response_format=format_enum,
-                    instructions=instructions,
-                    max_length=max_length,
-                    validate_length=False  # Already split
-                )
-
                 # Convert to base64 for JSON response
                 import base64
                 audio_b64 = base64.b64encode(response.audio_data).decode('utf-8')
 
                 results.append({
                     "chunk_index": i + 1,
-                    "chunk_text": chunk[:100] + "..." if len(chunk) > 100 else chunk,
                     "audio_data": audio_b64,
                     "content_type": response.content_type,
                     "size": response.size,
@@ -345,15 +346,14 @@ def generate_speech_batch():
                 })
 
             except Exception as e:
-                logger.error(f"Failed to generate chunk {i+1}: {e}")
+                logger.error(f"Failed to process chunk {i+1}: {e}")
                 results.append({
                     "chunk_index": i + 1,
-                    "chunk_text": chunk[:100] + "..." if len(chunk) > 100 else chunk,
                     "error": str(e)
                 })
 
         return jsonify({
-            "total_chunks": len(chunks),
+            "total_chunks": len(responses),
             "successful_chunks": len([r for r in results if "audio_data" in r]),
             "results": results
         })
@@ -376,7 +376,7 @@ def get_status():
         return jsonify({
             "status": "online",
             "tts_service": "openai.fm (free)",
-            "package_version": "3.0.0",
+            "package_version": "3.2.0",
             "timestamp": datetime.now().isoformat()
         })
         

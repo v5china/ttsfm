@@ -93,7 +93,11 @@ class TTSClient:
             backoff_factor=1
         )
 
-        adapter = HTTPAdapter(max_retries=retry_strategy)
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=10,
+            pool_maxsize=10
+        )
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
@@ -250,7 +254,49 @@ class TTSClient:
             responses.append(response)
 
         return responses
-    
+
+    def generate_speech_long_text(
+        self,
+        text: str,
+        voice: Union[Voice, str] = Voice.ALLOY,
+        response_format: Union[AudioFormat, str] = AudioFormat.MP3,
+        instructions: Optional[str] = None,
+        max_length: int = 4096,
+        preserve_words: bool = True,
+        **kwargs
+    ) -> List[TTSResponse]:
+        """
+        Generate speech from long text by splitting it into chunks.
+
+        This is an alias for generate_speech_batch for consistency with AsyncTTSClient.
+        Automatically splits text that exceeds max_length into smaller chunks
+        and generates speech for each chunk separately.
+
+        Args:
+            text: Text to convert to speech
+            voice: Voice to use for generation
+            response_format: Audio format for output
+            instructions: Optional instructions for voice modulation
+            max_length: Maximum length per chunk (default: 4096)
+            preserve_words: Whether to avoid splitting words (default: True)
+            **kwargs: Additional parameters
+
+        Returns:
+            List[TTSResponse]: List of generated audio responses
+
+        Raises:
+            TTSException: If generation fails for any chunk
+        """
+        return self.generate_speech_batch(
+            text=text,
+            voice=voice,
+            response_format=response_format,
+            instructions=instructions,
+            max_length=max_length,
+            preserve_words=preserve_words,
+            **kwargs
+        )
+
     def _make_request(self, request: TTSRequest) -> TTSResponse:
         """
         Make the actual HTTP request to the openai.fm TTS service.

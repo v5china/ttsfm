@@ -4,25 +4,6 @@ TTSFM - Text-to-Speech for Free using OpenAI.fm
 A Python library for generating high-quality text-to-speech audio using the free OpenAI.fm service.
 Supports multiple voices and audio formats with a simple, intuitive API.
 
-Features:
-- 🎤 6 premium AI voices (alloy, echo, fable, nova, onyx, shimmer)
-- 🎵 6 audio formats (MP3, WAV, OPUS, AAC, FLAC, PCM)
-- 🚀 Fast and reliable speech generation
-- 📝 Comprehensive text processing and validation
-- 🔄 Automatic retry with exponential backoff
-- 📊 Detailed response metadata and statistics
-- 🌐 Both synchronous and asynchronous APIs
-- 🎯 OpenAI-compatible API format
-- 🔧 Smart format optimization for best quality
-
-Audio Format Support:
-- MP3: Good quality, small file size - ideal for web and general use
-- WAV: Lossless quality, large file size - ideal for professional use
-- OPUS: High-quality compressed audio - ideal for streaming
-- AAC: Advanced audio codec - ideal for mobile devices
-- FLAC: Lossless compression - ideal for archival
-- PCM: Raw audio data - ideal for processing
-
 Example:
     >>> from ttsfm import TTSClient, Voice, AudioFormat
     >>>
@@ -71,14 +52,17 @@ from .exceptions import (
     NetworkException,
     ValidationException,
     RateLimitException,
-    AuthenticationException
+    AuthenticationException,
+    ServiceUnavailableException,
+    QuotaExceededException,
+    AudioProcessingException
 )
 from .utils import (
     validate_text_length,
     split_text_by_length
 )
 
-__version__ = "3.0.0"
+__version__ = "3.2.0"
 __author__ = "dbcccc"
 __email__ = "120614547+dbccccccc@users.noreply.github.com"
 __description__ = "Text-to-Speech API Client with OpenAI compatibility"
@@ -123,22 +107,44 @@ def set_default_client(client: TTSClient) -> None:
 def generate_speech(text: str, voice: str = "alloy", **kwargs) -> bytes:
     """
     Convenience function to generate speech using the default client.
-    
+
     Args:
         text: Text to convert to speech
         voice: Voice to use for generation
         **kwargs: Additional generation parameters
-        
+
     Returns:
         bytes: Generated audio data
-        
+
     Raises:
         TTSException: If no default client is set or generation fails
     """
     if default_client is None:
         raise TTSException("No default client set. Use create_client() first.")
-    
+
     return default_client.generate_speech(text=text, voice=voice, **kwargs)
+
+def generate_speech_long_text(text: str, voice: str = "alloy", **kwargs) -> list:
+    """
+    Convenience function to generate speech from long text using the default client.
+
+    Automatically splits long text into chunks and generates speech for each chunk.
+
+    Args:
+        text: Text to convert to speech (can be longer than 4096 characters)
+        voice: Voice to use for generation
+        **kwargs: Additional generation parameters (max_length, preserve_words, etc.)
+
+    Returns:
+        list: List of TTSResponse objects for each chunk
+
+    Raises:
+        TTSException: If no default client is set or generation fails
+    """
+    if default_client is None:
+        raise TTSException("No default client set. Use create_client() first.")
+
+    return default_client.generate_speech_long_text(text=text, voice=voice, **kwargs)
 
 # Export all public components
 __all__ = [
@@ -163,12 +169,16 @@ __all__ = [
     "ValidationException",
     "RateLimitException",
     "AuthenticationException",
+    "ServiceUnavailableException",
+    "QuotaExceededException",
+    "AudioProcessingException",
     
     # Factory functions
     "create_client",
     "create_async_client",
     "set_default_client",
     "generate_speech",
+    "generate_speech_long_text",
 
     # Utility functions
     "validate_text_length",

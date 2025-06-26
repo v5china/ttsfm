@@ -58,7 +58,7 @@ Examples:
         "--voice", "-v",
         type=str,
         default="alloy",
-        choices=["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
+        choices=["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse"],
         help="Voice to use for speech generation (default: alloy)"
     )
     
@@ -175,11 +175,16 @@ def get_voice_enum(voice_str: str) -> Voice:
     """Convert voice string to Voice enum."""
     voice_map = {
         "alloy": Voice.ALLOY,
+        "ash": Voice.ASH,
+        "ballad": Voice.BALLAD,
+        "coral": Voice.CORAL,
         "echo": Voice.ECHO,
         "fable": Voice.FABLE,
-        "onyx": Voice.ONYX,
         "nova": Voice.NOVA,
+        "onyx": Voice.ONYX,
+        "sage": Voice.SAGE,
         "shimmer": Voice.SHIMMER,
+        "verse": Voice.VERSE,
     }
     return voice_map[voice_str.lower()]
 
@@ -199,17 +204,7 @@ def get_format_enum(format_str: str) -> AudioFormat:
 
 def handle_long_text(args, text: str, voice: Voice, audio_format: AudioFormat, speed: float) -> None:
     """Handle long text by splitting it into chunks and generating multiple files."""
-    from .utils import split_text_by_length
     import os
-
-    # Split text into chunks
-    chunks = split_text_by_length(text, args.max_length, preserve_words=True)
-
-    if not chunks:
-        print("Error: No valid text chunks found after processing.", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"Split text into {len(chunks)} chunks")
 
     # Create client
     try:
@@ -220,38 +215,44 @@ def handle_long_text(args, text: str, voice: Voice, audio_format: AudioFormat, s
             max_retries=args.retries
         )
 
-        # Generate speech for each chunk
+        # Use the new long text method
+        responses = client.generate_speech_long_text(
+            text=text,
+            voice=voice,
+            response_format=audio_format,
+            speed=speed,
+            max_length=args.max_length,
+            preserve_words=True
+        )
+
+        if not responses:
+            print("Error: No valid text chunks found after processing.", file=sys.stderr)
+            sys.exit(1)
+
+        print(f"Generated {len(responses)} audio chunks")
+
+        # Save each response to a file
         base_name, ext = os.path.splitext(args.output)
 
-        for i, chunk in enumerate(chunks, 1):
+        for i, response in enumerate(responses, 1):
             if args.verbose:
-                print(f"Processing chunk {i}/{len(chunks)} ({len(chunk)} characters)...")
+                print(f"Saving chunk {i}/{len(responses)}...")
 
             # Generate filename for this chunk
-            if len(chunks) == 1:
+            if len(responses) == 1:
                 output_file = args.output
             else:
                 output_file = f"{base_name}_part{i:03d}{ext}"
 
-            # Generate speech for this chunk
-            audio_data = client.generate_speech(
-                text=chunk,
-                voice=voice,
-                response_format=audio_format,
-                speed=speed,
-                max_length=args.max_length,
-                validate_length=False  # We already split the text
-            )
-
             # Save to file
             with open(output_file, 'wb') as f:
-                f.write(audio_data)
+                f.write(response.audio_data)
 
             print(f"Generated: {output_file}")
 
-        if len(chunks) > 1:
-            print(f"\nGenerated {len(chunks)} audio files from long text.")
-            print(f"Files: {base_name}_part001{ext} to {base_name}_part{len(chunks):03d}{ext}")
+        if len(responses) > 1:
+            print(f"\nGenerated {len(responses)} audio files from long text.")
+            print(f"Files: {base_name}_part001{ext} to {base_name}_part{len(responses):03d}{ext}")
 
     except Exception as e:
         print(f"Error processing long text: {e}", file=sys.stderr)
@@ -326,7 +327,7 @@ def main() -> None:
             print("Generating speech...")
         
         # Generate speech
-        audio_data = client.generate_speech(
+        response = client.generate_speech(
             text=text,
             voice=voice,
             response_format=audio_format,
@@ -334,10 +335,10 @@ def main() -> None:
             max_length=args.max_length,
             validate_length=validate_length
         )
-        
+
         # Save to file
         with open(args.output, 'wb') as f:
-            f.write(audio_data)
+            f.write(response.audio_data)
         
         print(f"Speech generated successfully: {args.output}")
         

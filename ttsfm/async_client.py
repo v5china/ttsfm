@@ -218,6 +218,46 @@ class AsyncTTSClient:
         # Process all chunks concurrently
         return await self.generate_speech_batch(requests)
 
+    async def generate_speech_from_long_text(
+        self,
+        text: str,
+        voice: Union[Voice, str] = Voice.ALLOY,
+        response_format: Union[AudioFormat, str] = AudioFormat.MP3,
+        instructions: Optional[str] = None,
+        max_length: int = 4096,
+        preserve_words: bool = True,
+        **kwargs
+    ) -> List[TTSResponse]:
+        """
+        Generate speech from long text by splitting it into chunks asynchronously.
+
+        This is an alias for generate_speech_long_text for consistency.
+
+        Args:
+            text: Text to convert to speech
+            voice: Voice to use for generation
+            response_format: Audio format for output
+            instructions: Optional instructions for voice modulation
+            max_length: Maximum length per chunk (default: 4096)
+            preserve_words: Whether to avoid splitting words (default: True)
+            **kwargs: Additional parameters
+
+        Returns:
+            List[TTSResponse]: List of generated audio responses
+
+        Raises:
+            TTSException: If generation fails for any chunk
+        """
+        return await self.generate_speech_long_text(
+            text=text,
+            voice=voice,
+            response_format=response_format,
+            instructions=instructions,
+            max_length=max_length,
+            preserve_words=preserve_words,
+            **kwargs
+        )
+
     async def generate_speech_batch(
         self,
         requests: List[TTSRequest]

@@ -66,10 +66,10 @@
     <div class="row">
         <div class="col-12 text-center mb-5">
             <h1 class="display-4 fw-bold">
-                <i class="fas fa-book me-3"></i>API Documentation
+                <i class="fas fa-book me-3 text-primary"></i>API Documentation
             </h1>
             <p class="lead text-muted">
-                Complete reference for the TTSFM Text-to-Speech API
+                Complete reference for the TTSFM Text-to-Speech API. Free, simple, and powerful.
             </p>
         </div>
     </div>
@@ -293,7 +293,7 @@
                             <span class="method-badge method-post">POST</span>
                             /api/generate-batch
                         </h4>
-                        <p class="card-text">Generate speech from long text by automatically splitting into chunks.</p>
+                        <p class="card-text">Generate speech from long text by automatically splitting into chunks. Uses intelligent text splitting that preserves word boundaries for natural-sounding speech.</p>
                         
                         <h6>Request Body:</h6>
                         <div class="code-block">
@@ -323,6 +323,48 @@
   ]
 }</code></pre>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Python Package -->
+            <section id="python-package" class="mb-5">
+                <h3 class="fw-bold mb-4">
+                    <i class="fab fa-python me-2 text-warning"></i>Python Package
+                </h3>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h5>Long Text Support</h5>
+                        <p>The TTSFM Python package includes built-in long text splitting functionality:</p>
+
+                        <div class="code-block">
+                            <pre><code>from ttsfm import TTSClient, Voice, AudioFormat
+
+# Create client
+client = TTSClient()
+
+# Generate speech from long text (automatically splits)
+responses = client.generate_speech_long_text(
+    text="Very long text that exceeds 4096 characters...",
+    voice=Voice.ALLOY,
+    response_format=AudioFormat.MP3,
+    max_length=2000,
+    preserve_words=True
+)
+
+# Save each chunk
+for i, response in enumerate(responses, 1):
+    response.save_to_file(f"part_{i:03d}.mp3")</code></pre>
+                        </div>
+
+                        <h6 class="mt-4">Key Features:</h6>
+                        <ul>
+                            <li><strong>Automatic Splitting:</strong> No manual text chunking required</li>
+                            <li><strong>Word Preservation:</strong> Maintains word boundaries for natural speech</li>
+                            <li><strong>Batch Processing:</strong> Efficient handling of multiple chunks</li>
+                            <li><strong>CLI Support:</strong> Use <code>--split-long-text</code> flag</li>
+                        </ul>
                     </div>
                 </div>
             </section>

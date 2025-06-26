@@ -2,25 +2,25 @@
 
 :root {
     /* Clean Color Palette */
-    --primary-color: #2563eb;
-    --primary-dark: #1d4ed8;
-    --primary-light: #3b82f6;
-    --secondary-color: #64748b;
-    --secondary-dark: #475569;
-    --accent-color: #10b981;
-    --accent-dark: #059669;
+    --primary-color: #4f46e5;
+    --primary-dark: #3730a3;
+    --primary-light: #6366f1;
+    --secondary-color: #6b7280;
+    --secondary-dark: #4b5563;
+    --accent-color: #059669;
+    --accent-dark: #047857;
 
     /* Status Colors */
-    --success-color: #10b981;
-    --warning-color: #f59e0b;
-    --danger-color: #ef4444;
-    --info-color: #3b82f6;
+    --success-color: #059669;
+    --warning-color: #d97706;
+    --danger-color: #dc2626;
+    --info-color: #2563eb;
 
     /* Clean Neutral Colors */
     --light-color: #ffffff;
-    --light-gray: #f8fafc;
-    --medium-gray: #64748b;
-    --dark-color: #1e293b;
+    --light-gray: #f9fafb;
+    --medium-gray: #6b7280;
+    --dark-color: #111827;
     --text-color: #374151;
     --text-muted: #6b7280;
 
@@ -75,33 +75,38 @@ h1, h2, h3, h4, h5, h6 {
 /* Simplified Button Styles */
 .btn {
     font-weight: 600;
-    border-radius: var(--border-radius-sm);
-    transition: all 0.2s ease;
+    border-radius: 12px;
+    transition: all 0.3s ease;
     letter-spacing: 0.025em;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
     color: white;
 }
 
 .btn-primary:hover {
-    background-color: var(--primary-dark);
-    border-color: var(--primary-dark);
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
     color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-outline-primary {
     border: 2px solid var(--primary-color);
     color: var(--primary-color);
     background: transparent;
+    box-shadow: none;
 }
 
 .btn-outline-primary:hover {
     background: var(--primary-color);
     border-color: var(--primary-color);
     color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-lg {
@@ -119,15 +124,16 @@ h1, h2, h3, h4, h5, h6 {
 /* Clean Card Styles */
 .card {
     border: 1px solid #e5e7eb;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease;
-    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border-radius: 16px;
     background: white;
 }
 
 .card:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-    border-color: #d1d5db;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary-light);
+    transform: translateY(-2px);
 }
 
 .card-body {
@@ -136,10 +142,10 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Clean Hero Section */
 .hero-section {
-    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
     color: var(--text-color);
-    padding: 6rem 0;
-    min-height: 80vh;
+    padding: 5rem 0;
+    min-height: 75vh;
     display: flex;
     align-items: center;
     border-bottom: 1px solid #e5e7eb;
@@ -186,24 +192,27 @@ code {
 
 /* Enhanced Form Styles */
 .form-control, .form-select {
-    border-radius: var(--border-radius-sm);
-    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
     transition: var(--transition);
-    padding: 0.875rem 1rem;
+    padding: 1rem 1.25rem;
     font-size: 1rem;
     background-color: #ffffff;
     color: var(--text-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .form-control:focus, .form-select:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
     outline: none;
     background-color: #ffffff;
+    transform: translateY(-1px);
 }
 
 .form-control:hover, .form-select:hover {
-    border-color: #cbd5e1;
+    border-color: var(--primary-light);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .form-label {
