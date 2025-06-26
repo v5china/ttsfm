@@ -231,28 +231,73 @@ def sanitize_text(text: str) -> str:
     """
     Sanitize input text for TTS processing.
 
+    Removes HTML markup and potentially problematic characters to ensure
+    clean text input for text-to-speech generation. Uses safe regex patterns
+    to prevent ReDoS attacks.
+
     Args:
         text: Input text to sanitize
 
     Returns:
-        str: Sanitized text
+        str: Sanitized text safe for TTS processing
+
+    Raises:
+        ValueError: If input text is too long (>50000 characters)
     """
     if not text:
         return ""
 
-    # Remove HTML tags
-    text = re.sub(r'<[^>]+>', '', text)
+    # Prevent ReDoS attacks by limiting input length
+    if len(text) > 50000:
+        raise ValueError("Input text too long for sanitization (max 50000 characters)")
 
-    # Remove script tags and content
-    text = re.sub(r'<script.*?</script>', '', text, flags=re.DOTALL | re.IGNORECASE)
+    # Use a simple character-by-character approach to remove HTML-like content
+    # This avoids complex regex patterns that can cause ReDoS
+    result = []
+    i = 0
+    while i < len(text):
+        if text[i] == '<':
+            # Find the end of the tag
+            j = i + 1
+            while j < len(text) and text[j] != '>':
+                j += 1
+            if j < len(text):
+                # Skip the entire tag
+                i = j + 1
+            else:
+                # No closing >, treat as regular character
+                result.append(text[i])
+                i += 1
+        elif text[i] == '&':
+            # Handle HTML entities
+            j = i + 1
+            while j < len(text) and j < i + 10 and text[j] not in ' \t\n\r<>&':
+                j += 1
+            if j < len(text) and text[j] == ';':
+                # Skip the entity
+                i = j + 1
+            else:
+                # Not a valid entity, keep the &
+                result.append(' ')  # Replace with space for TTS
+                i += 1
+        else:
+            # Regular character
+            char = text[i]
+            # Normalize quotes for TTS
+            if char in '""''`':
+                result.append('"')
+            elif char in '<>':
+                # Skip these characters
+                pass
+            else:
+                result.append(char)
+            i += 1
 
-    # Remove potentially dangerous characters
-    text = re.sub(r'[<>"\']', '', text)
+    # Join and normalize whitespace using a safe regex
+    sanitized = ''.join(result)
+    sanitized = re.sub(r'[ \t\n\r\f\v]+', ' ', sanitized)
 
-    # Normalize whitespace
-    text = re.sub(r'\s+', ' ', text)
-
-    return text.strip()
+    return sanitized.strip()
 
 
 def validate_url(url: str) -> bool:

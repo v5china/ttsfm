@@ -261,25 +261,24 @@ def generate_speech():
         
     except ValidationException as e:
         logger.warning(f"Validation error: {e}")
-        return jsonify({"error": str(e)}), 400
-        
+        return jsonify({"error": "Invalid input parameters"}), 400
+
     except APIException as e:
         logger.error(f"API error: {e}")
         return jsonify({
-            "error": str(e),
+            "error": "TTS service error",
             "status_code": getattr(e, 'status_code', 500)
         }), getattr(e, 'status_code', 500)
-        
+
     except NetworkException as e:
         logger.error(f"Network error: {e}")
         return jsonify({
-            "error": "TTS service is currently unavailable",
-            "details": str(e)
+            "error": "TTS service is currently unavailable"
         }), 503
-        
+
     except TTSException as e:
         logger.error(f"TTS error: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Text-to-speech generation failed"}), 500
         
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
@@ -308,7 +307,8 @@ def generate_speech_batch():
             voice_enum = Voice(voice.lower())
             format_enum = AudioFormat(response_format.lower())
         except ValueError as e:
-            return jsonify({"error": f"Invalid voice or format: {e}"}), 400
+            logger.warning(f"Invalid voice or format: {e}")
+            return jsonify({"error": "Invalid voice or format specified"}), 400
 
         # Use the new long text method
         try:
@@ -322,7 +322,7 @@ def generate_speech_batch():
             )
         except Exception as e:
             logger.error(f"Long text generation failed: {e}")
-            return jsonify({"error": f"Long text generation failed: {str(e)}"}), 500
+            return jsonify({"error": "Long text generation failed"}), 500
 
         if not responses:
             return jsonify({"error": "No valid text chunks found"}), 400
@@ -349,7 +349,7 @@ def generate_speech_batch():
                 logger.error(f"Failed to process chunk {i+1}: {e}")
                 results.append({
                     "chunk_index": i + 1,
-                    "error": str(e)
+                    "error": "Failed to process audio chunk"
                 })
 
         return jsonify({
@@ -385,7 +385,7 @@ def get_status():
         return jsonify({
             "status": "error",
             "tts_service": "openai.fm (free)",
-            "error": str(e),
+            "error": "Service status check failed",
             "timestamp": datetime.now().isoformat()
         }), 503
 
@@ -484,7 +484,7 @@ def openai_speech():
         logger.warning(f"OpenAI API validation error: {e}")
         return jsonify({
             "error": {
-                "message": str(e),
+                "message": "Invalid request parameters",
                 "type": "invalid_request_error",
                 "code": "validation_error"
             }
@@ -494,7 +494,7 @@ def openai_speech():
         logger.error(f"OpenAI API error: {e}")
         return jsonify({
             "error": {
-                "message": str(e),
+                "message": "Text-to-speech generation failed",
                 "type": "api_error",
                 "code": "tts_error"
             }

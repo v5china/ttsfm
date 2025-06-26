@@ -718,11 +718,20 @@ function displayAudioResult(audioBlob, format, voice, text) {
     document.getElementById('audio-format').textContent = format.toUpperCase();
     document.getElementById('audio-voice').textContent = voice.charAt(0).toUpperCase() + voice.slice(1);
 
-    // Update audio info
-    audioInfo.innerHTML = `
-        <i class="fas fa-check-circle text-success me-1"></i>
-        Generated successfully • ${sizeKB} KB • ${format.toUpperCase()}
-    `;
+    // Update audio info safely without innerHTML
+    // Clear existing content
+    audioInfo.textContent = '';
+
+    // Create and append icon element
+    const icon = document.createElement('i');
+    icon.className = 'fas fa-check-circle text-success me-1';
+    audioInfo.appendChild(icon);
+
+    // Create and append text content (safely escaped)
+    const textNode = document.createTextNode(
+        `Generated successfully • ${sizeKB} KB • ${format.toUpperCase()}`
+    );
+    audioInfo.appendChild(textNode);
 
     // Show result with animation
     audioResult.classList.remove('d-none');
