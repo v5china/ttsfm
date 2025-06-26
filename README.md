@@ -422,7 +422,7 @@ services:
 |----------|-------|-------------|
 | GitHub Container Registry | `ghcr.io/dbccccccc/ttsfm:latest` | Latest stable release |
 | Docker Hub | `dbcccc/ttsfm:latest` | Mirror on Docker Hub |
-| GitHub Container Registry | `ghcr.io/dbccccccc/ttsfm:v3.0.0` | Specific version |
+| GitHub Container Registry | `ghcr.io/dbccccccc/ttsfm:v3.2.2` | Specific version |
 
 ## 🛠️ Advanced Usage
 
@@ -555,15 +555,16 @@ for text in texts:
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-### Latest Changes (v3.0.0)
+### Latest Changes (v3.2.2)
 
-- 🆕 Complete rewrite with OpenAI compatibility
-- 🆕 Async client with batch processing
-- 🆕 Web interface with interactive playground
-- 🆕 Docker container with health checks
-- 🆕 CLI tool for command-line usage
-- 🆕 Comprehensive error handling
-- 🆕 Type hints and better documentation
+- 🎵 **Combined Audio**: Generate single audio files from long text (no more chunk management!)
+- 🧠 **Intelligent Splitting**: Smart text splitting at sentence/word boundaries
+- 🔗 **Seamless Combination**: Professional audio merging with multiple fallback methods
+- 🤖 **OpenAI Compatible**: New `/v1/audio/speech-combined` endpoint
+- 📊 **Rich Metadata**: Detailed processing information in response headers
+- 🚀 **Performance Optimized**: Concurrent processing and memory efficiency
+- 🌍 **Unicode Support**: Full international text support
+- 🧪 **Comprehensive Testing**: Complete test suite with performance benchmarks
 
 ## 🤝 Support & Community
 

@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.2] - 2025-06-26
+
+### 🎵 Combined Audio Functionality
+
+This release introduces the revolutionary combined audio feature that allows generating single, seamless audio files from long text content.
+
+### ✨ Added
+
+- **Combined Audio Endpoints**: New `/api/generate-combined` and `/v1/audio/speech-combined` endpoints
+- **Intelligent Text Splitting**: Smart algorithm that splits text at sentence boundaries, then word boundaries, preserving natural speech flow
+- **Seamless Audio Combination**: Professional audio processing to merge chunks into single continuous files
+- **OpenAI Compatibility**: Full OpenAI TTS API compatibility for combined audio generation
+- **Advanced Fallback System**: Multiple fallback mechanisms for audio combination (PyDub → WAV concatenation → raw concatenation)
+- **Rich Metadata**: Response headers with chunk count, file size, and processing information
+- **Comprehensive Testing**: Full test suite with unit tests, integration tests, and performance benchmarks
+
+### 🔄 Changed
+
+- **Extended Character Limits**: No longer limited to 4096 characters per request
+- **Enhanced Web Interface**: Updated documentation with combined audio endpoint information
+- **Improved Error Handling**: Better validation and error messages for long text processing
+
+### 🛠️ Technical Features
+
+- **Concurrent Processing**: Parallel chunk processing for faster generation
+- **Memory Optimization**: Efficient memory usage for large text processing
+- **Format Support**: Works with all supported audio formats (MP3, WAV, OPUS, AAC, FLAC, PCM)
+- **Performance Monitoring**: Built-in performance tracking and optimization
+- **Unicode Support**: Full Unicode text handling for international content
+
+### 📋 Use Cases
+
+- **Long Articles**: Convert blog posts and articles to single audio files
+- **Audiobooks**: Generate chapters as continuous audio
+- **Educational Content**: Transform learning materials to audio format
+- **Accessibility**: Enhanced support for visually impaired users
+- **Podcast Creation**: Convert scripts to professional audio content
+
 ## [3.1.0] - 2024-12-19
 
 ### 🔧 Format Support Improvements

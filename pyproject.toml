@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ttsfm"
-version = "3.2.1"
+version = "3.2.2"
 description = "Text-to-Speech API Client with OpenAI compatibility"
 readme = "README.md"
 license = "MIT"

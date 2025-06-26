@@ -630,7 +630,7 @@ def get_status():
         return jsonify({
             "status": "online",
             "tts_service": "openai.fm (free)",
-            "package_version": "3.2.0",
+            "package_version": "3.2.2",
             "timestamp": datetime.now().isoformat()
         })
         
