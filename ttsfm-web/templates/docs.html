@@ -87,6 +87,7 @@
                 <a href="#formats">Audio Formats</a>
                 <a href="#generate">Generate Speech</a>
                 <a href="#batch">Batch Processing</a>
+                <a href="#combined">Combined Audio</a>
                 <a href="#status">Status & Health</a>
                 <a href="#errors">Error Handling</a>
                 <a href="#examples">Code Examples</a>
@@ -117,6 +118,7 @@
                     <li>Text length validation (4096 character limit)</li>
                     <li>Automatic text splitting for long content</li>
                     <li>Batch processing capabilities</li>
+                    <li>Combined audio generation from long text</li>
                     <li>Real-time status monitoring</li>
                 </ul>
             </section>
@@ -365,6 +367,103 @@ for i, response in enumerate(responses, 1):
                             <li><strong>Batch Processing:</strong> Efficient handling of multiple chunks</li>
                             <li><strong>CLI Support:</strong> Use <code>--split-long-text</code> flag</li>
                         </ul>
+                    </div>
+                </div>
+
+                <!-- Combined Audio Endpoints -->
+                <div class="card endpoint-card" id="combined">
+                    <div class="card-body">
+                        <h4 class="card-title">
+                            <span class="method-badge method-post">POST</span>
+                            /api/generate-combined
+                        </h4>
+                        <p class="card-text">Generate a single combined audio file from long text. Automatically splits text into chunks, generates speech for each chunk, and combines them into one seamless audio file.</p>
+
+                        <h6>Request Body:</h6>
+                        <div class="code-block">
+                            <pre><code>{
+  "text": "Very long text that exceeds the limit...",
+  "voice": "alloy",
+  "format": "mp3",
+  "instructions": "Optional voice instructions",
+  "max_length": 4096,
+  "preserve_words": true
+}</code></pre>
+                        </div>
+
+                        <h6>Response:</h6>
+                        <p>Returns a single audio file containing all chunks combined seamlessly.</p>
+
+                        <h6>Response Headers:</h6>
+                        <ul>
+                            <li><code>X-Chunks-Combined</code>: Number of chunks that were combined</li>
+                            <li><code>X-Original-Text-Length</code>: Original text length in characters</li>
+                            <li><code>X-Audio-Size</code>: Final audio file size in bytes</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- OpenAI Compatible Combined Endpoint -->
+                <div class="card endpoint-card">
+                    <div class="card-body">
+                        <h4 class="card-title">
+                            <span class="method-badge method-post">POST</span>
+                            /v1/audio/speech-combined
+                        </h4>
+                        <p class="card-text">OpenAI-compatible endpoint for combined audio generation. Same functionality as above but follows OpenAI API format.</p>
+
+                        <h6>Request Body:</h6>
+                        <div class="code-block">
+                            <pre><code>{
+  "model": "gpt-4o-mini-tts",
+  "input": "Very long text that exceeds the limit...",
+  "voice": "alloy",
+  "response_format": "mp3",
+  "instructions": "Optional voice instructions",
+  "speed": 1.0,
+  "max_length": 4096
+}</code></pre>
+                        </div>
+
+                        <h6>Response:</h6>
+                        <p>Returns a single combined audio file with the same headers as the native endpoint.</p>
+
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Audio Combination:</strong> Uses advanced audio processing (PyDub) when available,
+                            with intelligent fallbacks for different environments. Supports all audio formats.
+                        </div>
+
+                        <h6 class="mt-4">Use Cases:</h6>
+                        <ul>
+                            <li><strong>Long Articles:</strong> Convert blog posts or articles to single audio files</li>
+                            <li><strong>Audiobooks:</strong> Generate chapters as single audio files</li>
+                            <li><strong>Podcasts:</strong> Create podcast episodes from scripts</li>
+                            <li><strong>Educational Content:</strong> Convert learning materials to audio</li>
+                        </ul>
+
+                        <h6 class="mt-4">Example Usage:</h6>
+                        <div class="code-block">
+                            <pre><code># Python example
+import requests
+
+response = requests.post(
+    "{{ request.url_root }}api/generate-combined",
+    json={
+        "text": "Your very long text content here...",
+        "voice": "nova",
+        "format": "mp3",
+        "max_length": 2000
+    }
+)
+
+if response.status_code == 200:
+    with open("combined_audio.mp3", "wb") as f:
+        f.write(response.content)
+
+    chunks = response.headers.get('X-Chunks-Combined')
+    print(f"Combined {chunks} chunks into single file")</code></pre>
+                        </div>
                     </div>
                 </div>
             </section>

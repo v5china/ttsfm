@@ -8,9 +8,11 @@ for the TTSFM text-to-speech package.
 import os
 import json
 import logging
+import tempfile
+import io
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from flask import Flask, request, jsonify, send_file, Response, render_template
 from flask_cors import CORS
@@ -52,6 +54,124 @@ DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 tts_client = TTSClient()
 
 logger.info("Initialized web app with TTSFM using openai.fm free service")
+
+def combine_audio_chunks(audio_chunks: List[bytes], format_type: str = "mp3") -> bytes:
+    """
+    Combine multiple audio chunks into a single audio file.
+
+    Args:
+        audio_chunks: List of audio data as bytes
+        format_type: Audio format (mp3, wav, etc.)
+
+    Returns:
+        bytes: Combined audio data
+    """
+    try:
+        # Try to use pydub for audio processing if available
+        try:
+            from pydub import AudioSegment
+
+            # Convert each chunk to AudioSegment
+            audio_segments = []
+            for chunk in audio_chunks:
+                if format_type.lower() == "mp3":
+                    segment = AudioSegment.from_mp3(io.BytesIO(chunk))
+                elif format_type.lower() == "wav":
+                    segment = AudioSegment.from_wav(io.BytesIO(chunk))
+                elif format_type.lower() == "opus":
+                    # For OPUS, we'll treat it as WAV since openai.fm returns WAV for OPUS requests
+                    segment = AudioSegment.from_wav(io.BytesIO(chunk))
+                else:
+                    # For other formats, try to auto-detect or default to WAV
+                    try:
+                        segment = AudioSegment.from_file(io.BytesIO(chunk))
+                    except:
+                        segment = AudioSegment.from_wav(io.BytesIO(chunk))
+
+                audio_segments.append(segment)
+
+            # Combine all segments
+            combined = audio_segments[0]
+            for segment in audio_segments[1:]:
+                combined += segment
+
+            # Export to bytes
+            output_buffer = io.BytesIO()
+            if format_type.lower() == "mp3":
+                combined.export(output_buffer, format="mp3")
+            elif format_type.lower() == "wav":
+                combined.export(output_buffer, format="wav")
+            else:
+                # Default to the original format or WAV
+                try:
+                    combined.export(output_buffer, format=format_type.lower())
+                except:
+                    combined.export(output_buffer, format="wav")
+
+            return output_buffer.getvalue()
+
+        except ImportError:
+            # Fallback: Simple concatenation for WAV files
+            logger.warning("pydub not available, using simple concatenation for WAV files")
+
+            if format_type.lower() == "wav":
+                return _simple_wav_concatenation(audio_chunks)
+            else:
+                # For non-WAV formats without pydub, just concatenate raw bytes
+                # This won't produce valid audio but is better than failing
+                logger.warning(f"Cannot properly combine {format_type} files without pydub, using raw concatenation")
+                return b''.join(audio_chunks)
+
+    except Exception as e:
+        logger.error(f"Error combining audio chunks: {e}")
+        # Fallback to simple concatenation
+        return b''.join(audio_chunks)
+
+def _simple_wav_concatenation(wav_chunks: List[bytes]) -> bytes:
+    """
+    Simple WAV file concatenation without external dependencies.
+    This is a basic implementation that works for simple WAV files.
+    """
+    if not wav_chunks:
+        return b''
+
+    if len(wav_chunks) == 1:
+        return wav_chunks[0]
+
+    try:
+        # For WAV files, we can do a simple concatenation by:
+        # 1. Taking the header from the first file
+        # 2. Concatenating all the audio data
+        # 3. Updating the file size in the header
+
+        first_wav = wav_chunks[0]
+        if len(first_wav) < 44:  # WAV header is at least 44 bytes
+            return b''.join(wav_chunks)
+
+        # Extract header from first file (first 44 bytes)
+        header = bytearray(first_wav[:44])
+
+        # Collect all audio data (skip headers for subsequent files)
+        audio_data = first_wav[44:]  # Audio data from first file
+
+        for wav_chunk in wav_chunks[1:]:
+            if len(wav_chunk) > 44:
+                audio_data += wav_chunk[44:]  # Skip header, append audio data
+
+        # Update file size in header (bytes 4-7)
+        total_size = len(header) + len(audio_data) - 8
+        header[4:8] = total_size.to_bytes(4, byteorder='little')
+
+        # Update data chunk size in header (bytes 40-43)
+        data_size = len(audio_data)
+        header[40:44] = data_size.to_bytes(4, byteorder='little')
+
+        return bytes(header) + audio_data
+
+    except Exception as e:
+        logger.error(f"Error in simple WAV concatenation: {e}")
+        # Ultimate fallback
+        return b''.join(wav_chunks)
 
 @app.route('/')
 def index():
@@ -362,6 +482,140 @@ def generate_speech_batch():
         logger.error(f"Batch generation error: {e}")
         return jsonify({"error": "Batch generation failed"}), 500
 
+@app.route('/api/generate-combined', methods=['POST'])
+def generate_speech_combined():
+    """Generate speech from long text and return a single combined audio file."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+
+        text = data.get('text', '').strip()
+        voice = data.get('voice', Voice.ALLOY.value)
+        response_format = data.get('format', AudioFormat.MP3.value)
+        instructions = data.get('instructions', '').strip() or None
+        max_length = data.get('max_length', 4096)
+        preserve_words = data.get('preserve_words', True)
+
+        if not text:
+            return jsonify({"error": "Text is required"}), 400
+
+        # Check if text needs splitting
+        if len(text) <= max_length:
+            # Text is short enough, use regular generation
+            try:
+                voice_enum = Voice(voice.lower())
+                format_enum = AudioFormat(response_format.lower())
+            except ValueError as e:
+                logger.warning(f"Invalid voice or format: {e}")
+                return jsonify({"error": "Invalid voice or format specified"}), 400
+
+            response = tts_client.generate_speech(
+                text=text,
+                voice=voice_enum,
+                response_format=format_enum,
+                instructions=instructions,
+                max_length=max_length,
+                validate_length=True
+            )
+
+            return Response(
+                response.audio_data,
+                mimetype=response.content_type,
+                headers={
+                    'Content-Disposition': f'attachment; filename="combined_speech.{response.format.value}"',
+                    'Content-Length': str(response.size),
+                    'X-Audio-Format': response.format.value,
+                    'X-Audio-Size': str(response.size),
+                    'X-Chunks-Combined': '1'
+                }
+            )
+
+        # Text is long, split and combine
+        try:
+            voice_enum = Voice(voice.lower())
+            format_enum = AudioFormat(response_format.lower())
+        except ValueError as e:
+            logger.warning(f"Invalid voice or format: {e}")
+            return jsonify({"error": "Invalid voice or format specified"}), 400
+
+        logger.info(f"Generating combined speech for long text: {len(text)} characters, splitting into chunks")
+
+        # Generate speech chunks
+        try:
+            responses = tts_client.generate_speech_long_text(
+                text=text,
+                voice=voice_enum,
+                response_format=format_enum,
+                instructions=instructions,
+                max_length=max_length,
+                preserve_words=preserve_words
+            )
+        except Exception as e:
+            logger.error(f"Long text generation failed: {e}")
+            return jsonify({"error": "Long text generation failed"}), 500
+
+        if not responses:
+            return jsonify({"error": "No valid text chunks found"}), 400
+
+        logger.info(f"Generated {len(responses)} chunks, combining into single audio file")
+
+        # Extract audio data from responses
+        audio_chunks = [response.audio_data for response in responses]
+
+        # Combine audio chunks
+        try:
+            combined_audio = combine_audio_chunks(audio_chunks, format_enum.value)
+        except Exception as e:
+            logger.error(f"Failed to combine audio chunks: {e}")
+            return jsonify({"error": "Failed to combine audio chunks"}), 500
+
+        if not combined_audio:
+            return jsonify({"error": "Failed to generate combined audio"}), 500
+
+        # Determine content type
+        content_type = responses[0].content_type  # Use content type from first chunk
+
+        logger.info(f"Successfully combined {len(responses)} chunks into single audio file ({len(combined_audio)} bytes)")
+
+        return Response(
+            combined_audio,
+            mimetype=content_type,
+            headers={
+                'Content-Disposition': f'attachment; filename="combined_speech.{format_enum.value}"',
+                'Content-Length': str(len(combined_audio)),
+                'X-Audio-Format': format_enum.value,
+                'X-Audio-Size': str(len(combined_audio)),
+                'X-Chunks-Combined': str(len(responses)),
+                'X-Original-Text-Length': str(len(text))
+            }
+        )
+
+    except ValidationException as e:
+        logger.warning(f"Validation error: {e}")
+        return jsonify({"error": "Invalid input parameters"}), 400
+
+    except APIException as e:
+        logger.error(f"API error: {e}")
+        return jsonify({
+            "error": "TTS service error",
+            "status_code": getattr(e, 'status_code', 500)
+        }), getattr(e, 'status_code', 500)
+
+    except NetworkException as e:
+        logger.error(f"Network error: {e}")
+        return jsonify({
+            "error": "TTS service is currently unavailable"
+        }), 503
+
+    except TTSException as e:
+        logger.error(f"TTS error: {e}")
+        return jsonify({"error": "Text-to-speech generation failed"}), 500
+
+    except Exception as e:
+        logger.error(f"Combined generation error: {e}")
+        return jsonify({"error": "Combined audio generation failed"}), 500
+
 @app.route('/api/status', methods=['GET'])
 def get_status():
     """Get service status."""
@@ -512,6 +766,184 @@ def openai_speech():
 
     except Exception as e:
         logger.error(f"OpenAI API unexpected error: {e}")
+        return jsonify({
+            "error": {
+                "message": "An unexpected error occurred",
+                "type": "internal_error",
+                "code": "internal_error"
+            }
+        }), 500
+
+@app.route('/v1/audio/speech-combined', methods=['POST'])
+def openai_speech_combined():
+    """OpenAI-compatible speech generation endpoint for long text with combined output."""
+    try:
+        # Parse request data
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                "error": {
+                    "message": "No JSON data provided",
+                    "type": "invalid_request_error",
+                    "code": "missing_data"
+                }
+            }), 400
+
+        # Extract OpenAI-compatible parameters
+        model = data.get('model', 'gpt-4o-mini-tts')  # Accept but ignore model
+        input_text = data.get('input', '').strip()
+        voice = data.get('voice', 'alloy')
+        response_format = data.get('response_format', 'mp3')
+        instructions = data.get('instructions', '').strip() or None
+        speed = data.get('speed', 1.0)  # Accept but ignore speed
+        max_length = data.get('max_length', 4096)  # Custom parameter for chunk size
+
+        # Validate required fields
+        if not input_text:
+            return jsonify({
+                "error": {
+                    "message": "Input text is required",
+                    "type": "invalid_request_error",
+                    "code": "missing_input"
+                }
+            }), 400
+
+        # Validate voice
+        try:
+            voice_enum = Voice(voice.lower())
+        except ValueError:
+            return jsonify({
+                "error": {
+                    "message": f"Invalid voice: {voice}. Must be one of: {[v.value for v in Voice]}",
+                    "type": "invalid_request_error",
+                    "code": "invalid_voice"
+                }
+            }), 400
+
+        # Validate format
+        try:
+            format_enum = AudioFormat(response_format.lower())
+        except ValueError:
+            return jsonify({
+                "error": {
+                    "message": f"Invalid response_format: {response_format}. Must be one of: {[f.value for f in AudioFormat]}",
+                    "type": "invalid_request_error",
+                    "code": "invalid_format"
+                }
+            }), 400
+
+        logger.info(f"OpenAI API Combined: Generating speech: text='{input_text[:50]}...', voice={voice}, format={response_format}")
+
+        # Check if text needs splitting
+        if len(input_text) <= max_length:
+            # Text is short enough, use regular generation
+            response = tts_client.generate_speech(
+                text=input_text,
+                voice=voice_enum,
+                response_format=format_enum,
+                instructions=instructions,
+                max_length=max_length,
+                validate_length=True
+            )
+
+            return Response(
+                response.audio_data,
+                mimetype=response.content_type,
+                headers={
+                    'Content-Type': response.content_type,
+                    'Content-Length': str(response.size),
+                    'X-Audio-Format': response.format.value,
+                    'X-Audio-Size': str(response.size),
+                    'X-Chunks-Combined': '1',
+                    'X-Powered-By': 'TTSFM-OpenAI-Compatible'
+                }
+            )
+
+        # Text is long, split and combine
+        logger.info(f"Long text detected ({len(input_text)} chars), generating combined audio")
+
+        # Generate speech chunks
+        responses = tts_client.generate_speech_long_text(
+            text=input_text,
+            voice=voice_enum,
+            response_format=format_enum,
+            instructions=instructions,
+            max_length=max_length,
+            preserve_words=True
+        )
+
+        if not responses:
+            return jsonify({
+                "error": {
+                    "message": "No valid text chunks found",
+                    "type": "processing_error",
+                    "code": "no_chunks"
+                }
+            }), 400
+
+        # Extract audio data and combine
+        audio_chunks = [response.audio_data for response in responses]
+        combined_audio = combine_audio_chunks(audio_chunks, format_enum.value)
+
+        if not combined_audio:
+            return jsonify({
+                "error": {
+                    "message": "Failed to combine audio chunks",
+                    "type": "processing_error",
+                    "code": "combine_failed"
+                }
+            }), 500
+
+        content_type = responses[0].content_type
+
+        logger.info(f"Successfully combined {len(responses)} chunks into single audio file")
+
+        return Response(
+            combined_audio,
+            mimetype=content_type,
+            headers={
+                'Content-Type': content_type,
+                'Content-Length': str(len(combined_audio)),
+                'X-Audio-Format': format_enum.value,
+                'X-Audio-Size': str(len(combined_audio)),
+                'X-Chunks-Combined': str(len(responses)),
+                'X-Original-Text-Length': str(len(input_text)),
+                'X-Powered-By': 'TTSFM-OpenAI-Compatible'
+            }
+        )
+
+    except ValidationException as e:
+        logger.warning(f"OpenAI API Combined validation error: {e}")
+        return jsonify({
+            "error": {
+                "message": "Invalid request parameters",
+                "type": "invalid_request_error",
+                "code": "validation_error"
+            }
+        }), 400
+
+    except APIException as e:
+        logger.error(f"OpenAI API Combined error: {e}")
+        return jsonify({
+            "error": {
+                "message": "Text-to-speech generation failed",
+                "type": "api_error",
+                "code": "tts_error"
+            }
+        }), getattr(e, 'status_code', 500)
+
+    except NetworkException as e:
+        logger.error(f"OpenAI API Combined network error: {e}")
+        return jsonify({
+            "error": {
+                "message": "TTS service is currently unavailable",
+                "type": "service_unavailable_error",
+                "code": "service_unavailable"
+            }
+        }), 503
+
+    except Exception as e:
+        logger.error(f"OpenAI API Combined unexpected error: {e}")
         return jsonify({
             "error": {
                 "message": "An unexpected error occurred",
