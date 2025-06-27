@@ -24,7 +24,7 @@ TTSFM provides both synchronous and asynchronous Python clients for text-to-spee
 - 🔧 **CLI Tool** - Command-line interface for quick TTS generation
 - 📦 **Type Hints** - Full type annotation support for better IDE experience
 - 🛡️ **Error Handling** - Comprehensive exception hierarchy with retry logic
-- 🔄 **Batch Processing** - Generate multiple audio files concurrently
+- ✨ **Auto-Combine** - Automatically handles long text with seamless audio combining
 - 📊 **Text Validation** - Automatic text length validation and splitting
 
 ## 📦 Installation
@@ -131,25 +131,30 @@ async def generate_speech():
 asyncio.run(generate_speech())
 ```
 
-#### Batch Processing
+#### Long Text Processing (Python Package)
+
+For developers who need fine-grained control over text splitting:
 
 ```python
-from ttsfm import AsyncTTSClient, TTSRequest, Voice
+from ttsfm import TTSClient, Voice, AudioFormat
 
-async def batch_generate():
-    requests = [
-        TTSRequest(input="First text", voice=Voice.ALLOY),
-        TTSRequest(input="Second text", voice=Voice.ECHO),
-        TTSRequest(input="Third text", voice=Voice.NOVA),
-    ]
+# Create client
+client = TTSClient()
 
-    async with AsyncTTSClient() as client:
-        responses = await client.generate_speech_batch(requests)
+# Generate speech from long text (creates separate files for each chunk)
+responses = client.generate_speech_long_text(
+    text="Very long text that exceeds 4096 characters...",
+    voice=Voice.ALLOY,
+    response_format=AudioFormat.MP3,
+    max_length=2000,
+    preserve_words=True
+)
 
-        for i, response in enumerate(responses):
-            response.save_to_file(f"batch_output_{i}")
+# Save each chunk as separate files
+for i, response in enumerate(responses, 1):
+    response.save_to_file(f"part_{i:03d}")  # Saves as part_001.mp3, part_002.mp3, etc.
 
-asyncio.run(batch_generate())
+print(f"Generated {len(responses)} audio files from long text")
 ```
 
 #### OpenAI Python Client Compatibility
@@ -171,6 +176,45 @@ response = client.audio.speech.create(
 )
 
 response.stream_to_file("output.mp3")
+```
+
+#### Auto-Combine Feature for Long Text
+
+TTSFM automatically handles long text (>4096 characters) with the new auto-combine feature:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="not-needed",
+    base_url="http://localhost:8000/v1"
+)
+
+# Long text is automatically split and combined into a single audio file
+long_article = """
+Your very long article or document content here...
+This can be thousands of characters long and TTSFM will
+automatically split it into chunks, generate audio for each,
+and combine them into a single seamless audio file.
+""" * 100  # Make it really long
+
+# This works seamlessly - no manual splitting needed!
+response = client.audio.speech.create(
+    model="gpt-4o-mini-tts",
+    voice="nova",
+    input=long_article,
+    # auto_combine=True is the default
+)
+
+response.stream_to_file("long_article.mp3")  # Single combined file!
+
+# Disable auto-combine for strict OpenAI compatibility
+response = client.audio.speech.create(
+    model="gpt-4o-mini-tts",
+    voice="nova",
+    input="Short text only",
+    auto_combine=False  # Will error if text > 4096 chars
+)
 ```
 
 ### 🖥️ Command Line Interface
@@ -364,7 +408,7 @@ When running the Docker container, these endpoints are available:
 ### OpenAI-Compatible API
 
 ```bash
-# Generate speech
+# Generate speech (short text)
 curl -X POST http://localhost:8000/v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{
@@ -375,12 +419,45 @@ curl -X POST http://localhost:8000/v1/audio/speech \
   }' \
   --output speech.mp3
 
+# Generate speech from long text with auto-combine (default behavior)
+curl -X POST http://localhost:8000/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini-tts",
+    "input": "This is a very long text that exceeds the 4096 character limit...",
+    "voice": "alloy",
+    "response_format": "mp3",
+    "auto_combine": true
+  }' \
+  --output long_speech.mp3
+
+# Generate speech from long text without auto-combine (will return error if text > 4096 chars)
+curl -X POST http://localhost:8000/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini-tts",
+    "input": "Your text here...",
+    "voice": "alloy",
+    "response_format": "mp3",
+    "auto_combine": false
+  }' \
+  --output speech.mp3
+
 # List models
 curl http://localhost:8000/v1/models
 
 # Health check
 curl http://localhost:8000/api/health
 ```
+
+#### **New Parameter: `auto_combine`**
+
+TTSFM extends the OpenAI API with an optional `auto_combine` parameter:
+
+- **`auto_combine`** (boolean, optional, default: `true`)
+  - When `true`: Automatically splits long text (>4096 chars) into chunks, generates audio for each chunk, and combines them into a single seamless audio file
+  - When `false`: Returns an error if text exceeds the 4096 character limit (standard OpenAI behavior)
+  - **Benefits**: No need to manually manage text splitting or audio file merging for long content
 
 ## 🐳 Docker Deployment
 
@@ -522,7 +599,7 @@ docker run -p 8000:8000 ttsfm:local
 
 - **Latency**: ~1-3 seconds for typical text (depends on openai.fm service)
 - **Throughput**: Supports concurrent requests with async client
-- **Text Limits**: Up to 4096 characters per request (configurable)
+- **Text Limits**: No limits with auto-combine! Handles text of any length automatically
 - **Audio Quality**: High-quality synthesis comparable to OpenAI
 
 ### Optimization Tips
@@ -555,16 +632,16 @@ for text in texts:
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-### Latest Changes (v3.2.2)
+### Latest Changes (v3.2.3)
 
-- 🎵 **Combined Audio**: Generate single audio files from long text (no more chunk management!)
-- 🧠 **Intelligent Splitting**: Smart text splitting at sentence/word boundaries
-- 🔗 **Seamless Combination**: Professional audio merging with multiple fallback methods
-- 🤖 **OpenAI Compatible**: New `/v1/audio/speech-combined` endpoint
-- 📊 **Rich Metadata**: Detailed processing information in response headers
-- 🚀 **Performance Optimized**: Concurrent processing and memory efficiency
-- 🌍 **Unicode Support**: Full international text support
-- 🧪 **Comprehensive Testing**: Complete test suite with performance benchmarks
+- ✨ **Auto-Combine by Default**: Long text is now automatically split and combined into single audio files
+- 🔄 **Unified API Endpoint**: Single `/v1/audio/speech` endpoint handles both short and long text intelligently
+- 🎛️ **Configurable Behavior**: New `auto_combine` parameter (default: `true`) for full control
+- 🤖 **Enhanced OpenAI Compatibility**: Drop-in replacement with intelligent long-text handling
+- 📊 **Rich Response Headers**: `X-Auto-Combine`, `X-Chunks-Combined`, and processing metadata
+- 🧹 **Streamlined Web Interface**: Removed legacy batch processing for cleaner user experience
+- 📖 **Simplified Documentation**: Web docs emphasize modern auto-combine approach
+- 🎮 **Enhanced Playground**: Clean interface focused on auto-combine functionality
 
 ## 🤝 Support & Community
 

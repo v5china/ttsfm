@@ -30,13 +30,12 @@ function setupEventListeners() {
     document.getElementById('text-input').addEventListener('input', updateCharCount);
     document.getElementById('tts-form').addEventListener('submit', generateSpeech);
     document.getElementById('max-length-input').addEventListener('input', updateCharCount);
-    document.getElementById('auto-split-check').addEventListener('change', updateGenerateButton);
+    document.getElementById('auto-combine-check').addEventListener('change', updateAutoCombineStatus);
 
     // Enhanced button events
     document.getElementById('validate-text-btn').addEventListener('click', validateText);
     document.getElementById('random-text-btn').addEventListener('click', loadRandomText);
     document.getElementById('download-btn').addEventListener('click', downloadAudio);
-    document.getElementById('download-all-btn').addEventListener('click', downloadAllAudio);
 
     // New button events
     const clearTextBtn = document.getElementById('clear-text-btn');
@@ -86,12 +85,15 @@ function setupEventListeners() {
             e.preventDefault();
             document.getElementById('generate-btn').click();
         }
-        
+
         // Escape to clear results
         if (e.key === 'Escape') {
             clearResults();
         }
     });
+
+    // Initialize auto-combine status
+    updateAutoCombineStatus();
 }
 
 async function loadVoices() {
@@ -165,6 +167,7 @@ function updateCharCount() {
     }
     
     updateGenerateButton();
+    updateAutoCombineStatus();
 }
 
 function updateGenerateButton() {
@@ -233,9 +236,7 @@ async function validateText() {
                                 </div>
                             `).join('')}
                         </div>
-                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="enableAutoSplit()">
-                            <i class="fas fa-magic me-1"></i>Enable Auto-Split
-                        </button>
+
                     </div>
                 </div>
             `;
@@ -252,39 +253,58 @@ async function validateText() {
     }
 }
 
-function enableAutoSplit() {
-    document.getElementById('auto-split-check').checked = true;
-    updateGenerateButton();
-    console.log('Auto-split enabled! Click Generate Speech to process in batch mode.');
+
+
+function updateAutoCombineStatus() {
+    const autoCombineCheck = document.getElementById('auto-combine-check');
+    const statusBadge = document.getElementById('auto-combine-status');
+    const textInput = document.getElementById('text-input');
+    const maxLength = parseInt(document.getElementById('max-length-input').value) || 4096;
+
+    if (!autoCombineCheck || !statusBadge) return;
+
+    const isAutoCombineEnabled = autoCombineCheck.checked;
+    const textLength = textInput.value.length;
+    const isLongText = textLength > maxLength;
+
+    // Show/hide status badge
+    if (isAutoCombineEnabled && isLongText) {
+        statusBadge.classList.remove('d-none');
+        statusBadge.classList.add('bg-success');
+        statusBadge.classList.remove('bg-warning');
+        statusBadge.innerHTML = '<i class="fas fa-magic me-1"></i>Auto-combine enabled';
+    } else if (!isAutoCombineEnabled && isLongText) {
+        statusBadge.classList.remove('d-none');
+        statusBadge.classList.add('bg-warning');
+        statusBadge.classList.remove('bg-success');
+        statusBadge.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Long text detected';
+    } else {
+        statusBadge.classList.add('d-none');
+    }
+
+    updateCharCount();
 }
 
 async function generateSpeech(event) {
     event.preventDefault();
-    
+
     const button = document.getElementById('generate-btn');
     const audioResult = document.getElementById('audio-result');
-    const batchResult = document.getElementById('batch-result');
-    
+
     // Get form data
     const formData = getFormData();
-    
+
     if (!validateFormData(formData)) {
         return;
     }
-    
-    // Check if we need batch processing
-    const needsBatch = formData.text.length > formData.maxLength && formData.autoSplit;
-    
+
     // Show loading state
     setLoading(button, true);
     clearResults();
-    
+
     try {
-        if (needsBatch) {
-            await generateBatchSpeech(formData);
-        } else {
-            await generateSingleSpeech(formData);
-        }
+        // Always use the unified endpoint with auto-combine
+        await generateUnifiedSpeech(formData);
     } catch (error) {
         console.error('Generation failed:', error);
         console.log(`Failed to generate speech: ${error.message}`);
@@ -301,7 +321,7 @@ function getFormData() {
         instructions: document.getElementById('instructions-input').value.trim(),
         maxLength: parseInt(document.getElementById('max-length-input').value) || 4096,
         validateLength: document.getElementById('validate-length-check').checked,
-        autoSplit: document.getElementById('auto-split-check').checked
+        autoCombine: document.getElementById('auto-combine-check').checked
     };
 }
 
@@ -311,8 +331,8 @@ function validateFormData(formData) {
         return false;
     }
 
-    if (formData.text.length > formData.maxLength && formData.validateLength && !formData.autoSplit) {
-        console.log(`Text is too long (${formData.text.length} characters). Enable auto-split or reduce text length.`);
+    if (formData.text.length > formData.maxLength && formData.validateLength && !formData.autoCombine) {
+        console.log(`Text is too long (${formData.text.length} characters). Enable auto-combine or reduce text length.`);
         return false;
     }
 
@@ -338,25 +358,28 @@ function setLoading(button, loading) {
 
 
 
-async function generateSingleSpeech(formData) {
+// New unified function using OpenAI-compatible endpoint with auto-combine
+async function generateUnifiedSpeech(formData) {
     const audioResult = document.getElementById('audio-result');
 
-    const response = await fetch('/api/generate', {
+    const response = await fetch('/v1/audio/speech', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            text: formData.text,
+            model: 'gpt-4o-mini-tts',
+            input: formData.text,
             voice: formData.voice,
-            format: formData.format,
+            response_format: formData.format,
             instructions: formData.instructions || undefined,
-            max_length: formData.maxLength,
-            validate_length: formData.validateLength
+            auto_combine: formData.autoCombine,
+            max_length: formData.maxLength
         })
     });
 
     if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        const errorMessage = errorData.error?.message || errorData.error || `HTTP ${response.status}`;
+        throw new Error(errorMessage);
     }
 
     // Get audio data
@@ -369,10 +392,22 @@ async function generateSingleSpeech(formData) {
     const audioPlayer = document.getElementById('audio-player');
     audioPlayer.src = audioUrl;
 
-    // Use enhanced display function
-    displayAudioResult(audioBlob, formData.format, formData.voice, formData.text);
+    // Get response headers for enhanced display
+    const chunksCount = response.headers.get('X-Chunks-Combined') || '1';
+    const autoCombineUsed = response.headers.get('X-Auto-Combine') === 'true';
+    const originalLength = response.headers.get('X-Original-Text-Length');
+
+    // Use enhanced display function with new metadata
+    displayAudioResult(audioBlob, formData.format, formData.voice, formData.text, {
+        chunksCount,
+        autoCombineUsed,
+        originalLength
+    });
 
     console.log('Speech generated successfully! Click play to listen.');
+    if (autoCombineUsed && chunksCount > 1) {
+        console.log(`Auto-combine feature combined ${chunksCount} chunks into a single audio file.`);
+    }
 
     // Auto-play if user prefers
     if (localStorage.getItem('autoPlay') === 'true') {
@@ -382,137 +417,15 @@ async function generateSingleSpeech(formData) {
     }
 }
 
-async function generateBatchSpeech(formData) {
-    const batchResult = document.getElementById('batch-result');
-
-    const response = await fetch('/api/generate-batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            text: formData.text,
-            voice: formData.voice,
-            format: formData.format,
-            instructions: formData.instructions || undefined,
-            max_length: formData.maxLength,
-            preserve_words: true
-        })
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    batchResults = data.results;
-
-    // Update batch summary
-    const summaryDiv = document.getElementById('batch-summary');
-    summaryDiv.innerHTML = `
-        <i class="fas fa-layer-group me-2"></i>
-        <strong>Batch Processing Complete!</strong>
-        Generated ${data.successful_chunks} of ${data.total_chunks} audio chunks successfully.
-        ${data.successful_chunks < data.total_chunks ?
-            `<br><small class="text-warning">⚠️ ${data.total_chunks - data.successful_chunks} chunks failed to generate.</small>` :
-            '<br><small class="text-success">✅ All chunks generated successfully!</small>'
-        }
-    `;
-
-    // Display chunks
-    displayBatchChunks(data.results, formData.format);
-
-    // Show batch result with animation
-    batchResult.classList.remove('d-none');
-    batchResult.classList.add('fade-in');
-
-    console.log(`Batch processing completed! Generated ${data.successful_chunks} audio files.`);
+// Legacy function for backward compatibility
+async function generateSingleSpeech(formData) {
+    // Use the new unified function
+    await generateUnifiedSpeech(formData);
 }
 
-function displayBatchChunks(results, format) {
-    const chunksDiv = document.getElementById('batch-chunks');
-    chunksDiv.innerHTML = '';
 
-    results.forEach((result, index) => {
-        const chunkDiv = document.createElement('div');
-        chunkDiv.className = 'col-md-6 col-lg-4 mb-3';
 
-        if (result.audio_data) {
-            // Convert base64 to blob
-            const audioBlob = base64ToBlob(result.audio_data, result.content_type);
-            const audioUrl = URL.createObjectURL(audioBlob);
 
-            chunkDiv.innerHTML = `
-                <div class="card batch-chunk-card h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="card-title mb-0">
-                                <i class="fas fa-music me-1"></i>Chunk ${result.chunk_index}
-                            </h6>
-                            <span class="badge bg-success">
-                                <i class="fas fa-check me-1"></i>Success
-                            </span>
-                        </div>
-                        <p class="card-text small text-muted mb-3">${result.chunk_text}</p>
-                        <audio controls class="w-100 mb-3" preload="metadata">
-                            <source src="${audioUrl}" type="${result.content_type}">
-                            Your browser does not support audio playback.
-                        </audio>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">
-                                <i class="fas fa-file-audio me-1"></i>
-                                ${(result.size / 1024).toFixed(1)} KB
-                            </small>
-                            <button class="btn btn-sm btn-outline-primary download-chunk"
-                                    data-url="${audioUrl}"
-                                    data-filename="chunk_${result.chunk_index}.${result.format}"
-                                    title="Download this chunk">
-                                <i class="fas fa-download"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else {
-            chunkDiv.innerHTML = `
-                <div class="card border-danger h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="card-title mb-0 text-danger">
-                                <i class="fas fa-exclamation-triangle me-1"></i>Chunk ${result.chunk_index}
-                            </h6>
-                            <span class="badge bg-danger">
-                                <i class="fas fa-times me-1"></i>Failed
-                            </span>
-                        </div>
-                        <p class="card-text small text-muted mb-3">${result.chunk_text}</p>
-                        <div class="alert alert-danger small mb-0">
-                            <i class="fas fa-exclamation-circle me-1"></i>
-                            ${result.error}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        chunksDiv.appendChild(chunkDiv);
-    });
-
-    // Add download event listeners
-    document.querySelectorAll('.download-chunk').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const url = this.dataset.url;
-            const filename = this.dataset.filename;
-            downloadFromUrl(url, filename);
-
-            // Visual feedback
-            const icon = this.querySelector('i');
-            icon.className = 'fas fa-check';
-            setTimeout(() => {
-                icon.className = 'fas fa-download';
-            }, 1000);
-        });
-    });
-}
 
 function downloadAudio() {
     if (!currentAudioBlob) {
@@ -526,31 +439,7 @@ function downloadAudio() {
     URL.revokeObjectURL(url);
 }
 
-function downloadAllAudio() {
-    const downloadButtons = document.querySelectorAll('.download-chunk');
-    if (downloadButtons.length === 0) {
-        console.log('No batch audio files to download');
-        return;
-    }
 
-    console.log(`Starting download of ${downloadButtons.length} files...`);
-
-    downloadButtons.forEach((btn, index) => {
-        setTimeout(() => {
-            btn.click();
-        }, index * 500); // Stagger downloads to avoid browser limits
-    });
-}
-
-function base64ToBlob(base64, contentType) {
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: contentType });
-}
 
 function downloadFromUrl(url, filename) {
     const a = document.createElement('a');
@@ -702,8 +591,8 @@ function previewVoice(voiceId) {
     console.log(`Voice preview for ${voiceId} - Feature coming soon!`);
 }
 
-// Enhanced audio result display
-function displayAudioResult(audioBlob, format, voice, text) {
+// Enhanced audio result display with auto-combine metadata
+function displayAudioResult(audioBlob, format, voice, text, metadata = {}) {
     const audioResult = document.getElementById('audio-result');
     const audioPlayer = document.getElementById('audio-player');
     const audioInfo = document.getElementById('audio-info');
@@ -727,11 +616,23 @@ function displayAudioResult(audioBlob, format, voice, text) {
     icon.className = 'fas fa-check-circle text-success me-1';
     audioInfo.appendChild(icon);
 
-    // Create and append text content (safely escaped)
-    const textNode = document.createTextNode(
-        `Generated successfully • ${sizeKB} KB • ${format.toUpperCase()}`
-    );
-    audioInfo.appendChild(textNode);
+    // Create info text with auto-combine details
+    let infoText = `Generated successfully • ${sizeKB} KB • ${format.toUpperCase()}`;
+
+    if (metadata.autoCombineUsed && metadata.chunksCount > 1) {
+        infoText += ` • Auto-combined ${metadata.chunksCount} chunks`;
+
+        // Add a special badge for auto-combine
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-primary ms-2';
+        badge.innerHTML = '<i class="fas fa-magic me-1"></i>Auto-combined';
+        audioInfo.appendChild(document.createTextNode(infoText));
+        audioInfo.appendChild(badge);
+    } else {
+        // Create and append text content (safely escaped)
+        const textNode = document.createTextNode(infoText);
+        audioInfo.appendChild(textNode);
+    }
 
     // Show result with animation
     audioResult.classList.remove('d-none');
@@ -748,7 +649,6 @@ function displayAudioResult(audioBlob, format, voice, text) {
 }
 
 // Export functions for use in HTML
-window.enableAutoSplit = enableAutoSplit;
 window.clearText = clearText;
 window.loadRandomText = loadRandomText;
 window.resetForm = resetForm;

@@ -86,7 +86,7 @@
                 <a href="#voices">Voices</a>
                 <a href="#formats">Audio Formats</a>
                 <a href="#generate">Generate Speech</a>
-                <a href="#batch">Batch Processing</a>
+
                 <a href="#combined">Combined Audio</a>
                 <a href="#status">Status & Health</a>
                 <a href="#errors">Error Handling</a>
@@ -103,7 +103,7 @@
                 <p>
                     The TTSFM API provides a modern, OpenAI-compatible interface for text-to-speech generation.
                     It supports multiple voices, audio formats, and includes advanced features like text length
-                    validation and batch processing.
+                    validation and intelligent auto-combine functionality.
                 </p>
                 
                 <div class="alert alert-info">
@@ -113,14 +113,20 @@
                 
                 <h4>Key Features</h4>
                 <ul>
-                    <li>11 different voice options</li>
-                    <li>Multiple audio formats (MP3, WAV, OPUS, etc.)</li>
-                    <li>Text length validation (4096 character limit)</li>
-                    <li>Automatic text splitting for long content</li>
-                    <li>Batch processing capabilities</li>
-                    <li>Combined audio generation from long text</li>
-                    <li>Real-time status monitoring</li>
+                    <li><strong>🎤 11 different voice options</strong> - Choose from alloy, echo, nova, and more</li>
+                    <li><strong>🎵 Multiple audio formats</strong> - MP3, WAV, OPUS, AAC, FLAC, PCM support</li>
+                    <li><strong>🤖 OpenAI compatibility</strong> - Drop-in replacement for OpenAI's TTS API</li>
+                    <li><strong>✨ Auto-combine feature</strong> - Automatically handles long text (>4096 chars) by splitting and combining audio</li>
+                    <li><strong>📊 Text length validation</strong> - Smart validation with configurable limits</li>
+
+                    <li><strong>📈 Real-time monitoring</strong> - Status endpoints and health checks</li>
                 </ul>
+
+                <div class="alert alert-success">
+                    <i class="fas fa-star me-2"></i>
+                    <strong>New in v3.2.3:</strong> Enhanced `/v1/audio/speech` endpoint with intelligent auto-combine feature.
+                    Streamlined web interface with clean, user-friendly design and automatic long-text handling!
+                </div>
             </section>
             
             <!-- Authentication -->
@@ -288,45 +294,6 @@
                     </div>
                 </div>
                 
-                <!-- Batch Processing Endpoint -->
-                <div class="card endpoint-card" id="batch">
-                    <div class="card-body">
-                        <h4 class="card-title">
-                            <span class="method-badge method-post">POST</span>
-                            /api/generate-batch
-                        </h4>
-                        <p class="card-text">Generate speech from long text by automatically splitting into chunks. Uses intelligent text splitting that preserves word boundaries for natural-sounding speech.</p>
-                        
-                        <h6>Request Body:</h6>
-                        <div class="code-block">
-                            <pre><code>{
-  "text": "Very long text that exceeds the limit...",
-  "voice": "alloy",
-  "format": "mp3",
-  "max_length": 4096,
-  "preserve_words": true
-}</code></pre>
-                        </div>
-                        
-                        <h6>Response Example:</h6>
-                        <div class="response-example">
-                            <pre><code>{
-  "total_chunks": 3,
-  "successful_chunks": 3,
-  "results": [
-    {
-      "chunk_index": 1,
-      "chunk_text": "First chunk text...",
-      "audio_data": "base64_encoded_audio",
-      "content_type": "audio/mp3",
-      "size": 12345,
-      "format": "mp3"
-    }
-  ]
-}</code></pre>
-                        </div>
-                    </div>
-                </div>
             </section>
 
             <!-- Python Package -->
@@ -338,7 +305,7 @@
                 <div class="card">
                     <div class="card-body">
                         <h5>Long Text Support</h5>
-                        <p>The TTSFM Python package includes built-in long text splitting functionality:</p>
+                        <p>The TTSFM Python package includes built-in long text splitting functionality for developers who need fine-grained control:</p>
 
                         <div class="code-block">
                             <pre><code>from ttsfm import TTSClient, Voice, AudioFormat
@@ -346,7 +313,7 @@
 # Create client
 client = TTSClient()
 
-# Generate speech from long text (automatically splits)
+# Generate speech from long text (automatically splits into separate files)
 responses = client.generate_speech_long_text(
     text="Very long text that exceeds 4096 characters...",
     voice=Voice.ALLOY,
@@ -355,18 +322,24 @@ responses = client.generate_speech_long_text(
     preserve_words=True
 )
 
-# Save each chunk
+# Save each chunk as separate files
 for i, response in enumerate(responses, 1):
     response.save_to_file(f"part_{i:03d}.mp3")</code></pre>
                         </div>
 
-                        <h6 class="mt-4">Key Features:</h6>
+                        <h6 class="mt-4">Developer Features:</h6>
                         <ul>
-                            <li><strong>Automatic Splitting:</strong> No manual text chunking required</li>
+                            <li><strong>Manual Splitting:</strong> Full control over text chunking for advanced use cases</li>
                             <li><strong>Word Preservation:</strong> Maintains word boundaries for natural speech</li>
-                            <li><strong>Batch Processing:</strong> Efficient handling of multiple chunks</li>
-                            <li><strong>CLI Support:</strong> Use <code>--split-long-text</code> flag</li>
+                            <li><strong>Separate Files:</strong> Each chunk saved as individual audio file</li>
+                            <li><strong>CLI Support:</strong> Use <code>--split-long-text</code> flag for command-line usage</li>
                         </ul>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> For web users, the auto-combine feature in <code>/v1/audio/speech</code> is recommended
+                            as it automatically handles long text and returns a single seamless audio file.
+                        </div>
                     </div>
                 </div>
 
@@ -403,30 +376,80 @@ for i, response in enumerate(responses, 1):
                     </div>
                 </div>
 
-                <!-- OpenAI Compatible Combined Endpoint -->
+                <!-- OpenAI Compatible Endpoint with Auto-Combine -->
                 <div class="card endpoint-card">
                     <div class="card-body">
                         <h4 class="card-title">
                             <span class="method-badge method-post">POST</span>
-                            /v1/audio/speech-combined
+                            /v1/audio/speech
                         </h4>
-                        <p class="card-text">OpenAI-compatible endpoint for combined audio generation. Same functionality as above but follows OpenAI API format.</p>
+                        <p class="card-text">Enhanced OpenAI-compatible endpoint with auto-combine feature. Automatically handles long text by splitting and combining audio chunks when needed.</p>
 
                         <h6>Request Body:</h6>
                         <div class="code-block">
                             <pre><code>{
   "model": "gpt-4o-mini-tts",
-  "input": "Very long text that exceeds the limit...",
+  "input": "Text of any length...",
   "voice": "alloy",
   "response_format": "mp3",
   "instructions": "Optional voice instructions",
   "speed": 1.0,
+  "auto_combine": true,
   "max_length": 4096
 }</code></pre>
                         </div>
 
-                        <h6>Response:</h6>
-                        <p>Returns a single combined audio file with the same headers as the native endpoint.</p>
+                        <h6>Enhanced Parameters:</h6>
+                        <ul>
+                            <li><strong>auto_combine</strong> (boolean, default: true):
+                                <ul>
+                                    <li><code>true</code>: Automatically split long text and combine audio chunks into a single file</li>
+                                    <li><code>false</code>: Return error if text exceeds max_length (standard OpenAI behavior)</li>
+                                </ul>
+                            </li>
+                            <li><strong>max_length</strong> (integer, default: 4096): Maximum characters per chunk when splitting</li>
+                        </ul>
+
+                        <h6>Response Headers:</h6>
+                        <ul>
+                            <li><code>X-Auto-Combine</code>: Whether auto-combine was enabled (true/false)</li>
+                            <li><code>X-Chunks-Combined</code>: Number of audio chunks combined (1 for short text)</li>
+                            <li><code>X-Original-Text-Length</code>: Original text length (for long text processing)</li>
+                            <li><code>X-Audio-Format</code>: Audio format of the response</li>
+                            <li><code>X-Audio-Size</code>: Audio file size in bytes</li>
+                        </ul>
+
+                        <h6>Examples:</h6>
+                        <div class="code-block">
+                            <pre><code># Short text (works normally)
+curl -X POST {{ request.url_root }}v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini-tts",
+    "input": "Hello world!",
+    "voice": "alloy"
+  }'
+
+# Long text with auto-combine (default)
+curl -X POST {{ request.url_root }}v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini-tts",
+    "input": "Very long text...",
+    "voice": "alloy",
+    "auto_combine": true
+  }'
+
+# Long text without auto-combine (will error)
+curl -X POST {{ request.url_root }}v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini-tts",
+    "input": "Very long text...",
+    "voice": "alloy",
+    "auto_combine": false
+  }'</code></pre>
+                        </div>
 
                         <div class="alert alert-info mt-3">
                             <i class="fas fa-info-circle me-2"></i>
