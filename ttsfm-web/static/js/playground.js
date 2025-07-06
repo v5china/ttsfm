@@ -28,14 +28,44 @@ function initializePlayground() {
 function setupEventListeners() {
     // Form and input events
     document.getElementById('text-input').addEventListener('input', updateCharCount);
-    document.getElementById('tts-form').addEventListener('submit', generateSpeech);
+
+    // Add form submit event listener with better error handling
+    const form = document.getElementById('tts-form');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            console.log('Form submit event triggered');
+            event.preventDefault(); // Prevent default form submission
+            event.stopPropagation(); // Stop event bubbling
+            generateSpeech(event);
+            return false; // Additional prevention
+        });
+    } else {
+        console.error('TTS form not found!');
+    }
+
     document.getElementById('max-length-input').addEventListener('input', updateCharCount);
-    document.getElementById('auto-combine-check').addEventListener('change', updateAutoCombineStatus);
+
+    const autoCombineCheck = document.getElementById('auto-combine-check');
+    if (autoCombineCheck) {
+        autoCombineCheck.addEventListener('change', updateAutoCombineStatus);
+    }
 
     // Enhanced button events
     document.getElementById('validate-text-btn').addEventListener('click', validateText);
     document.getElementById('random-text-btn').addEventListener('click', loadRandomText);
     document.getElementById('download-btn').addEventListener('click', downloadAudio);
+
+    // Add direct click event listener for generate button as backup
+    const generateBtn = document.getElementById('generate-btn');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', function(event) {
+            console.log('Generate button clicked directly');
+            event.preventDefault();
+            event.stopPropagation();
+            generateSpeech(event);
+            return false;
+        });
+    }
 
     // New button events
     const clearTextBtn = document.getElementById('clear-text-btn');
@@ -173,12 +203,13 @@ function updateCharCount() {
 function updateGenerateButton() {
     const text = document.getElementById('text-input').value;
     const maxLength = parseInt(document.getElementById('max-length-input').value) || 4096;
-    const autoSplit = document.getElementById('auto-split-check').checked;
+    const autoCombineCheck = document.getElementById('auto-combine-check');
+    const autoCombine = autoCombineCheck ? autoCombineCheck.checked : false;
     const generateBtn = document.getElementById('generate-btn');
     const btnText = generateBtn.querySelector('.btn-text');
-    
-    if (text.length > maxLength && autoSplit) {
-        btnText.innerHTML = '<i class="fas fa-layer-group me-2"></i>Generate Speech (Batch Mode)';
+
+    if (text.length > maxLength && autoCombine) {
+        btnText.innerHTML = '<i class="fas fa-magic me-2"></i>Generate Speech (Auto-Combine)';
         generateBtn.classList.add('btn-warning');
         generateBtn.classList.remove('btn-primary');
     } else {
@@ -282,11 +313,17 @@ function updateAutoCombineStatus() {
         statusBadge.classList.add('d-none');
     }
 
-    updateCharCount();
+    // Remove the recursive call to updateCharCount() - this was causing infinite recursion
 }
 
 async function generateSpeech(event) {
-    event.preventDefault();
+    console.log('generateSpeech function called');
+
+    // Prevent default form submission behavior
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
 
     const button = document.getElementById('generate-btn');
     const audioResult = document.getElementById('audio-result');
@@ -295,7 +332,8 @@ async function generateSpeech(event) {
     const formData = getFormData();
 
     if (!validateFormData(formData)) {
-        return;
+        console.log('Form validation failed');
+        return false;
     }
 
     // Show loading state
@@ -303,14 +341,18 @@ async function generateSpeech(event) {
     clearResults();
 
     try {
+        console.log('Starting speech generation...');
         // Always use the unified endpoint with auto-combine
         await generateUnifiedSpeech(formData);
+        console.log('Speech generation completed successfully');
     } catch (error) {
         console.error('Generation failed:', error);
         console.log(`Failed to generate speech: ${error.message}`);
     } finally {
         setLoading(button, false);
     }
+
+    return false; // Ensure form doesn't submit
 }
 
 function getFormData() {
@@ -341,7 +383,10 @@ function validateFormData(formData) {
 
 function clearResults() {
     document.getElementById('audio-result').classList.add('d-none');
-    document.getElementById('batch-result').classList.add('d-none');
+    const batchResult = document.getElementById('batch-result');
+    if (batchResult) {
+        batchResult.classList.add('d-none');
+    }
     document.getElementById('validation-result').classList.add('d-none');
 }
 
@@ -508,7 +553,10 @@ function resetForm() {
     document.getElementById('instructions-input').value = '';
     document.getElementById('max-length-input').value = '4096';
     document.getElementById('validate-length-check').checked = true;
-    document.getElementById('auto-split-check').checked = false;
+    const autoCombineCheck = document.getElementById('auto-combine-check');
+    if (autoCombineCheck) {
+        autoCombineCheck.checked = true;
+    }
 
     updateCharCount();
     updateGenerateButton();
