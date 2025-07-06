@@ -10,12 +10,56 @@ document.addEventListener('DOMContentLoaded', function() {
     initializePlayground();
 });
 
+// Check authentication status and show/hide API key field
+async function checkAuthStatus() {
+    try {
+        const response = await fetch('/api/auth-status');
+        const data = await response.json();
+
+        const apiKeySection = document.getElementById('api-key-section');
+        if (apiKeySection) {
+            if (data.api_key_required) {
+                // Show API key field and mark as required
+                apiKeySection.style.display = 'block';
+                const apiKeyInput = document.getElementById('api-key-input');
+                const label = apiKeySection.querySelector('label');
+
+                if (apiKeyInput) {
+                    apiKeyInput.required = true;
+                    apiKeyInput.placeholder = 'Enter your API key (required)';
+                }
+
+                if (label) {
+                    label.innerHTML = '<i class="fas fa-key me-2"></i>API Key (Required)';
+                }
+
+                // Update form text
+                const formText = apiKeySection.querySelector('.form-text');
+                if (formText) {
+                    formText.innerHTML = '<i class="fas fa-exclamation-triangle me-1 text-warning"></i>API key protection is enabled - this field is required';
+                }
+            } else {
+                // Hide API key field or mark as optional
+                apiKeySection.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.warn('Could not check auth status:', error);
+        // If we can't check, assume API key might be required and show the field
+        const apiKeySection = document.getElementById('api-key-section');
+        if (apiKeySection) {
+            apiKeySection.style.display = 'block';
+        }
+    }
+}
+
 function initializePlayground() {
+    checkAuthStatus();
     loadVoices();
     loadFormats();
     updateCharCount();
     setupEventListeners();
-    
+
     // Initialize tooltips if Bootstrap is available
     if (typeof bootstrap !== 'undefined') {
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -90,6 +134,12 @@ function setupEventListeners() {
         shareBtn.addEventListener('click', shareAudio);
     }
 
+    // API Key visibility toggle
+    const toggleApiKeyBtn = document.getElementById('toggle-api-key-visibility');
+    if (toggleApiKeyBtn) {
+        toggleApiKeyBtn.addEventListener('click', toggleApiKeyVisibility);
+    }
+
     // Voice and format selection events
     document.getElementById('voice-select').addEventListener('change', updateVoiceInfo);
     document.getElementById('format-select').addEventListener('change', updateFormatInfo);
@@ -128,7 +178,14 @@ function setupEventListeners() {
 
 async function loadVoices() {
     try {
-        const response = await fetch('/api/voices');
+        // Prepare headers for API key if available (OpenAI compatible format)
+        const headers = {};
+        const apiKeyInput = document.getElementById('api-key-input');
+        if (apiKeyInput && apiKeyInput.value.trim()) {
+            headers['Authorization'] = `Bearer ${apiKeyInput.value.trim()}`;
+        }
+
+        const response = await fetch('/api/voices', { headers });
         const data = await response.json();
         
         const select = document.getElementById('voice-select');
@@ -152,7 +209,14 @@ async function loadVoices() {
 
 async function loadFormats() {
     try {
-        const response = await fetch('/api/formats');
+        // Prepare headers for API key if available (OpenAI compatible format)
+        const headers = {};
+        const apiKeyInput = document.getElementById('api-key-input');
+        if (apiKeyInput && apiKeyInput.value.trim()) {
+            headers['Authorization'] = `Bearer ${apiKeyInput.value.trim()}`;
+        }
+
+        const response = await fetch('/api/formats', { headers });
         const data = await response.json();
 
         const select = document.getElementById('format-select');
@@ -363,7 +427,8 @@ function getFormData() {
         instructions: document.getElementById('instructions-input').value.trim(),
         maxLength: parseInt(document.getElementById('max-length-input').value) || 4096,
         validateLength: document.getElementById('validate-length-check').checked,
-        autoCombine: document.getElementById('auto-combine-check').checked
+        autoCombine: document.getElementById('auto-combine-check').checked,
+        apiKey: document.getElementById('api-key-input').value.trim()
     };
 }
 
@@ -407,9 +472,17 @@ function setLoading(button, loading) {
 async function generateUnifiedSpeech(formData) {
     const audioResult = document.getElementById('audio-result');
 
+    // Prepare headers
+    const headers = { 'Content-Type': 'application/json' };
+
+    // Add API key if provided (OpenAI compatible format)
+    if (formData.apiKey) {
+        headers['Authorization'] = `Bearer ${formData.apiKey}`;
+    }
+
     const response = await fetch('/v1/audio/speech', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify({
             model: 'gpt-4o-mini-tts',
             input: formData.text,
@@ -696,7 +769,22 @@ function displayAudioResult(audioBlob, format, voice, text, metadata = {}) {
     audioResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+// API Key visibility toggle function
+function toggleApiKeyVisibility() {
+    const apiKeyInput = document.getElementById('api-key-input');
+    const eyeIcon = document.getElementById('api-key-eye-icon');
+
+    if (apiKeyInput.type === 'password') {
+        apiKeyInput.type = 'text';
+        eyeIcon.className = 'fas fa-eye-slash';
+    } else {
+        apiKeyInput.type = 'password';
+        eyeIcon.className = 'fas fa-eye';
+    }
+}
+
 // Export functions for use in HTML
 window.clearText = clearText;
 window.loadRandomText = loadRandomText;
 window.resetForm = resetForm;
+window.toggleApiKeyVisibility = toggleApiKeyVisibility;
