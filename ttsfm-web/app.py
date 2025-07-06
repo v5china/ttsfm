@@ -15,9 +15,12 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 from functools import wraps
 
-from flask import Flask, request, jsonify, send_file, Response, render_template
+from flask import Flask, request, jsonify, send_file, Response, render_template, redirect, url_for
 from flask_cors import CORS
 from dotenv import load_dotenv
+
+# Import i18n support
+from i18n import init_i18n, get_locale, set_locale, _
 
 # Import the TTSFM package
 try:
@@ -44,7 +47,11 @@ logger = logging.getLogger(__name__)
 
 # Create Flask app
 app = Flask(__name__, static_folder='static', static_url_path='/static')
+app.secret_key = os.getenv("SECRET_KEY", "ttsfm-secret-key-change-in-production")
 CORS(app)
+
+# Initialize i18n support
+init_i18n(app)
 
 # Configuration
 HOST = os.getenv("HOST", "localhost")
@@ -229,6 +236,16 @@ def _simple_wav_concatenation(wav_chunks: List[bytes]) -> bytes:
         logger.error(f"Error in simple WAV concatenation: {e}")
         # Ultimate fallback
         return b''.join(wav_chunks)
+
+@app.route('/set-language/<lang_code>')
+def set_language(lang_code):
+    """Set the user's language preference."""
+    if set_locale(lang_code):
+        # Redirect to the referring page or home
+        return redirect(request.referrer or url_for('index'))
+    else:
+        # Invalid language code, redirect to home
+        return redirect(url_for('index'))
 
 @app.route('/')
 def index():
@@ -643,6 +660,19 @@ def auth_status():
         "api_key_configured": bool(API_KEY) if REQUIRE_API_KEY else None,
         "timestamp": datetime.now().isoformat()
     })
+
+@app.route('/api/translations/<lang_code>', methods=['GET'])
+def get_translations(lang_code):
+    """Get translations for a specific language."""
+    try:
+        if hasattr(app, 'language_manager'):
+            translations = app.language_manager.translations.get(lang_code, {})
+            return jsonify(translations)
+        else:
+            return jsonify({}), 404
+    except Exception as e:
+        logger.error(f"Error getting translations for {lang_code}: {e}")
+        return jsonify({"error": "Failed to get translations"}), 500
 
 # OpenAI-compatible API endpoints
 @app.route('/v1/audio/speech', methods=['POST'])

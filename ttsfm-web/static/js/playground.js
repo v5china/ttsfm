@@ -30,7 +30,7 @@ async function checkAuthStatus() {
                 }
 
                 if (label) {
-                    label.innerHTML = '<i class="fas fa-key me-2"></i>API Key (Required)';
+                    label.innerHTML = '<i class="fas fa-key me-2"></i>' + (window.currentLocale === 'zh' ? 'API密钥（必需）' : 'API Key (Required)');
                 }
 
                 // Update form text
@@ -54,11 +54,13 @@ async function checkAuthStatus() {
 }
 
 function initializePlayground() {
+    console.log('Initializing playground...');
     checkAuthStatus();
     loadVoices();
     loadFormats();
     updateCharCount();
     setupEventListeners();
+    console.log('Playground initialization complete');
 
     // Initialize tooltips if Bootstrap is available
     if (typeof bootstrap !== 'undefined') {
@@ -70,8 +72,16 @@ function initializePlayground() {
 }
 
 function setupEventListeners() {
+    console.log('Setting up event listeners...');
+
     // Form and input events
-    document.getElementById('text-input').addEventListener('input', updateCharCount);
+    const textInput = document.getElementById('text-input');
+    if (textInput) {
+        textInput.addEventListener('input', updateCharCount);
+        console.log('Text input event listener added');
+    } else {
+        console.error('Text input element not found!');
+    }
 
     // Add form submit event listener with better error handling
     const form = document.getElementById('tts-form');
@@ -87,7 +97,13 @@ function setupEventListeners() {
         console.error('TTS form not found!');
     }
 
-    document.getElementById('max-length-input').addEventListener('input', updateCharCount);
+    const maxLengthInput = document.getElementById('max-length-input');
+    if (maxLengthInput) {
+        maxLengthInput.addEventListener('input', updateCharCount);
+        console.log('Max length input event listener added');
+    } else {
+        console.error('Max length input element not found!');
+    }
 
     const autoCombineCheck = document.getElementById('auto-combine-check');
     if (autoCombineCheck) {
@@ -95,9 +111,29 @@ function setupEventListeners() {
     }
 
     // Enhanced button events
-    document.getElementById('validate-text-btn').addEventListener('click', validateText);
-    document.getElementById('random-text-btn').addEventListener('click', loadRandomText);
-    document.getElementById('download-btn').addEventListener('click', downloadAudio);
+    const validateBtn = document.getElementById('validate-text-btn');
+    if (validateBtn) {
+        validateBtn.addEventListener('click', validateText);
+        console.log('Validate button event listener added');
+    } else {
+        console.error('Validate button not found!');
+    }
+
+    const randomBtn = document.getElementById('random-text-btn');
+    if (randomBtn) {
+        randomBtn.addEventListener('click', loadRandomText);
+        console.log('Random text button event listener added');
+    } else {
+        console.error('Random text button not found!');
+    }
+
+    const downloadBtn = document.getElementById('download-btn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadAudio);
+        console.log('Download button event listener added');
+    } else {
+        console.error('Download button not found!');
+    }
 
     // Add direct click event listener for generate button as backup
     const generateBtn = document.getElementById('generate-btn');
@@ -141,8 +177,21 @@ function setupEventListeners() {
     }
 
     // Voice and format selection events
-    document.getElementById('voice-select').addEventListener('change', updateVoiceInfo);
-    document.getElementById('format-select').addEventListener('change', updateFormatInfo);
+    const voiceSelect = document.getElementById('voice-select');
+    if (voiceSelect) {
+        voiceSelect.addEventListener('change', updateVoiceInfo);
+        console.log('Voice select event listener added');
+    } else {
+        console.error('Voice select element not found!');
+    }
+
+    const formatSelect = document.getElementById('format-select');
+    if (formatSelect) {
+        formatSelect.addEventListener('change', updateFormatInfo);
+        console.log('Format select event listener added');
+    } else {
+        console.error('Format select element not found!');
+    }
 
     // Example text buttons
     document.querySelectorAll('.use-example').forEach(button => {
@@ -240,24 +289,35 @@ async function loadFormats() {
 }
 
 function updateCharCount() {
-    const text = document.getElementById('text-input').value;
-    const maxLength = parseInt(document.getElementById('max-length-input').value) || 4096;
+    const textInput = document.getElementById('text-input');
+    const maxLengthInput = document.getElementById('max-length-input');
+    const charCountElement = document.getElementById('char-count');
+
+    if (!textInput || !maxLengthInput || !charCountElement) {
+        console.warn('Required elements not found for updateCharCount');
+        return;
+    }
+
+    const text = textInput.value;
+    const maxLength = parseInt(maxLengthInput.value) || 4096;
     const charCount = text.length;
-    
-    document.getElementById('char-count').textContent = charCount.toLocaleString();
+
+    charCountElement.textContent = charCount.toLocaleString();
     
     // Update length status with better visual feedback
     const statusElement = document.getElementById('length-status');
-    const percentage = (charCount / maxLength) * 100;
-    
-    if (charCount > maxLength) {
-        statusElement.innerHTML = '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Exceeds limit</span>';
-    } else if (percentage > 80) {
-        statusElement.innerHTML = '<span class="badge bg-warning"><i class="fas fa-exclamation me-1"></i>Near limit</span>';
-    } else if (percentage > 50) {
-        statusElement.innerHTML = '<span class="badge bg-info"><i class="fas fa-info me-1"></i>Good</span>';
-    } else {
-        statusElement.innerHTML = '<span class="badge bg-success"><i class="fas fa-check me-1"></i>OK</span>';
+    if (statusElement) {
+        const percentage = (charCount / maxLength) * 100;
+
+        if (charCount > maxLength) {
+            statusElement.innerHTML = '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Exceeds limit</span>';
+        } else if (percentage > 80) {
+            statusElement.innerHTML = '<span class="badge bg-warning"><i class="fas fa-exclamation me-1"></i>Near limit</span>';
+        } else if (percentage > 50) {
+            statusElement.innerHTML = '<span class="badge bg-info"><i class="fas fa-info me-1"></i>Good</span>';
+        } else {
+            statusElement.innerHTML = '<span class="badge bg-success"><i class="fas fa-check me-1"></i>OK</span>';
+        }
     }
     
     updateGenerateButton();
@@ -270,7 +330,18 @@ function updateGenerateButton() {
     const autoCombineCheck = document.getElementById('auto-combine-check');
     const autoCombine = autoCombineCheck ? autoCombineCheck.checked : false;
     const generateBtn = document.getElementById('generate-btn');
+
+    if (!generateBtn) {
+        console.warn('Generate button not found');
+        return;
+    }
+
     const btnText = generateBtn.querySelector('.btn-text');
+
+    if (!btnText) {
+        console.warn('Button text element not found');
+        return;
+    }
 
     if (text.length > maxLength && autoCombine) {
         btnText.innerHTML = '<i class="fas fa-magic me-2"></i>Generate Speech (Auto-Combine)';

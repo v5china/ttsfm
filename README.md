@@ -1,5 +1,7 @@
 # TTSFM - Text-to-Speech API Client
 
+> **Language / 语言**: [English](README.md) | [中文](README.zh.md)
+
 [![Docker Pulls](https://img.shields.io/docker/pulls/dbcccc/ttsfm?style=flat-square&logo=docker)](https://hub.docker.com/r/dbcccc/ttsfm)
 [![GitHub Stars](https://img.shields.io/github/stars/dbccccccc/ttsfm?style=social)](https://github.com/dbccccccc/ttsfm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
@@ -779,6 +781,13 @@ MIT License - see [LICENSE](LICENSE) file for details.
 [![GitHub](https://img.shields.io/badge/GitHub-dbccccccc/ttsfm-blue?style=flat-square&logo=github)](https://github.com/dbccccccc/ttsfm)
 [![PyPI](https://img.shields.io/badge/PyPI-ttsfm-blue?style=flat-square&logo=pypi)](https://pypi.org/project/ttsfm/)
 [![Docker](https://img.shields.io/badge/Docker-dbcccc/ttsfm-blue?style=flat-square&logo=docker)](https://hub.docker.com/r/dbcccc/ttsfm)
+
+---
+
+## 📖 Documentation
+
+- 🇺🇸 **English**: [README.md](README.md)
+- 🇨🇳 **中文**: [README.zh.md](README.zh.md)
 
 Made with ❤️ by [@dbcccc](https://github.com/dbccccccc)
 
