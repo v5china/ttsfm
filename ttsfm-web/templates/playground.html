@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}TTSFM Playground - Try Text-to-Speech{% endblock %}
+{% block title %}TTSFM {{ _('nav.playground') }} - {{ _('playground.title') }}{% endblock %}
 
 {% block content %}
 <!-- Clean Playground Header -->
@@ -13,10 +13,10 @@
                         <i class="fas fa-flask me-2"></i>Demo
                     </div>
                     <h1 class="display-4 fw-bold mb-3 text-dark">
-                        <i class="fas fa-play-circle me-3 text-primary"></i>TTS Playground
+                        <i class="fas fa-play-circle me-3 text-primary"></i>{{ _('playground.title') }}
                     </h1>
                     <p class="lead mb-4 text-muted">
-                        Test text-to-speech with 11 different voices and 6 audio formats. No registration required.
+                        {{ _('playground.subtitle') }}
                     </p>
                 </div>
             </div>
@@ -41,23 +41,23 @@
                 <div class="card-header bg-gradient-primary text-white">
                     <h4 class="mb-0 d-flex align-items-center">
                         <i class="fas fa-microphone me-2"></i>
-                        Text-to-Speech Generator
+                        {{ _('playground.title') }}
                     </h4>
                 </div>
                 <div class="card-body p-4">
-                    <form id="tts-form">
+                    <form id="tts-form" onsubmit="return false;">
                         <!-- Enhanced Text Input -->
                         <div class="mb-4">
                             <label for="text-input" class="form-label fw-bold d-flex align-items-center">
                                 <i class="fas fa-edit me-2 text-primary"></i>
-                                Text to Convert
+                                {{ _('playground.text_input_label') }}
                             </label>
                             <div class="position-relative">
                                 <textarea
                                     class="form-control shadow-sm"
                                     id="text-input"
                                     rows="4"
-                                    placeholder="Enter the text you want to convert to speech..."
+                                    placeholder="{{ _('playground.text_input_placeholder') }}"
                                     required
                                 >Hello! This is a test of the TTSFM text-to-speech system.</textarea>
                                 <div class="position-absolute top-0 end-0 p-2">
@@ -70,11 +70,11 @@
                                 <div class="d-flex align-items-center gap-3">
                                     <span class="text-muted">
                                         <i class="fas fa-keyboard me-1"></i>
-                                        <span id="char-count">0</span> characters
+                                        <span id="char-count">0</span> {{ _('playground.character_count') }}
                                     </span>
                                     <span id="length-status" class=""></span>
                                     <span id="auto-combine-status" class="badge bg-success d-none">
-                                        <i class="fas fa-magic me-1"></i>Auto-combine enabled
+                                        <i class="fas fa-magic me-1"></i>{{ _('playground.max_length_warning') }}
                                     </span>
                                     <span class="text-muted small">
                                         <i class="fas fa-lightbulb me-1"></i>
@@ -83,10 +83,10 @@
                                 </div>
                                 <div class="btn-group" role="group">
                                     <button type="button" class="btn btn-sm btn-outline-primary" id="validate-text-btn">
-                                        <i class="fas fa-check me-1"></i>Validate
+                                        <i class="fas fa-check me-1"></i>{{ _('common.validate') if _('common.validate') != 'common.validate' else 'Validate' }}
                                     </button>
                                     <button type="button" class="btn btn-sm btn-outline-secondary" id="random-text-btn">
-                                        <i class="fas fa-dice me-1"></i>Random
+                                        <i class="fas fa-dice me-1"></i>{{ _('playground.random_text') }}
                                     </button>
                                 </div>
                             </div>
@@ -98,13 +98,13 @@
                             <div class="col-md-6 mb-4">
                                 <label for="voice-select" class="form-label fw-bold d-flex align-items-center">
                                     <i class="fas fa-microphone me-2 text-primary"></i>
-                                    Voice
+                                    {{ _('playground.voice_label') }}
                                 </label>
                                 <select class="form-select shadow-sm" id="voice-select" required>
-                                    <option value="">Loading voices...</option>
+                                    <option value="">{{ _('common.loading_voices') }}</option>
                                 </select>
                                 <div class="form-text">
-                                    <span>Choose from available voices</span>
+                                    <span>{{ _('common.choose_voice') }}</span>
                                 </div>
                             </div>
 
@@ -112,13 +112,13 @@
                             <div class="col-md-6 mb-4">
                                 <label for="format-select" class="form-label fw-bold d-flex align-items-center">
                                     <i class="fas fa-file-audio me-2 text-primary"></i>
-                                    Audio Format
+                                    {{ _('playground.format_label') }}
                                 </label>
                                 <select class="form-select shadow-sm" id="format-select" required>
-                                    <option value="">Loading formats...</option>
+                                    <option value="">{{ _('common.loading_formats') }}</option>
                                 </select>
                                 <div class="form-text">
-                                    <span>Select your preferred audio format</span>
+                                    <span>{{ _('common.select_format') }}</span>
                                 </div>
                             </div>
                         </div>
@@ -127,7 +127,7 @@
                         <div class="row">
                             <div class="col-md-6 mb-4">
                                 <label for="max-length-input" class="form-label fw-bold">
-                                    <i class="fas fa-ruler me-2"></i>Max Length
+                                    <i class="fas fa-ruler me-2"></i>{{ _('common.max_length') }}
                                 </label>
                                 <input
                                     type="number"
@@ -138,30 +138,30 @@
                                     max="10000"
                                 >
                                 <div class="form-text">
-                                    Maximum characters per request (default: 4096)
+                                    {{ _('playground.max_length_description') }}
                                 </div>
                             </div>
 
                             <div class="col-md-6 mb-4">
                                 <label class="form-label fw-bold">
-                                    <i class="fas fa-cog me-2"></i>Options
+                                    <i class="fas fa-cog me-2"></i>{{ _('common.options') }}
                                 </label>
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="validate-length-check" checked>
                                     <label class="form-check-label" for="validate-length-check">
-                                        Enable length validation
+                                        {{ _('playground.enable_length_validation') }}
                                     </label>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="auto-combine-check" checked>
                                     <label class="form-check-label" for="auto-combine-check">
-                                        <span class="fw-bold text-primary">Auto-combine long text</span>
+                                        <span class="fw-bold text-primary">{{ _('playground.auto_combine_long_text') }}</span>
                                         <i class="fas fa-info-circle ms-1" data-bs-toggle="tooltip"
-                                           title="Automatically split long text and combine audio chunks into a single file"></i>
+                                           title="{{ _('playground.auto_combine_tooltip') }}"></i>
                                     </label>
                                     <div class="form-text small">
                                         <i class="fas fa-magic me-1"></i>
-                                        Automatically handles text longer than the limit
+                                        {{ _('playground.auto_combine_description') }}
                                     </div>
                                 </div>
                             </div>
@@ -170,16 +170,38 @@
                         <!-- Instructions (Optional) -->
                         <div class="mb-4">
                             <label for="instructions-input" class="form-label fw-bold">
-                                <i class="fas fa-magic me-2"></i>Instructions (Optional)
+                                <i class="fas fa-magic me-2"></i>{{ _('playground.instructions_label') }}
                             </label>
                             <input
                                 type="text"
                                 class="form-control"
                                 id="instructions-input"
-                                placeholder="e.g., Speak in a cheerful and upbeat tone"
+                                placeholder="{{ _('playground.instructions_placeholder') }}"
                             >
                             <div class="form-text">
-                                Provide optional instructions for voice modulation
+                                {{ _('playground.instructions_description') }}
+                            </div>
+                        </div>
+
+                        <!-- API Key (Optional) -->
+                        <div class="mb-4" id="api-key-section">
+                            <label for="api-key-input" class="form-label fw-bold">
+                                <i class="fas fa-key me-2"></i>{{ _('playground.api_key_optional') }}
+                            </label>
+                            <div class="input-group">
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="api-key-input"
+                                    placeholder="{{ _('playground.api_key_placeholder') }}"
+                                >
+                                <button class="btn btn-outline-secondary" type="button" id="toggle-api-key-visibility">
+                                    <i class="fas fa-eye" id="api-key-eye-icon"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                {{ _('playground.api_key_description') }}
                             </div>
                         </div>
 
@@ -188,14 +210,14 @@
                             <div class="d-grid gap-2 d-md-block">
                                 <button type="submit" class="btn btn-primary btn-lg px-4 py-3" id="generate-btn">
                                     <span class="btn-text">
-                                        <i class="fas fa-magic me-2"></i>Generate Speech
+                                        <i class="fas fa-magic me-2"></i>{{ _('playground.generate_speech') }}
                                     </span>
                                     <span class="loading-spinner">
-                                        <i class="fas fa-spinner fa-spin me-2"></i>Generating...
+                                        <i class="fas fa-spinner fa-spin me-2"></i>{{ _('playground.generating') }}
                                     </span>
                                 </button>
                                 <button type="button" class="btn btn-outline-secondary btn-lg ms-md-3" id="reset-form-btn">
-                                    <i class="fas fa-redo me-2"></i>Reset
+                                    <i class="fas fa-redo me-2"></i>{{ _('common.reset') }}
                                 </button>
                             </div>
                         </div>
@@ -207,7 +229,7 @@
                             <div class="d-flex align-items-center justify-content-between mb-3">
                                 <h5 class="mb-0 d-flex align-items-center">
                                     <i class="fas fa-volume-up me-2 text-success"></i>
-                                    Generated Audio
+                                    {{ _('playground.audio_player_title') }}
                                     <span class="badge bg-success ms-2">
                                         <i class="fas fa-check me-1"></i>Ready
                                     </span>
@@ -232,7 +254,7 @@
                                     </div>
                                     <div class="audio-actions">
                                         <button type="button" class="btn btn-success btn-sm" id="download-btn">
-                                            <i class="fas fa-download me-1"></i>Download
+                                            <i class="fas fa-download me-1"></i>{{ _('playground.download_audio') }}
                                         </button>
                                     </div>
                                 </div>
@@ -243,28 +265,28 @@
                                     <div class="stat-item">
                                         <i class="fas fa-clock text-primary"></i>
                                         <div class="stat-value" id="audio-duration">--</div>
-                                        <div class="stat-label">Duration</div>
+                                        <div class="stat-label">{{ _('playground.duration') }}</div>
                                     </div>
                                 </div>
                                 <div class="col-md-3 col-6">
                                     <div class="stat-item">
                                         <i class="fas fa-file text-info"></i>
                                         <div class="stat-value" id="audio-size">--</div>
-                                        <div class="stat-label">File Size</div>
+                                        <div class="stat-label">{{ _('playground.file_size') }}</div>
                                     </div>
                                 </div>
                                 <div class="col-md-3 col-6">
                                     <div class="stat-item">
                                         <i class="fas fa-microphone text-warning"></i>
                                         <div class="stat-value" id="audio-voice">--</div>
-                                        <div class="stat-label">Voice</div>
+                                        <div class="stat-label">{{ _('playground.voice') }}</div>
                                     </div>
                                 </div>
                                 <div class="col-md-3 col-6">
                                     <div class="stat-item">
                                         <i class="fas fa-music text-success"></i>
                                         <div class="stat-value" id="audio-format">--</div>
-                                        <div class="stat-label">Format</div>
+                                        <div class="stat-label">{{ _('playground.format') }}</div>
                                     </div>
                                 </div>
                             </div>

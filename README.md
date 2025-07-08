@@ -1,5 +1,7 @@
 # TTSFM - Text-to-Speech API Client
 
+> **Language / 语言**: [English](README.md) | [中文](README.zh.md)
+
 [![Docker Pulls](https://img.shields.io/docker/pulls/dbcccc/ttsfm?style=flat-square&logo=docker)](https://hub.docker.com/r/dbcccc/ttsfm)
 [![GitHub Stars](https://img.shields.io/github/stars/dbccccccc/ttsfm?style=social)](https://github.com/dbccccccc/ttsfm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
@@ -26,6 +28,7 @@ TTSFM provides both synchronous and asynchronous Python clients for text-to-spee
 - 🛡️ **Error Handling** - Comprehensive exception hierarchy with retry logic
 - ✨ **Auto-Combine** - Automatically handles long text with seamless audio combining
 - 📊 **Text Validation** - Automatic text length validation and splitting
+- 🔐 **API Key Protection** - Optional OpenAI-compatible authentication for secure deployments
 
 ## 📦 Installation
 
@@ -162,9 +165,15 @@ print(f"Generated {len(responses)} audio files from long text")
 ```python
 from openai import OpenAI
 
-# Point to TTSFM Docker container
+# Point to TTSFM Docker container (no API key required by default)
 client = OpenAI(
-    api_key="not-needed",  # TTSFM is free
+    api_key="not-needed",  # TTSFM is free by default
+    base_url="http://localhost:8000/v1"
+)
+
+# When API key protection is enabled
+client_with_auth = OpenAI(
+    api_key="your-secret-api-key",  # Your TTSFM API key
     base_url="http://localhost:8000/v1"
 )
 
@@ -241,12 +250,24 @@ ttsfm --help
 
 ## ⚙️ Configuration
 
-TTSFM automatically uses the free openai.fm service - **no configuration or API keys required!**
+TTSFM automatically uses the free openai.fm service - **no configuration or API keys required by default!**
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REQUIRE_API_KEY` | `false` | Enable API key protection |
+| `TTSFM_API_KEY` | `None` | Your secret API key |
+| `HOST` | `localhost` | Server host |
+| `PORT` | `8000` | Server port |
+| `DEBUG` | `false` | Debug mode |
+
+### Python Client Configuration
 
 ```python
 from ttsfm import TTSClient
 
-# Default client (uses openai.fm)
+# Default client (uses openai.fm, no API key needed)
 client = TTSClient()
 
 # Custom configuration
@@ -257,7 +278,13 @@ client = TTSClient(
     verify_ssl=True                   # SSL verification
 )
 
-# For custom TTS services
+# For TTSFM server with API key protection
+protected_client = TTSClient(
+    base_url="http://localhost:8000",
+    api_key="your-ttsfm-api-key"
+)
+
+# For other custom TTS services
 custom_client = TTSClient(
     base_url="http://your-tts-service.com",
     api_key="your-api-key-if-needed"
@@ -408,9 +435,21 @@ When running the Docker container, these endpoints are available:
 ### OpenAI-Compatible API
 
 ```bash
-# Generate speech (short text)
+# Generate speech (short text) - no API key required by default
 curl -X POST http://localhost:8000/v1/audio/speech \
   -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini-tts",
+    "input": "Hello, this is a test!",
+    "voice": "alloy",
+    "response_format": "mp3"
+  }' \
+  --output speech.mp3
+
+# Generate speech with API key (when protection is enabled)
+curl -X POST http://localhost:8000/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-secret-api-key" \
   -d '{
     "model": "gpt-4o-mini-tts",
     "input": "Hello, this is a test!",
@@ -464,8 +503,14 @@ TTSFM extends the OpenAI API with an optional `auto_combine` parameter:
 ### Quick Start
 
 ```bash
-# Run with default settings
+# Run with default settings (no API key required)
 docker run -p 8000:8000 ghcr.io/dbccccccc/ttsfm:latest
+
+# Run with API key protection enabled
+docker run -p 8000:8000 \
+  -e REQUIRE_API_KEY=true \
+  -e TTSFM_API_KEY=your-secret-api-key \
+  ghcr.io/dbccccccc/ttsfm:latest
 
 # Run with custom port
 docker run -p 3000:8000 ghcr.io/dbccccccc/ttsfm:latest
@@ -485,6 +530,9 @@ services:
       - "8000:8000"
     environment:
       - PORT=8000
+      # Optional: Enable API key protection
+      - REQUIRE_API_KEY=false
+      - TTSFM_API_KEY=your-secret-api-key-here
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
@@ -620,9 +668,71 @@ for text in texts:
     response = client.generate_speech(text)  # Reuses connection
 ```
 
+## 🔐 API Key Protection (Optional)
+
+TTSFM supports **OpenAI-compatible API key authentication** for secure deployments:
+
+### Quick Setup
+
+```bash
+# Enable API key protection
+export REQUIRE_API_KEY=true
+export TTSFM_API_KEY=your-secret-api-key
+
+# Run with protection enabled
+docker run -p 8000:8000 \
+  -e REQUIRE_API_KEY=true \
+  -e TTSFM_API_KEY=your-secret-api-key \
+  ghcr.io/dbccccccc/ttsfm:latest
+```
+
+### Authentication Methods
+
+API keys are accepted in **OpenAI-compatible format**:
+
+```python
+from openai import OpenAI
+
+# Standard OpenAI format
+client = OpenAI(
+    api_key="your-secret-api-key",
+    base_url="http://localhost:8000/v1"
+)
+
+# Or using curl
+curl -X POST http://localhost:8000/v1/audio/speech \
+  -H "Authorization: Bearer your-secret-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"gpt-4o-mini-tts","input":"Hello!","voice":"alloy"}'
+```
+
+### Features
+
+- 🔑 **OpenAI-Compatible**: Uses standard `Authorization: Bearer` header
+- 🛡️ **Multiple Auth Methods**: Header, query param, or JSON body
+- 🎛️ **Configurable**: Easy enable/disable via environment variables
+- 📊 **Security Logging**: Tracks invalid access attempts
+- 🌐 **Web Interface**: Automatic API key field detection
+
+### Protected Endpoints
+
+When enabled, these endpoints require authentication:
+- `POST /v1/audio/speech` - Speech generation
+- `POST /api/generate` - Legacy speech generation
+- `POST /api/generate-combined` - Combined speech generation
+
+### Public Endpoints
+
+These remain accessible without authentication:
+- `GET /` - Web interface
+- `GET /playground` - Interactive playground
+- `GET /api/health` - Health check
+- `GET /api/voices` - Available voices
+- `GET /api/formats` - Supported formats
+
 ## 🔒 Security & Privacy
 
-- **No API Keys Required**: Uses free openai.fm service
+- **Optional API Keys**: Free by default, secure when needed
 - **No Data Storage**: Audio is generated on-demand, not stored
 - **HTTPS Support**: Secure connections to TTS service
 - **No Tracking**: TTSFM doesn't collect or store user data
@@ -642,6 +752,8 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 - 🧹 **Streamlined Web Interface**: Removed legacy batch processing for cleaner user experience
 - 📖 **Simplified Documentation**: Web docs emphasize modern auto-combine approach
 - 🎮 **Enhanced Playground**: Clean interface focused on auto-combine functionality
+- 🔐 **API Key Protection**: Optional OpenAI-compatible authentication for secure deployments
+- 🛡️ **Security Features**: Comprehensive access control with detailed logging
 
 ## 🤝 Support & Community
 
@@ -669,6 +781,13 @@ MIT License - see [LICENSE](LICENSE) file for details.
 [![GitHub](https://img.shields.io/badge/GitHub-dbccccccc/ttsfm-blue?style=flat-square&logo=github)](https://github.com/dbccccccc/ttsfm)
 [![PyPI](https://img.shields.io/badge/PyPI-ttsfm-blue?style=flat-square&logo=pypi)](https://pypi.org/project/ttsfm/)
 [![Docker](https://img.shields.io/badge/Docker-dbcccc/ttsfm-blue?style=flat-square&logo=docker)](https://hub.docker.com/r/dbcccc/ttsfm)
+
+---
+
+## 📖 Documentation
+
+- 🇺🇸 **English**: [README.md](README.md)
+- 🇨🇳 **中文**: [README.zh.md](README.zh.md)
 
 Made with ❤️ by [@dbcccc](https://github.com/dbccccccc)
 

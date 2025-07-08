@@ -13,10 +13,14 @@ import io
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
+from functools import wraps
 
-from flask import Flask, request, jsonify, send_file, Response, render_template
+from flask import Flask, request, jsonify, send_file, Response, render_template, redirect, url_for
 from flask_cors import CORS
 from dotenv import load_dotenv
+
+# Import i18n support
+from i18n import init_i18n, get_locale, set_locale, _
 
 # Import the TTSFM package
 try:
@@ -43,17 +47,77 @@ logger = logging.getLogger(__name__)
 
 # Create Flask app
 app = Flask(__name__, static_folder='static', static_url_path='/static')
+app.secret_key = os.getenv("SECRET_KEY", "ttsfm-secret-key-change-in-production")
 CORS(app)
+
+# Initialize i18n support
+init_i18n(app)
 
 # Configuration
 HOST = os.getenv("HOST", "localhost")
 PORT = int(os.getenv("PORT", "8000"))
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
+# API Key configuration
+API_KEY = os.getenv("TTSFM_API_KEY")  # Set this environment variable for API protection
+REQUIRE_API_KEY = os.getenv("REQUIRE_API_KEY", "false").lower() == "true"
+
 # Create TTS client - now uses openai.fm directly, no configuration needed
 tts_client = TTSClient()
 
 logger.info("Initialized web app with TTSFM using openai.fm free service")
+
+# API Key validation decorator
+def require_api_key(f):
+    """Decorator to require API key for protected endpoints."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Skip API key check if not required
+        if not REQUIRE_API_KEY:
+            return f(*args, **kwargs)
+
+        # Check if API key is configured
+        if not API_KEY:
+            logger.warning("API key protection is enabled but TTSFM_API_KEY is not set")
+            return jsonify({
+                "error": "API key protection is enabled but not configured properly"
+            }), 500
+
+        # Get API key from request headers - prioritize Authorization header (OpenAI compatible)
+        provided_key = None
+
+        # 1. Check Authorization header first (OpenAI standard)
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            provided_key = auth_header[7:]  # Remove 'Bearer ' prefix
+
+        # 2. Check X-API-Key header as fallback
+        if not provided_key:
+            provided_key = request.headers.get('X-API-Key')
+
+        # 3. Check API key from query parameters as fallback
+        if not provided_key:
+            provided_key = request.args.get('api_key')
+
+        # 4. Check API key from JSON body as fallback
+        if not provided_key and request.is_json:
+            data = request.get_json(silent=True)
+            if data:
+                provided_key = data.get('api_key')
+
+        # Validate API key
+        if not provided_key or provided_key != API_KEY:
+            logger.warning(f"Invalid API key attempt from {request.remote_addr}")
+            return jsonify({
+                "error": {
+                    "message": "Invalid API key provided",
+                    "type": "invalid_request_error",
+                    "code": "invalid_api_key"
+                }
+            }), 401
+
+        return f(*args, **kwargs)
+    return decorated_function
 
 def combine_audio_chunks(audio_chunks: List[bytes], format_type: str = "mp3") -> bytes:
     """
@@ -172,6 +236,16 @@ def _simple_wav_concatenation(wav_chunks: List[bytes]) -> bytes:
         logger.error(f"Error in simple WAV concatenation: {e}")
         # Ultimate fallback
         return b''.join(wav_chunks)
+
+@app.route('/set-language/<lang_code>')
+def set_language(lang_code):
+    """Set the user's language preference."""
+    if set_locale(lang_code):
+        # Redirect to the referring page or home
+        return redirect(request.referrer or url_for('index'))
+    else:
+        # Invalid language code, redirect to home
+        return redirect(url_for('index'))
 
 @app.route('/')
 def index():
@@ -319,6 +393,7 @@ def validate_text():
         return jsonify({"error": "Text validation failed"}), 500
 
 @app.route('/api/generate', methods=['POST'])
+@require_api_key
 def generate_speech():
     """Generate speech from text using the TTSFM package."""
     try:
@@ -407,6 +482,7 @@ def generate_speech():
 
 
 @app.route('/api/generate-combined', methods=['POST'])
+@require_api_key
 def generate_speech_combined():
     """Generate speech from long text and return a single combined audio file."""
     try:
@@ -576,8 +652,31 @@ def health_check():
         "timestamp": datetime.now().isoformat()
     })
 
+@app.route('/api/auth-status', methods=['GET'])
+def auth_status():
+    """Get authentication status and requirements."""
+    return jsonify({
+        "api_key_required": REQUIRE_API_KEY,
+        "api_key_configured": bool(API_KEY) if REQUIRE_API_KEY else None,
+        "timestamp": datetime.now().isoformat()
+    })
+
+@app.route('/api/translations/<lang_code>', methods=['GET'])
+def get_translations(lang_code):
+    """Get translations for a specific language."""
+    try:
+        if hasattr(app, 'language_manager'):
+            translations = app.language_manager.translations.get(lang_code, {})
+            return jsonify(translations)
+        else:
+            return jsonify({}), 404
+    except Exception as e:
+        logger.error(f"Error getting translations for {lang_code}: {e}")
+        return jsonify({"error": "Failed to get translations"}), 500
+
 # OpenAI-compatible API endpoints
 @app.route('/v1/audio/speech', methods=['POST'])
+@require_api_key
 def openai_speech():
     """OpenAI-compatible speech generation endpoint with auto-combine feature."""
     try:
@@ -813,7 +912,19 @@ if __name__ == '__main__':
     logger.info(f"Starting TTSFM web application on {HOST}:{PORT}")
     logger.info("Using openai.fm free TTS service")
     logger.info(f"Debug mode: {DEBUG}")
-    
+
+    # Log API key protection status
+    if REQUIRE_API_KEY:
+        if API_KEY:
+            logger.info("🔒 API key protection is ENABLED")
+            logger.info("All TTS generation requests require a valid API key")
+        else:
+            logger.warning("⚠️  API key protection is enabled but TTSFM_API_KEY is not set!")
+            logger.warning("Please set the TTSFM_API_KEY environment variable")
+    else:
+        logger.info("🔓 API key protection is DISABLED - all requests are allowed")
+        logger.info("Set REQUIRE_API_KEY=true to enable API key protection")
+
     try:
         app.run(
             host=HOST,

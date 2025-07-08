@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}TTSFM API Documentation{% endblock %}
+{% block title %}TTSFM {{ _('docs.title') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -66,10 +66,10 @@
     <div class="row">
         <div class="col-12 text-center mb-5">
             <h1 class="display-4 fw-bold">
-                <i class="fas fa-book me-3 text-primary"></i>API Documentation
+                <i class="fas fa-book me-3 text-primary"></i>{{ _('docs.title') }}
             </h1>
             <p class="lead text-muted">
-                Complete reference for the TTSFM Text-to-Speech API. Free, simple, and powerful.
+                {{ _('docs.subtitle') }}
             </p>
         </div>
     </div>
@@ -78,20 +78,19 @@
         <!-- Table of Contents -->
         <div class="col-lg-3">
             <div class="toc">
-                <h5 class="fw-bold mb-3">Contents</h5>
-                <a href="#overview">Overview</a>
-                <a href="#authentication">Authentication</a>
-                <a href="#text-validation">Text Validation</a>
-                <a href="#endpoints">API Endpoints</a>
-                <a href="#voices">Voices</a>
-                <a href="#formats">Audio Formats</a>
-                <a href="#generate">Generate Speech</a>
-
-                <a href="#combined">Combined Audio</a>
-                <a href="#status">Status & Health</a>
-                <a href="#errors">Error Handling</a>
-                <a href="#examples">Code Examples</a>
-                <a href="#python-package">Python Package</a>
+                <h5 class="fw-bold mb-3">{{ _('docs.contents') }}</h5>
+                <a href="#overview">{{ _('docs.overview') }}</a>
+                <a href="#authentication">{{ _('docs.authentication') }}</a>
+                <a href="#text-validation">{{ _('docs.text_validation') }}</a>
+                <a href="#endpoints">{{ _('docs.endpoints') }}</a>
+                <a href="#voices">{{ _('docs.voices') }}</a>
+                <a href="#formats">{{ _('docs.formats') }}</a>
+                <a href="#generate">{{ _('docs.generate') }}</a>
+                <a href="#combined">{{ _('docs.combined') }}</a>
+                <a href="#status">{{ _('docs.status') }}</a>
+                <a href="#errors">{{ _('docs.errors') }}</a>
+                <a href="#examples">{{ _('docs.examples') }}</a>
+                <a href="#python-package">{{ _('docs.python_package') }}</a>
             </div>
         </div>
         
@@ -99,75 +98,68 @@
         <div class="col-lg-9">
             <!-- Overview -->
             <section id="overview" class="mb-5">
-                <h2 class="fw-bold mb-3">Overview</h2>
+                <h2 class="fw-bold mb-3">{{ _('docs.overview_title') }}</h2>
                 <p>
-                    The TTSFM API provides a modern, OpenAI-compatible interface for text-to-speech generation.
-                    It supports multiple voices, audio formats, and includes advanced features like text length
-                    validation and intelligent auto-combine functionality.
+                    {{ _('docs.overview_desc') }}
                 </p>
-                
+
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>Base URL:</strong> <code>{{ request.url_root }}api/</code>
+                    <strong>{{ _('docs.base_url') }}</strong> <code>{{ request.url_root }}api/</code>
                 </div>
-                
-                <h4>Key Features</h4>
-                <ul>
-                    <li><strong>🎤 11 different voice options</strong> - Choose from alloy, echo, nova, and more</li>
-                    <li><strong>🎵 Multiple audio formats</strong> - MP3, WAV, OPUS, AAC, FLAC, PCM support</li>
-                    <li><strong>🤖 OpenAI compatibility</strong> - Drop-in replacement for OpenAI's TTS API</li>
-                    <li><strong>✨ Auto-combine feature</strong> - Automatically handles long text (>4096 chars) by splitting and combining audio</li>
-                    <li><strong>📊 Text length validation</strong> - Smart validation with configurable limits</li>
 
-                    <li><strong>📈 Real-time monitoring</strong> - Status endpoints and health checks</li>
+                <h4>{{ _('docs.key_features') }}</h4>
+                <ul>
+                    <li><strong>🎤 {{ _('docs.feature_voices') }}</strong></li>
+                    <li><strong>🎵 {{ _('docs.feature_formats') }}</strong></li>
+                    <li><strong>🤖 {{ _('docs.feature_openai') }}</strong></li>
+                    <li><strong>✨ {{ _('docs.feature_auto_combine') }}</strong></li>
+                    <li><strong>📊 {{ _('docs.feature_validation') }}</strong></li>
+                    <li><strong>📈 {{ _('docs.feature_monitoring') }}</strong></li>
                 </ul>
 
                 <div class="alert alert-success">
                     <i class="fas fa-star me-2"></i>
-                    <strong>New in v3.2.3:</strong> Enhanced `/v1/audio/speech` endpoint with intelligent auto-combine feature.
-                    Streamlined web interface with clean, user-friendly design and automatic long-text handling!
+                    <strong>{{ _('docs.new_version') }}</strong> {{ _('docs.new_version_desc') }}
                 </div>
             </section>
             
             <!-- Authentication -->
             <section id="authentication" class="mb-5">
-                <h2 class="fw-bold mb-3">Authentication</h2>
+                <h2 class="fw-bold mb-3">{{ _('docs.authentication_title') }}</h2>
                 <p>
-                    Currently, the API supports optional API key authentication. If configured,
-                    include your API key in the request headers.
+                    {{ _('docs.authentication_desc') }}
                 </p>
-                
+
                 <div class="code-block">
                     <pre><code>Authorization: Bearer YOUR_API_KEY</code></pre>
                 </div>
             </section>
-            
+
             <!-- Text Validation -->
             <section id="text-validation" class="mb-5">
-                <h2 class="fw-bold mb-3">Text Length Validation</h2>
+                <h2 class="fw-bold mb-3">{{ _('docs.text_validation_title') }}</h2>
                 <p>
-                    TTSFM includes built-in text length validation to ensure compatibility with TTS models.
-                    The default maximum length is 4096 characters, but this can be customized.
+                    {{ _('docs.text_validation_desc') }}
                 </p>
-                
+
                 <div class="alert alert-warning">
                     <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Important:</strong> Text exceeding the maximum length will be rejected unless
-                    validation is disabled or the text is split into chunks.
+                    <strong>{{ _('docs.important') }}</strong> {{ _('docs.text_validation_warning') }}
                 </div>
-                
-                <h4>Validation Options</h4>
+
+                <h4>{{ _('docs.validation_options') }}</h4>
                 <ul>
-                    <li><code>max_length</code>: Maximum allowed characters (default: 4096)</li>
-                    <li><code>validate_length</code>: Enable/disable validation (default: true)</li>
-                    <li><code>preserve_words</code>: Avoid splitting words when chunking (default: true)</li>
+                    <li><code>max_length</code>: {{ _('docs.max_length_option') }}</li>
+                    <li><code>validate_length</code>: {{ _('docs.validate_length_option') }}</li>
+                    <li><code>preserve_words</code>: {{ _('docs.preserve_words_option') }}</li>
                 </ul>
             </section>
             
             <!-- API Endpoints -->
             <section id="endpoints" class="mb-5">
-                <h2 class="fw-bold mb-3">API Endpoints</h2>
-                
+                <h2 class="fw-bold mb-3">{{ _('docs.endpoints_title') }}</h2>
+
                 <!-- Voices Endpoint -->
                 <div class="card endpoint-card" id="voices">
                     <div class="card-body">
@@ -175,9 +167,9 @@
                             <span class="method-badge method-get">GET</span>
                             /api/voices
                         </h4>
-                        <p class="card-text">Get list of available voices.</p>
-                        
-                        <h6>Response Example:</h6>
+                        <p class="card-text">{{ _('docs.get_voices_desc') }}</p>
+
+                        <h6>{{ _('docs.response_example') }}</h6>
                         <div class="response-example">
                             <pre><code>{
   "voices": [
@@ -205,9 +197,9 @@
                             <span class="method-badge method-get">GET</span>
                             /api/formats
                         </h4>
-                        <p class="card-text">Get list of supported audio formats.</p>
-                        
-                        <h6>Response Example:</h6>
+                        <p class="card-text">{{ _('docs.get_formats_desc') }}</p>
+
+                        <h6>{{ _('docs.response_example') }}</h6>
                         <div class="response-example">
                             <pre><code>{
   "formats": [
@@ -231,9 +223,9 @@
                             <span class="method-badge method-post">POST</span>
                             /api/validate-text
                         </h4>
-                        <p class="card-text">Validate text length and get splitting suggestions.</p>
-                        
-                        <h6>Request Body:</h6>
+                        <p class="card-text">{{ _('docs.validate_text_desc') }}</p>
+
+                        <h6>{{ _('docs.request_body') }}</h6>
                         <div class="code-block">
                             <pre><code>{
   "text": "Your text to validate",
@@ -241,7 +233,7 @@
 }</code></pre>
                         </div>
                         
-                        <h6>Response Example:</h6>
+                        <h6>{{ _('docs.response_example') }}</h6>
                         <div class="response-example">
                             <pre><code>{
   "text_length": 5000,
@@ -257,7 +249,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Generate Speech Endpoint -->
                 <div class="card endpoint-card" id="generate">
                     <div class="card-body">
@@ -265,9 +257,9 @@
                             <span class="method-badge method-post">POST</span>
                             /api/generate
                         </h4>
-                        <p class="card-text">Generate speech from text.</p>
-                        
-                        <h6>Request Body:</h6>
+                        <p class="card-text">{{ _('docs.generate_speech_desc') }}</p>
+
+                        <h6>{{ _('docs.request_body') }}</h6>
                         <div class="code-block">
                             <pre><code>{
   "text": "Hello, world!",
@@ -279,18 +271,18 @@
 }</code></pre>
                         </div>
                         
-                        <h6>Parameters:</h6>
+                        <h6>{{ _('docs.parameters') }}</h6>
                         <ul>
-                            <li><code>text</code> (required): Text to convert to speech</li>
-                            <li><code>voice</code> (optional): Voice ID (default: "alloy")</li>
-                            <li><code>format</code> (optional): Audio format (default: "mp3")</li>
-                            <li><code>instructions</code> (optional): Voice modulation instructions</li>
-                            <li><code>max_length</code> (optional): Maximum text length (default: 4096)</li>
-                            <li><code>validate_length</code> (optional): Enable validation (default: true)</li>
+                            <li><code>text</code> ({{ _('docs.required') }}): {{ _('docs.text_param') }}</li>
+                            <li><code>voice</code> ({{ _('docs.optional') }}): {{ _('docs.voice_param') }}</li>
+                            <li><code>format</code> ({{ _('docs.optional') }}): {{ _('docs.format_param') }}</li>
+                            <li><code>instructions</code> ({{ _('docs.optional') }}): {{ _('docs.instructions_param') }}</li>
+                            <li><code>max_length</code> ({{ _('docs.optional') }}): {{ _('docs.max_length_param') }}</li>
+                            <li><code>validate_length</code> ({{ _('docs.optional') }}): {{ _('docs.validate_length_param') }}</li>
                         </ul>
-                        
-                        <h6>Response:</h6>
-                        <p>Returns audio file with appropriate Content-Type header.</p>
+
+                        <h6>{{ _('docs.response') }}</h6>
+                        <p>{{ _('docs.response_audio') }}</p>
                     </div>
                 </div>
                 
@@ -299,13 +291,13 @@
             <!-- Python Package -->
             <section id="python-package" class="mb-5">
                 <h3 class="fw-bold mb-4">
-                    <i class="fab fa-python me-2 text-warning"></i>Python Package
+                    <i class="fab fa-python me-2 text-warning"></i>{{ _('docs.python_package_title') }}
                 </h3>
 
                 <div class="card">
                     <div class="card-body">
-                        <h5>Long Text Support</h5>
-                        <p>The TTSFM Python package includes built-in long text splitting functionality for developers who need fine-grained control:</p>
+                        <h5>{{ _('docs.long_text_support') }}</h5>
+                        <p>{{ _('docs.long_text_desc') }}</p>
 
                         <div class="code-block">
                             <pre><code>from ttsfm import TTSClient, Voice, AudioFormat
@@ -327,18 +319,17 @@ for i, response in enumerate(responses, 1):
     response.save_to_file(f"part_{i:03d}.mp3")</code></pre>
                         </div>
 
-                        <h6 class="mt-4">Developer Features:</h6>
+                        <h6 class="mt-4">{{ _('docs.developer_features') }}</h6>
                         <ul>
-                            <li><strong>Manual Splitting:</strong> Full control over text chunking for advanced use cases</li>
-                            <li><strong>Word Preservation:</strong> Maintains word boundaries for natural speech</li>
-                            <li><strong>Separate Files:</strong> Each chunk saved as individual audio file</li>
-                            <li><strong>CLI Support:</strong> Use <code>--split-long-text</code> flag for command-line usage</li>
+                            <li><strong>{{ _('docs.manual_splitting') }}</strong></li>
+                            <li><strong>{{ _('docs.word_preservation') }}</strong></li>
+                            <li><strong>{{ _('docs.separate_files') }}</strong></li>
+                            <li><strong>{{ _('docs.cli_support') }}</strong></li>
                         </ul>
 
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
-                            <strong>Note:</strong> For web users, the auto-combine feature in <code>/v1/audio/speech</code> is recommended
-                            as it automatically handles long text and returns a single seamless audio file.
+                            <strong>{{ _('docs.note') }}</strong> {{ _('docs.auto_combine_note') }}
                         </div>
                     </div>
                 </div>
@@ -350,9 +341,9 @@ for i, response in enumerate(responses, 1):
                             <span class="method-badge method-post">POST</span>
                             /api/generate-combined
                         </h4>
-                        <p class="card-text">Generate a single combined audio file from long text. Automatically splits text into chunks, generates speech for each chunk, and combines them into one seamless audio file.</p>
+                        <p class="card-text">{{ _('docs.combined_audio_desc') }}</p>
 
-                        <h6>Request Body:</h6>
+                        <h6>{{ _('docs.request_body') }}</h6>
                         <div class="code-block">
                             <pre><code>{
   "text": "Very long text that exceeds the limit...",
@@ -364,14 +355,14 @@ for i, response in enumerate(responses, 1):
 }</code></pre>
                         </div>
 
-                        <h6>Response:</h6>
-                        <p>Returns a single audio file containing all chunks combined seamlessly.</p>
+                        <h6>{{ _('docs.response') }}</h6>
+                        <p>{{ _('docs.response_combined_audio') }}</p>
 
-                        <h6>Response Headers:</h6>
+                        <h6>{{ _('docs.response_headers') }}</h6>
                         <ul>
-                            <li><code>X-Chunks-Combined</code>: Number of chunks that were combined</li>
-                            <li><code>X-Original-Text-Length</code>: Original text length in characters</li>
-                            <li><code>X-Audio-Size</code>: Final audio file size in bytes</li>
+                            <li><code>X-Chunks-Combined</code>: {{ _('docs.chunks_combined_header') }}</li>
+                            <li><code>X-Original-Text-Length</code>: {{ _('docs.original_text_length_header') }}</li>
+                            <li><code>X-Audio-Size</code>: {{ _('docs.audio_size_header') }}</li>
                         </ul>
                     </div>
                 </div>
@@ -383,9 +374,9 @@ for i, response in enumerate(responses, 1):
                             <span class="method-badge method-post">POST</span>
                             /v1/audio/speech
                         </h4>
-                        <p class="card-text">Enhanced OpenAI-compatible endpoint with auto-combine feature. Automatically handles long text by splitting and combining audio chunks when needed.</p>
+                        <p class="card-text">{{ _('docs.openai_compatible_desc') }}</p>
 
-                        <h6>Request Body:</h6>
+                        <h6>{{ _('docs.request_body') }}</h6>
                         <div class="code-block">
                             <pre><code>{
   "model": "gpt-4o-mini-tts",
@@ -399,29 +390,29 @@ for i, response in enumerate(responses, 1):
 }</code></pre>
                         </div>
 
-                        <h6>Enhanced Parameters:</h6>
+                        <h6>{{ _('docs.enhanced_parameters') }}</h6>
                         <ul>
                             <li><strong>auto_combine</strong> (boolean, default: true):
                                 <ul>
-                                    <li><code>true</code>: Automatically split long text and combine audio chunks into a single file</li>
-                                    <li><code>false</code>: Return error if text exceeds max_length (standard OpenAI behavior)</li>
+                                    <li><code>true</code>: {{ _('docs.auto_combine_param') }}</li>
+                                    <li><code>false</code>: {{ _('docs.auto_combine_false') }}</li>
                                 </ul>
                             </li>
-                            <li><strong>max_length</strong> (integer, default: 4096): Maximum characters per chunk when splitting</li>
+                            <li><strong>max_length</strong> (integer, default: 4096): {{ _('docs.max_length_chunk_param') }}</li>
                         </ul>
 
-                        <h6>Response Headers:</h6>
+                        <h6>{{ _('docs.response_headers') }}</h6>
                         <ul>
-                            <li><code>X-Auto-Combine</code>: Whether auto-combine was enabled (true/false)</li>
-                            <li><code>X-Chunks-Combined</code>: Number of audio chunks combined (1 for short text)</li>
-                            <li><code>X-Original-Text-Length</code>: Original text length (for long text processing)</li>
-                            <li><code>X-Audio-Format</code>: Audio format of the response</li>
-                            <li><code>X-Audio-Size</code>: Audio file size in bytes</li>
+                            <li><code>X-Auto-Combine</code>: {{ _('docs.auto_combine_header') }}</li>
+                            <li><code>X-Chunks-Combined</code>: {{ _('docs.chunks_combined_response') }}</li>
+                            <li><code>X-Original-Text-Length</code>: {{ _('docs.original_text_response') }}</li>
+                            <li><code>X-Audio-Format</code>: {{ _('docs.audio_format_header') }}</li>
+                            <li><code>X-Audio-Size</code>: {{ _('docs.audio_size_response') }}</li>
                         </ul>
 
-                        <h6>Examples:</h6>
+                        <h6>{{ _('docs.examples_title') }}</h6>
                         <div class="code-block">
-                            <pre><code># Short text (works normally)
+                            <pre><code># {{ _('docs.short_text_comment') }}
 curl -X POST {{ request.url_root }}v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{
@@ -430,7 +421,7 @@ curl -X POST {{ request.url_root }}v1/audio/speech \
     "voice": "alloy"
   }'
 
-# Long text with auto-combine (default)
+# {{ _('docs.long_text_auto_comment') }}
 curl -X POST {{ request.url_root }}v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{
@@ -440,7 +431,7 @@ curl -X POST {{ request.url_root }}v1/audio/speech \
     "auto_combine": true
   }'
 
-# Long text without auto-combine (will error)
+# {{ _('docs.long_text_no_auto_comment') }}
 curl -X POST {{ request.url_root }}v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{
@@ -453,21 +444,20 @@ curl -X POST {{ request.url_root }}v1/audio/speech \
 
                         <div class="alert alert-info mt-3">
                             <i class="fas fa-info-circle me-2"></i>
-                            <strong>Audio Combination:</strong> Uses advanced audio processing (PyDub) when available,
-                            with intelligent fallbacks for different environments. Supports all audio formats.
+                            <strong>{{ _('docs.audio_combination') }}</strong> {{ _('docs.audio_combination_desc') }}
                         </div>
 
-                        <h6 class="mt-4">Use Cases:</h6>
+                        <h6 class="mt-4">{{ _('docs.use_cases') }}</h6>
                         <ul>
-                            <li><strong>Long Articles:</strong> Convert blog posts or articles to single audio files</li>
-                            <li><strong>Audiobooks:</strong> Generate chapters as single audio files</li>
-                            <li><strong>Podcasts:</strong> Create podcast episodes from scripts</li>
-                            <li><strong>Educational Content:</strong> Convert learning materials to audio</li>
+                            <li><strong>{{ _('docs.use_case_articles') }}</strong></li>
+                            <li><strong>{{ _('docs.use_case_audiobooks') }}</strong></li>
+                            <li><strong>{{ _('docs.use_case_podcasts') }}</strong></li>
+                            <li><strong>{{ _('docs.use_case_education') }}</strong></li>
                         </ul>
 
-                        <h6 class="mt-4">Example Usage:</h6>
+                        <h6 class="mt-4">{{ _('docs.example_usage') }}</h6>
                         <div class="code-block">
-                            <pre><code># Python example
+                            <pre><code># {{ _('docs.python_example_comment') }}
 import requests
 
 response = requests.post(

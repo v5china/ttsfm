@@ -10,12 +10,58 @@ document.addEventListener('DOMContentLoaded', function() {
     initializePlayground();
 });
 
+// Check authentication status and show/hide API key field
+async function checkAuthStatus() {
+    try {
+        const response = await fetch('/api/auth-status');
+        const data = await response.json();
+
+        const apiKeySection = document.getElementById('api-key-section');
+        if (apiKeySection) {
+            if (data.api_key_required) {
+                // Show API key field and mark as required
+                apiKeySection.style.display = 'block';
+                const apiKeyInput = document.getElementById('api-key-input');
+                const label = apiKeySection.querySelector('label');
+
+                if (apiKeyInput) {
+                    apiKeyInput.required = true;
+                    apiKeyInput.placeholder = 'Enter your API key (required)';
+                }
+
+                if (label) {
+                    label.innerHTML = '<i class="fas fa-key me-2"></i>' + (window.currentLocale === 'zh' ? 'API密钥（必需）' : 'API Key (Required)');
+                }
+
+                // Update form text
+                const formText = apiKeySection.querySelector('.form-text');
+                if (formText) {
+                    formText.innerHTML = '<i class="fas fa-exclamation-triangle me-1 text-warning"></i>API key protection is enabled - this field is required';
+                }
+            } else {
+                // Hide API key field or mark as optional
+                apiKeySection.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.warn('Could not check auth status:', error);
+        // If we can't check, assume API key might be required and show the field
+        const apiKeySection = document.getElementById('api-key-section');
+        if (apiKeySection) {
+            apiKeySection.style.display = 'block';
+        }
+    }
+}
+
 function initializePlayground() {
+    console.log('Initializing playground...');
+    checkAuthStatus();
     loadVoices();
     loadFormats();
     updateCharCount();
     setupEventListeners();
-    
+    console.log('Playground initialization complete');
+
     // Initialize tooltips if Bootstrap is available
     if (typeof bootstrap !== 'undefined') {
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -26,16 +72,80 @@ function initializePlayground() {
 }
 
 function setupEventListeners() {
+    console.log('Setting up event listeners...');
+
     // Form and input events
-    document.getElementById('text-input').addEventListener('input', updateCharCount);
-    document.getElementById('tts-form').addEventListener('submit', generateSpeech);
-    document.getElementById('max-length-input').addEventListener('input', updateCharCount);
-    document.getElementById('auto-combine-check').addEventListener('change', updateAutoCombineStatus);
+    const textInput = document.getElementById('text-input');
+    if (textInput) {
+        textInput.addEventListener('input', updateCharCount);
+        console.log('Text input event listener added');
+    } else {
+        console.error('Text input element not found!');
+    }
+
+    // Add form submit event listener with better error handling
+    const form = document.getElementById('tts-form');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            console.log('Form submit event triggered');
+            event.preventDefault(); // Prevent default form submission
+            event.stopPropagation(); // Stop event bubbling
+            generateSpeech(event);
+            return false; // Additional prevention
+        });
+    } else {
+        console.error('TTS form not found!');
+    }
+
+    const maxLengthInput = document.getElementById('max-length-input');
+    if (maxLengthInput) {
+        maxLengthInput.addEventListener('input', updateCharCount);
+        console.log('Max length input event listener added');
+    } else {
+        console.error('Max length input element not found!');
+    }
+
+    const autoCombineCheck = document.getElementById('auto-combine-check');
+    if (autoCombineCheck) {
+        autoCombineCheck.addEventListener('change', updateAutoCombineStatus);
+    }
 
     // Enhanced button events
-    document.getElementById('validate-text-btn').addEventListener('click', validateText);
-    document.getElementById('random-text-btn').addEventListener('click', loadRandomText);
-    document.getElementById('download-btn').addEventListener('click', downloadAudio);
+    const validateBtn = document.getElementById('validate-text-btn');
+    if (validateBtn) {
+        validateBtn.addEventListener('click', validateText);
+        console.log('Validate button event listener added');
+    } else {
+        console.error('Validate button not found!');
+    }
+
+    const randomBtn = document.getElementById('random-text-btn');
+    if (randomBtn) {
+        randomBtn.addEventListener('click', loadRandomText);
+        console.log('Random text button event listener added');
+    } else {
+        console.error('Random text button not found!');
+    }
+
+    const downloadBtn = document.getElementById('download-btn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadAudio);
+        console.log('Download button event listener added');
+    } else {
+        console.error('Download button not found!');
+    }
+
+    // Add direct click event listener for generate button as backup
+    const generateBtn = document.getElementById('generate-btn');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', function(event) {
+            console.log('Generate button clicked directly');
+            event.preventDefault();
+            event.stopPropagation();
+            generateSpeech(event);
+            return false;
+        });
+    }
 
     // New button events
     const clearTextBtn = document.getElementById('clear-text-btn');
@@ -60,9 +170,28 @@ function setupEventListeners() {
         shareBtn.addEventListener('click', shareAudio);
     }
 
+    // API Key visibility toggle
+    const toggleApiKeyBtn = document.getElementById('toggle-api-key-visibility');
+    if (toggleApiKeyBtn) {
+        toggleApiKeyBtn.addEventListener('click', toggleApiKeyVisibility);
+    }
+
     // Voice and format selection events
-    document.getElementById('voice-select').addEventListener('change', updateVoiceInfo);
-    document.getElementById('format-select').addEventListener('change', updateFormatInfo);
+    const voiceSelect = document.getElementById('voice-select');
+    if (voiceSelect) {
+        voiceSelect.addEventListener('change', updateVoiceInfo);
+        console.log('Voice select event listener added');
+    } else {
+        console.error('Voice select element not found!');
+    }
+
+    const formatSelect = document.getElementById('format-select');
+    if (formatSelect) {
+        formatSelect.addEventListener('change', updateFormatInfo);
+        console.log('Format select event listener added');
+    } else {
+        console.error('Format select element not found!');
+    }
 
     // Example text buttons
     document.querySelectorAll('.use-example').forEach(button => {
@@ -98,7 +227,14 @@ function setupEventListeners() {
 
 async function loadVoices() {
     try {
-        const response = await fetch('/api/voices');
+        // Prepare headers for API key if available (OpenAI compatible format)
+        const headers = {};
+        const apiKeyInput = document.getElementById('api-key-input');
+        if (apiKeyInput && apiKeyInput.value.trim()) {
+            headers['Authorization'] = `Bearer ${apiKeyInput.value.trim()}`;
+        }
+
+        const response = await fetch('/api/voices', { headers });
         const data = await response.json();
         
         const select = document.getElementById('voice-select');
@@ -122,7 +258,14 @@ async function loadVoices() {
 
 async function loadFormats() {
     try {
-        const response = await fetch('/api/formats');
+        // Prepare headers for API key if available (OpenAI compatible format)
+        const headers = {};
+        const apiKeyInput = document.getElementById('api-key-input');
+        if (apiKeyInput && apiKeyInput.value.trim()) {
+            headers['Authorization'] = `Bearer ${apiKeyInput.value.trim()}`;
+        }
+
+        const response = await fetch('/api/formats', { headers });
         const data = await response.json();
 
         const select = document.getElementById('format-select');
@@ -146,24 +289,35 @@ async function loadFormats() {
 }
 
 function updateCharCount() {
-    const text = document.getElementById('text-input').value;
-    const maxLength = parseInt(document.getElementById('max-length-input').value) || 4096;
+    const textInput = document.getElementById('text-input');
+    const maxLengthInput = document.getElementById('max-length-input');
+    const charCountElement = document.getElementById('char-count');
+
+    if (!textInput || !maxLengthInput || !charCountElement) {
+        console.warn('Required elements not found for updateCharCount');
+        return;
+    }
+
+    const text = textInput.value;
+    const maxLength = parseInt(maxLengthInput.value) || 4096;
     const charCount = text.length;
-    
-    document.getElementById('char-count').textContent = charCount.toLocaleString();
+
+    charCountElement.textContent = charCount.toLocaleString();
     
     // Update length status with better visual feedback
     const statusElement = document.getElementById('length-status');
-    const percentage = (charCount / maxLength) * 100;
-    
-    if (charCount > maxLength) {
-        statusElement.innerHTML = '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Exceeds limit</span>';
-    } else if (percentage > 80) {
-        statusElement.innerHTML = '<span class="badge bg-warning"><i class="fas fa-exclamation me-1"></i>Near limit</span>';
-    } else if (percentage > 50) {
-        statusElement.innerHTML = '<span class="badge bg-info"><i class="fas fa-info me-1"></i>Good</span>';
-    } else {
-        statusElement.innerHTML = '<span class="badge bg-success"><i class="fas fa-check me-1"></i>OK</span>';
+    if (statusElement) {
+        const percentage = (charCount / maxLength) * 100;
+
+        if (charCount > maxLength) {
+            statusElement.innerHTML = '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Exceeds limit</span>';
+        } else if (percentage > 80) {
+            statusElement.innerHTML = '<span class="badge bg-warning"><i class="fas fa-exclamation me-1"></i>Near limit</span>';
+        } else if (percentage > 50) {
+            statusElement.innerHTML = '<span class="badge bg-info"><i class="fas fa-info me-1"></i>Good</span>';
+        } else {
+            statusElement.innerHTML = '<span class="badge bg-success"><i class="fas fa-check me-1"></i>OK</span>';
+        }
     }
     
     updateGenerateButton();
@@ -173,12 +327,24 @@ function updateCharCount() {
 function updateGenerateButton() {
     const text = document.getElementById('text-input').value;
     const maxLength = parseInt(document.getElementById('max-length-input').value) || 4096;
-    const autoSplit = document.getElementById('auto-split-check').checked;
+    const autoCombineCheck = document.getElementById('auto-combine-check');
+    const autoCombine = autoCombineCheck ? autoCombineCheck.checked : false;
     const generateBtn = document.getElementById('generate-btn');
+
+    if (!generateBtn) {
+        console.warn('Generate button not found');
+        return;
+    }
+
     const btnText = generateBtn.querySelector('.btn-text');
-    
-    if (text.length > maxLength && autoSplit) {
-        btnText.innerHTML = '<i class="fas fa-layer-group me-2"></i>Generate Speech (Batch Mode)';
+
+    if (!btnText) {
+        console.warn('Button text element not found');
+        return;
+    }
+
+    if (text.length > maxLength && autoCombine) {
+        btnText.innerHTML = '<i class="fas fa-magic me-2"></i>Generate Speech (Auto-Combine)';
         generateBtn.classList.add('btn-warning');
         generateBtn.classList.remove('btn-primary');
     } else {
@@ -282,11 +448,17 @@ function updateAutoCombineStatus() {
         statusBadge.classList.add('d-none');
     }
 
-    updateCharCount();
+    // Remove the recursive call to updateCharCount() - this was causing infinite recursion
 }
 
 async function generateSpeech(event) {
-    event.preventDefault();
+    console.log('generateSpeech function called');
+
+    // Prevent default form submission behavior
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
 
     const button = document.getElementById('generate-btn');
     const audioResult = document.getElementById('audio-result');
@@ -295,7 +467,8 @@ async function generateSpeech(event) {
     const formData = getFormData();
 
     if (!validateFormData(formData)) {
-        return;
+        console.log('Form validation failed');
+        return false;
     }
 
     // Show loading state
@@ -303,14 +476,18 @@ async function generateSpeech(event) {
     clearResults();
 
     try {
+        console.log('Starting speech generation...');
         // Always use the unified endpoint with auto-combine
         await generateUnifiedSpeech(formData);
+        console.log('Speech generation completed successfully');
     } catch (error) {
         console.error('Generation failed:', error);
         console.log(`Failed to generate speech: ${error.message}`);
     } finally {
         setLoading(button, false);
     }
+
+    return false; // Ensure form doesn't submit
 }
 
 function getFormData() {
@@ -321,7 +498,8 @@ function getFormData() {
         instructions: document.getElementById('instructions-input').value.trim(),
         maxLength: parseInt(document.getElementById('max-length-input').value) || 4096,
         validateLength: document.getElementById('validate-length-check').checked,
-        autoCombine: document.getElementById('auto-combine-check').checked
+        autoCombine: document.getElementById('auto-combine-check').checked,
+        apiKey: document.getElementById('api-key-input').value.trim()
     };
 }
 
@@ -341,7 +519,10 @@ function validateFormData(formData) {
 
 function clearResults() {
     document.getElementById('audio-result').classList.add('d-none');
-    document.getElementById('batch-result').classList.add('d-none');
+    const batchResult = document.getElementById('batch-result');
+    if (batchResult) {
+        batchResult.classList.add('d-none');
+    }
     document.getElementById('validation-result').classList.add('d-none');
 }
 
@@ -362,9 +543,17 @@ function setLoading(button, loading) {
 async function generateUnifiedSpeech(formData) {
     const audioResult = document.getElementById('audio-result');
 
+    // Prepare headers
+    const headers = { 'Content-Type': 'application/json' };
+
+    // Add API key if provided (OpenAI compatible format)
+    if (formData.apiKey) {
+        headers['Authorization'] = `Bearer ${formData.apiKey}`;
+    }
+
     const response = await fetch('/v1/audio/speech', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify({
             model: 'gpt-4o-mini-tts',
             input: formData.text,
@@ -508,7 +697,10 @@ function resetForm() {
     document.getElementById('instructions-input').value = '';
     document.getElementById('max-length-input').value = '4096';
     document.getElementById('validate-length-check').checked = true;
-    document.getElementById('auto-split-check').checked = false;
+    const autoCombineCheck = document.getElementById('auto-combine-check');
+    if (autoCombineCheck) {
+        autoCombineCheck.checked = true;
+    }
 
     updateCharCount();
     updateGenerateButton();
@@ -648,7 +840,22 @@ function displayAudioResult(audioBlob, format, voice, text, metadata = {}) {
     audioResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+// API Key visibility toggle function
+function toggleApiKeyVisibility() {
+    const apiKeyInput = document.getElementById('api-key-input');
+    const eyeIcon = document.getElementById('api-key-eye-icon');
+
+    if (apiKeyInput.type === 'password') {
+        apiKeyInput.type = 'text';
+        eyeIcon.className = 'fas fa-eye-slash';
+    } else {
+        apiKeyInput.type = 'password';
+        eyeIcon.className = 'fas fa-eye';
+    }
+}
+
 // Export functions for use in HTML
 window.clearText = clearText;
 window.loadRandomText = loadRandomText;
 window.resetForm = resetForm;
+window.toggleApiKeyVisibility = toggleApiKeyVisibility;
