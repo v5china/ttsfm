@@ -17,6 +17,7 @@ from functools import wraps
 
 from flask import Flask, request, jsonify, send_file, Response, render_template, redirect, url_for
 from flask_cors import CORS
+from flask_socketio import SocketIO
 from dotenv import load_dotenv
 
 # Import i18n support
@@ -50,13 +51,18 @@ app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.getenv("SECRET_KEY", "ttsfm-secret-key-change-in-production")
 CORS(app)
 
-# Initialize i18n support
-init_i18n(app)
-
-# Configuration
+# Configuration (moved up for socketio initialization)
 HOST = os.getenv("HOST", "localhost")
 PORT = int(os.getenv("PORT", "8000"))
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+
+# Initialize SocketIO with proper async mode
+# Using eventlet for production, threading for development
+async_mode = 'eventlet' if not DEBUG else 'threading'
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode=async_mode)
+
+# Initialize i18n support
+init_i18n(app)
 
 # API Key configuration
 API_KEY = os.getenv("TTSFM_API_KEY")  # Set this environment variable for API protection
@@ -65,7 +71,12 @@ REQUIRE_API_KEY = os.getenv("REQUIRE_API_KEY", "false").lower() == "true"
 # Create TTS client - now uses openai.fm directly, no configuration needed
 tts_client = TTSClient()
 
+# Initialize WebSocket handler
+from websocket_handler import WebSocketTTSHandler
+websocket_handler = WebSocketTTSHandler(socketio, tts_client)
+
 logger.info("Initialized web app with TTSFM using openai.fm free service")
+logger.info(f"WebSocket support enabled with {async_mode} async mode")
 
 # API Key validation decorator
 def require_api_key(f):
@@ -261,6 +272,11 @@ def playground():
 def docs():
     """Serve the API documentation."""
     return render_template('docs.html')
+
+@app.route('/websocket-demo')
+def websocket_demo():
+    """Serve the WebSocket streaming demo page."""
+    return render_template('websocket_demo.html')
 
 @app.route('/api/voices', methods=['GET'])
 def get_voices():
@@ -652,6 +668,18 @@ def health_check():
         "timestamp": datetime.now().isoformat()
     })
 
+@app.route('/api/websocket/status', methods=['GET'])
+def websocket_status():
+    """Get WebSocket server status and active connections."""
+    return jsonify({
+        "websocket_enabled": True,
+        "async_mode": async_mode,
+        "active_sessions": websocket_handler.get_active_sessions_count(),
+        "transport_options": ["websocket", "polling"],
+        "endpoint": f"ws{'s' if request.is_secure else ''}://{request.host}/socket.io/",
+        "timestamp": datetime.now().isoformat()
+    })
+
 @app.route('/api/auth-status', methods=['GET'])
 def auth_status():
     """Get authentication status and requirements."""
@@ -926,11 +954,8 @@ if __name__ == '__main__':
         logger.info("Set REQUIRE_API_KEY=true to enable API key protection")
 
     try:
-        app.run(
-            host=HOST,
-            port=PORT,
-            debug=DEBUG
-        )
+        logger.info(f"Starting with {async_mode} async mode")
+        socketio.run(app, host=HOST, port=PORT, debug=DEBUG)
     except KeyboardInterrupt:
         logger.info("Application stopped by user")
     except Exception as e:

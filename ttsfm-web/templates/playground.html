@@ -302,11 +302,15 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- Playground JavaScript -->
-<script src="{{ url_for('static', filename='js/playground.js') }}"></script>
+<!-- Socket.IO for WebSocket support -->
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+<!-- WebSocket TTS Client -->
+<script src="{{ url_for('static', filename='js/websocket-tts.js') }}"></script>
+<!-- Enhanced Playground JavaScript with WebSocket Support -->
+<script src="{{ url_for('static', filename='js/playground-enhanced-fixed.js') }}"></script>
 <script>
     // Additional playground-specific functionality
-    console.log('TTSFM Playground loaded successfully!');
+    console.log('TTSFM Enhanced Playground with WebSocket support loaded successfully!');
 
 
 </script>
