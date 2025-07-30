@@ -91,6 +91,7 @@
                 <a href="#errors">{{ _('docs.errors') }}</a>
                 <a href="#examples">{{ _('docs.examples') }}</a>
                 <a href="#python-package">{{ _('docs.python_package') }}</a>
+                <a href="#websocket">WebSocket Streaming</a>
             </div>
         </div>
         
@@ -478,6 +479,174 @@ if response.status_code == 200:
     print(f"Combined {chunks} chunks into single file")</code></pre>
                         </div>
                     </div>
+                </div>
+            </section>
+            
+            <!-- WebSocket Streaming -->
+            <section id="websocket" class="mb-5">
+                <h2 class="mb-4">
+                    <i class="fas fa-bolt text-warning me-2"></i>WebSocket Streaming
+                </h2>
+                <p class="lead">
+                    Real-time audio streaming for enhanced user experience. Get audio chunks as they're generated instead of waiting for the complete file.
+                </p>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    WebSocket streaming provides lower perceived latency and real-time progress tracking for TTS generation.
+                </div>
+                
+                <h3 class="mt-4">Connection</h3>
+                <div class="code-block">
+                    <pre><code>// JavaScript WebSocket client
+const client = new WebSocketTTSClient({
+    socketUrl: '{{ request.url_root[:-1] }}',
+    debug: true
+});
+
+// Connection events
+client.onConnect = () => console.log('Connected');
+client.onDisconnect = () => console.log('Disconnected');</code></pre>
+                </div>
+                
+                <h3 class="mt-4">Streaming TTS Generation</h3>
+                <div class="code-block">
+                    <pre><code>// Generate speech with real-time streaming
+const result = await client.generateSpeech('Hello, WebSocket world!', {
+    voice: 'alloy',
+    format: 'mp3',
+    chunkSize: 1024,  // Characters per chunk
+    
+    // Progress callback
+    onProgress: (progress) => {
+        console.log(`Progress: ${progress.progress}%`);
+        console.log(`Chunks: ${progress.chunksCompleted}/${progress.totalChunks}`);
+    },
+    
+    // Receive audio chunks in real-time
+    onChunk: (chunk) => {
+        console.log(`Received chunk ${chunk.chunkIndex + 1}`);
+        // Process or play audio chunk immediately
+        processAudioChunk(chunk.audioData);
+    },
+    
+    // Completion callback
+    onComplete: (result) => {
+        console.log('Streaming complete!');
+        // result.audioData contains the complete audio
+    }
+});</code></pre>
+                </div>
+                
+                <h3 class="mt-4">WebSocket Events</h3>
+                <div class="endpoint-card card">
+                    <div class="card-body">
+                        <h5>Client → Server Events</h5>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>Description</th>
+                                    <th>Payload</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>generate_stream</code></td>
+                                    <td>Start TTS generation</td>
+                                    <td><code>{text, voice, format, chunk_size}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>cancel_stream</code></td>
+                                    <td>Cancel active stream</td>
+                                    <td><code>{request_id}</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <h5 class="mt-4">Server → Client Events</h5>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>Description</th>
+                                    <th>Payload</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>stream_started</code></td>
+                                    <td>Stream initiated</td>
+                                    <td><code>{request_id, timestamp}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>audio_chunk</code></td>
+                                    <td>Audio chunk ready</td>
+                                    <td><code>{request_id, chunk_index, audio_data, duration}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>stream_progress</code></td>
+                                    <td>Progress update</td>
+                                    <td><code>{progress, chunks_completed, total_chunks}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>stream_complete</code></td>
+                                    <td>Generation complete</td>
+                                    <td><code>{request_id, total_chunks, status}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>stream_error</code></td>
+                                    <td>Error occurred</td>
+                                    <td><code>{request_id, error, timestamp}</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <h3 class="mt-4">Benefits</h3>
+                <ul>
+                    <li><strong>Real-time feedback:</strong> Users see progress as audio generates</li>
+                    <li><strong>Lower latency:</strong> First audio chunk arrives quickly</li>
+                    <li><strong>Cancellable:</strong> Stop generation mid-stream if needed</li>
+                    <li><strong>Efficient:</strong> Process chunks as they arrive</li>
+                </ul>
+                
+                <h3 class="mt-4">Example: Streaming Audio Player</h3>
+                <div class="code-block">
+                    <pre><code>// Create a streaming audio player
+const audioChunks = [];
+let isPlaying = false;
+
+const streamingPlayer = await client.generateSpeech(longText, {
+    voice: 'nova',
+    format: 'mp3',
+    
+    onChunk: (chunk) => {
+        // Store chunk
+        audioChunks.push(chunk.audioData);
+        
+        // Start playing after first chunk
+        if (!isPlaying && audioChunks.length >= 3) {
+            startStreamingPlayback(audioChunks);
+            isPlaying = true;
+        }
+    },
+    
+    onComplete: (result) => {
+        // Ensure all chunks are played
+        finishPlayback(result.audioData);
+    }
+});</code></pre>
+                </div>
+                
+                <div class="alert alert-success mt-4">
+                    <h6><i class="fas fa-rocket me-2"></i>Try It Out!</h6>
+                    <p class="mb-0">
+                        Experience WebSocket streaming in action at the 
+                        <a href="/websocket-demo" class="alert-link">WebSocket Demo</a> or enable streaming mode in the 
+                        <a href="/playground" class="alert-link">Playground</a>.
+                    </p>
                 </div>
             </section>
         </div>
