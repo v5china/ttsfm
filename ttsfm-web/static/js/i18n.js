@@ -173,9 +173,16 @@ function updateUIText() {
         const count = charCountElement.textContent;
         const parent = charCountElement.parentElement;
         if (parent) {
+            // Escape HTML characters to prevent XSS
+            const escapedCount = count.replace(/&/g, '&amp;')
+                                     .replace(/</g, '&lt;')
+                                     .replace(/>/g, '&gt;')
+                                     .replace(/"/g, '&quot;')
+                                     .replace(/'/g, '&#x27;');
+            
             parent.innerHTML = window.currentLocale === 'zh'
-                ? `<i class="fas fa-keyboard me-1"></i><span id="char-count">${count}</span> 字符`
-                : `<i class="fas fa-keyboard me-1"></i><span id="char-count">${count}</span> characters`;
+                ? `<i class="fas fa-keyboard me-1"></i><span id="char-count">${escapedCount}</span> 字符`
+                : `<i class="fas fa-keyboard me-1"></i><span id="char-count">${escapedCount}</span> characters`;
         }
     }
 }

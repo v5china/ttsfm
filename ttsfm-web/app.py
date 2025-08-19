@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from functools import wraps
+from urllib.parse import urlparse, urljoin
 
 from flask import Flask, request, jsonify, send_file, Response, render_template, redirect, url_for
 from flask_cors import CORS
@@ -248,12 +249,32 @@ def _simple_wav_concatenation(wav_chunks: List[bytes]) -> bytes:
         # Ultimate fallback
         return b''.join(wav_chunks)
 
+def _is_safe_url(target: Optional[str]) -> bool:
+    """Validate that a target URL is safe for redirection.
+
+    Allows only relative URLs or absolute URLs that match this server's host
+    and http/https schemes. Prevents open redirects to external domains.
+    """
+    if not target:
+        return False
+
+    # Build an absolute URL based on the current host, then compare
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return (
+        test_url.scheme in ("http", "https")
+        and ref_url.netloc == test_url.netloc
+    )
+
 @app.route('/set-language/<lang_code>')
 def set_language(lang_code):
     """Set the user's language preference."""
     if set_locale(lang_code):
-        # Redirect to the referring page or home
-        return redirect(request.referrer or url_for('index'))
+        # Redirect back only if the referrer is safe; otherwise go home
+        target = request.referrer
+        if _is_safe_url(target):
+            return redirect(target)
+        return redirect(url_for('index'))
     else:
         # Invalid language code, redirect to home
         return redirect(url_for('index'))
