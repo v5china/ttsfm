@@ -42,35 +42,6 @@ This release consolidates the OpenAI-compatible API endpoints and introduces int
 - **Long Text**: Now automatically handled by default - no need to use separate endpoint
 - **Disable Auto-Combine**: Add `"auto_combine": false` to request body to get original behavior
 
-## [3.2.3] - 2025-06-27
-
-### 🔄 Enhanced OpenAI API Compatibility
-
-This release consolidates the OpenAI-compatible API endpoints and introduces intelligent auto-combine functionality.
-
-### ✨ Added
-
-- **Auto-Combine Parameter**: New optional `auto_combine` parameter in `/v1/audio/speech` endpoint (default: `true`)
-- **Intelligent Text Handling**: Automatically detects long text and combines audio chunks when `auto_combine=true`
-- **Enhanced Error Messages**: Better error handling for long text when auto-combine is disabled
-- **Response Headers**: Added `X-Auto-Combine` and `X-Chunks-Combined` headers for transparency
-
-### 🔄 Changed
-
-- **Unified Endpoint**: Combined `/v1/audio/speech` and `/v1/audio/speech-combined` into single endpoint
-- **Backward Compatibility**: Maintains full OpenAI API compatibility while adding TTSFM-specific features
-- **Default Behavior**: Long text is now automatically split and combined by default (can be disabled)
-
-### 🗑️ Removed
-
-- **Deprecated Endpoint**: Removed `/v1/audio/speech-combined` endpoint (functionality moved to main endpoint)
-
-### 📋 Migration Guide
-
-- **No Breaking Changes**: Existing API calls continue to work unchanged
-- **Long Text**: Now automatically handled by default - no need to use separate endpoint
-- **Disable Auto-Combine**: Add `"auto_combine": false` to request body to get original behavior
-
 ## [3.2.2] - 2025-06-26
 
 ### 🎵 Combined Audio Functionality

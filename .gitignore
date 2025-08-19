@@ -154,3 +154,6 @@ docker-compose.override.yml
 # Local configuration
 local_settings.py
 local_config.py
+
+# Claude
+.claude/
