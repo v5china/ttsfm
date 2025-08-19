@@ -47,6 +47,11 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         attestations: true
+        skip-existing: true
+
+    - name: Extract version (strip leading v)
+      id: ver
+      run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
@@ -58,7 +63,7 @@ jobs:
 
           ### 📦 Installation
           ```bash
-          pip install ttsfm==${{ github.ref_name }}
+          pip install ttsfm==${{ steps.ver.outputs.version }}
           ```
 
           ### 🚀 Quick Start

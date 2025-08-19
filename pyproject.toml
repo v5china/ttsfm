@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ttsfm"
-version = "3.2.3"
+dynamic = ["version"]
 description = "Text-to-Speech API Client with OpenAI compatibility"
 readme = "README.md"
 license = "MIT"
@@ -81,6 +81,10 @@ Repository = "https://github.com/dbccccccc/ttsfm"
 [project.scripts]
 ttsfm = "ttsfm.cli:main"
 
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"
+local_scheme = "no-local-version"
+
 [tool.setuptools]
 packages = ["ttsfm"]
 
@@ -90,9 +94,9 @@ ttsfm = ["py.typed"]
 [tool.black]
 line-length = 100
 target-version = ['py38']
-include = '\.pyi?$'
+include = '\\.pyi?$'
 extend-exclude = '''
-/(
+/( 
   # directories
   \.eggs
   | \.git
