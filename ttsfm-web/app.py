@@ -254,18 +254,25 @@ def _is_safe_url(target: Optional[str]) -> bool:
 
     Allows only relative URLs or absolute URLs that match this server's host
     and http/https schemes. Prevents open redirects to external domains.
+    Handles backslashes and malformed URLs.
     """
     if not target:
         return False
 
-    # Build an absolute URL based on the current host, then compare
+    # Remove backslashes (browsers treat them as slashes)
+    target = target.replace('\\', '')
+
+    # Parse the target URL
     ref_url = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
+
+    # Only allow relative URLs (no scheme/netloc) or absolute URLs to this host
+    if not urlparse(target).netloc and not urlparse(target).scheme:
+        return True
     return (
         test_url.scheme in ("http", "https")
         and ref_url.netloc == test_url.netloc
     )
-
 @app.route('/set-language/<lang_code>')
 def set_language(lang_code):
     """Set the user's language preference."""
