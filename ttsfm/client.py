@@ -114,8 +114,8 @@ class TTSClient:
         Get appropriate headers to get the desired format from openai.fm.
 
         Based on testing, openai.fm returns:
-        - MP3: When using simple/minimal headers
-        - WAV: When using full Chrome security headers
+        - MP3: When using no headers or very minimal headers
+        - WAV: When using more complex headers with specific Accept values
 
         Args:
             requested_format: The desired audio format
@@ -129,15 +129,18 @@ class TTSClient:
         target_format = get_supported_format(requested_format)
 
         if target_format == AudioFormat.MP3:
-            # Use minimal headers to get MP3 response
+            # Use minimal headers to reliably get MP3 response
+            # Testing shows that no headers or very basic headers work best for MP3
+            return {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        else:
+            # Use more complex headers to get WAV response
+            # This works for WAV, OPUS, AAC, FLAC, PCM formats
             return {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
                 'Accept': 'audio/*,*/*;q=0.9'
             }
-        else:
-            # Use full realistic headers to get WAV response
-            # This works for WAV, OPUS, AAC, FLAC, PCM formats
-            return get_realistic_headers()
 
     def generate_speech(
         self,
