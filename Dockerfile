@@ -7,13 +7,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=8000
 
 # Install dependencies
-RUN apt-get update && apt-get install -y gcc curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y gcc curl git && rm -rf /var/lib/apt/lists/*
 
 # Copy source code first
 COPY ttsfm/ ./ttsfm/
 COPY ttsfm-web/ ./ttsfm-web/
 COPY pyproject.toml ./
 COPY requirements.txt ./
+COPY .git/ ./.git/
 
 # Install the TTSFM package with web dependencies
 RUN pip install --no-cache-dir -e .[web]
