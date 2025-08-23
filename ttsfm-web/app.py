@@ -258,13 +258,15 @@ def _is_safe_url(target: Optional[str]) -> bool:
     if not target:
         return False
 
-    # Build an absolute URL based on the current host, then compare
-    ref_url = urlparse(request.host_url)
-    test_url = urlparse(urljoin(request.host_url, target))
-    return (
-        test_url.scheme in ("http", "https")
-        and ref_url.netloc == test_url.netloc
-    )
+    parsed = urlparse(target)
+    if parsed.scheme or parsed.netloc or target.startswith('//'):
+        return False
+    if not parsed.path.startswith('/'):
+        return False
+    joined = urljoin(request.host_url, target)
+    host = urlparse(request.host_url)
+    j = urlparse(joined)
+    return j.scheme in ("http", "https") and j.netloc == host.netloc
 
 @app.route('/set-language/<lang_code>')
 def set_language(lang_code):
