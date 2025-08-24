@@ -198,7 +198,19 @@
                             <span class="method-badge method-get">GET</span>
                             /api/formats
                         </h4>
-                        <p class="card-text">{{ _('docs.get_formats_desc') }}</p>
+                        <p class="card-text">Get available audio formats for speech generation.</p>
+
+                        <h6>Available Formats</h6>
+                        <p>We support multiple format requests, but internally:</p>
+                        <ul>
+                            <li><strong>mp3</strong> - Returns actual MP3 format</li>
+                            <li><strong>All other formats</strong> (opus, aac, flac, wav, pcm) - Mapped to WAV format</li>
+                        </ul>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> When you request opus, aac, flac, wav, or pcm, you'll receive WAV audio data.
+                        </div>
 
                         <h6>{{ _('docs.response_example') }}</h6>
                         <div class="response-example">
@@ -209,6 +221,36 @@
       "name": "MP3",
       "mime_type": "audio/mp3",
       "description": "MP3 audio format"
+    },
+    {
+      "id": "opus", 
+      "name": "Opus",
+      "mime_type": "audio/wav",
+      "description": "Returns WAV format"
+    },
+    {
+      "id": "aac",
+      "name": "AAC", 
+      "mime_type": "audio/wav",
+      "description": "Returns WAV format"
+    },
+    {
+      "id": "flac",
+      "name": "FLAC",
+      "mime_type": "audio/wav", 
+      "description": "Returns WAV format"
+    },
+    {
+      "id": "wav",
+      "name": "WAV",
+      "mime_type": "audio/wav",
+      "description": "WAV audio format"
+    },
+    {
+      "id": "pcm",
+      "name": "PCM",
+      "mime_type": "audio/wav",
+      "description": "Returns WAV format"
     }
   ],
   "count": 6
