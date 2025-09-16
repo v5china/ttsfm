@@ -26,22 +26,24 @@ jobs:
         python -m pip install --upgrade pip
         pip install build twine
 
-    - name: Test package import
+    - name: Test package install and import
       run: |
-        pip install -e .
-        python -c "import ttsfm; print(f'✅ TTSFM imported successfully')"
-        python -c "from ttsfm import TTSClient; print('✅ TTSClient imported successfully')"
+        pip install '.[web]'
+        python -c "import ttsfm; print('TTSFM imported successfully')"
+        python -c "from ttsfm import TTSClient; print('TTSClient imported successfully')"
+        python -m ttsfm.cli --help > /dev/null
+        echo 'CLI smoke test passed'
 
     - name: Build package
       run: |
         python -m build
-        echo "📦 Package built successfully"
+        echo "Package built successfully"
         ls -la dist/
 
     - name: Check package
       run: |
         twine check dist/*
-        echo "✅ Package validation passed"
+        echo "Package validation passed"
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
@@ -57,16 +59,16 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         body: |
-          ## 🎉 TTSFM ${{ github.ref_name }}
+          ## TTSFM ${{ github.ref_name }}
 
           New release of TTSFM - Free Text-to-Speech API with OpenAI compatibility.
 
-          ### 📦 Installation
+          ### Installation
           ```bash
           pip install ttsfm==${{ steps.ver.outputs.version }}
           ```
 
-          ### 🚀 Quick Start
+          ### Quick Start
           ```python
           from ttsfm import TTSClient
 
@@ -75,21 +77,21 @@ jobs:
           response.save_to_file("hello")
           ```
 
-          ### 🐳 Docker
+          ### Docker
           ```bash
           docker run -p 8000:8000 dbcccc/ttsfm:latest
           ```
 
-          ### ✨ Features
-          - 🆓 Completely free (uses openai.fm service)
-          - 🎯 OpenAI-compatible API
-          - 🗣️ 11 voices available
-          - 🎵 6 audio formats (MP3, WAV, OPUS, AAC, FLAC, PCM)
-          - ⚡ Async and sync clients
-          - 🌐 Web interface included
-          - 🔧 CLI tool available
+          ### Features
+          - Completely free (uses openai.fm service)
+          - OpenAI-compatible API
+          - 11 voices available
+          - 6 audio formats (MP3, WAV, OPUS, AAC, FLAC, PCM)
+          - Async and sync clients
+          - Web interface included
+          - CLI tool available
 
-          ### 📚 Documentation
+          ### Documentation
           See [README](https://github.com/dbccccccc/ttsfm#readme) for full documentation.
         draft: false
         prerelease: false

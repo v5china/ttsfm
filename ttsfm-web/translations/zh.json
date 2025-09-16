@@ -152,7 +152,7 @@
     "feature_auto_combine": "自动合并功能 - 自动处理长文本（>4096字符），通过分割和合并音频",
     "feature_validation": "文本长度验证 - 智能验证，可配置限制",
     "feature_monitoring": "实时监控 - 状态端点和健康检查",
-    "new_version": "v3.2.8新功能：",
+    "new_version": "v3.2.9新功能：",
     "new_version_desc": "Docker 镜像默认监听 0.0.0.0，解决仅限 localhost 导致的 502 问题；文档同步更新，说明如何通过 `HOST` 环境变量自定义监听地址。",
     "authentication_title": "身份验证",
     "authentication_desc": "目前，API支持可选的API密钥身份验证。如果已配置，请在请求头中包含您的API密钥。",

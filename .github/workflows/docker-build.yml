@@ -1,6 +1,10 @@
 name: Docker Build and Push
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   release:
     types: [published]
 
@@ -8,6 +12,7 @@ env:
   REGISTRY_DOCKERHUB: docker.io
   REGISTRY_GHCR: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_USERNAME || github.repository_owner }}
 
 jobs:
   build-and-push:
@@ -19,7 +24,47 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Determine build settings
+        id: build-config
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+        run: |
+          if [ "$EVENT_NAME" = "release" ] && [ "$EVENT_ACTION" = "published" ]; then
+            echo "push=true" >> "$GITHUB_OUTPUT"
+            echo "platforms=linux/amd64,linux/arm64" >> "$GITHUB_OUTPUT"
+            echo "load=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "push=false" >> "$GITHUB_OUTPUT"
+            echo "platforms=linux/amd64" >> "$GITHUB_OUTPUT"
+            echo "load=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Derive image version
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+          REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          version=""
+          if [ "$EVENT_NAME" = "release" ] && [ -n "$TAG_NAME" ]; then
+            version="$TAG_NAME"
+          elif [ -n "$REF_NAME" ]; then
+            version="$REF_NAME"
+          fi
+          version="${version##*/}"
+          if [ "${version#v}" != "$version" ]; then
+            version="${version#v}"
+          fi
+          if [ -z "$version" ]; then
+            version="${GITHUB_SHA:0:12}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Set up QEMU
+        if: steps.build-config.outputs.platforms == 'linux/amd64,linux/arm64'
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
@@ -28,12 +73,14 @@ jobs:
           driver: docker-container
 
       - name: Login to Docker Hub
+        if: steps.build-config.outputs.push == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
+        if: steps.build-config.outputs.push == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY_GHCR }}
@@ -42,10 +89,11 @@ jobs:
 
       - name: Extract metadata
         id: meta
+        if: steps.build-config.outputs.push == 'true'
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/ttsfm
+            ${{ env.DOCKERHUB_NAMESPACE }}/ttsfm
             ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=tag
@@ -60,19 +108,29 @@ jobs:
             org.opencontainers.image.title=TTSFM - Free TTS API Server
             org.opencontainers.image.vendor=dbcccc
 
-      - name: Build and push
+      - name: Set local image metadata
+        id: meta-local
+        if: steps.build-config.outputs.push != 'true'
+        run: |
+          echo "tags=${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:ci-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
+          echo "labels=org.opencontainers.image.source=${{ github.repositoryUrl }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
         id: build-and-push
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          platforms: ${{ steps.build-config.outputs.platforms }}
+          push: ${{ steps.build-config.outputs.push == 'true' }}
+          load: ${{ steps.build-config.outputs.load == 'true' }}
+          tags: ${{ steps.meta.outputs.tags || steps.meta-local.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels || steps.meta-local.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
 
       - name: Show image info
         run: |
-          echo "Pushed tags: ${{ steps.meta.outputs.tags }}"
+          echo "Pushed tags: ${{ steps.meta.outputs.tags || steps.meta-local.outputs.tags }}"
           echo "Image digest: ${{ steps.build-and-push.outputs.digest }}"

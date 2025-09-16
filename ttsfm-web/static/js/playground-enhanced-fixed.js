@@ -1,172 +1,192 @@
-// TTSFM Enhanced Playground with WebSocket Streaming Support - Fixed Version
 
-// Global variables
-let currentAudioBlob = null;
-let currentFormat = 'mp3';
-let batchResults = [];
-let wsClient = null;
-let streamingMode = false;
-let currentStreamRequest = null;
+// TTSFM Playground with HTTP and WebSocket streaming support.
+// Reworked to restore utility actions and populate generation metadata.
 
-// Initialize playground
-document.addEventListener('DOMContentLoaded', function() {
-    initializePlayground();
-    initializeWebSocket();
-});
+const PlaygroundApp = (() => {
+    const SAMPLE_TEXTS = [
+        'Hello! This is a quick demo of the TTSFM text-to-speech playground. It supports multiple voices and formats.',
+        'Artificial intelligence is transforming the way we interact with technology, making speech interfaces natural and accessible.',
+        'Need a sample script? Paste your marketing blurb, product description, or customer welcome message here and generate audio instantly.',
+        'The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. These pangrams show every letter.'
+    ];
 
-// Initialize WebSocket client
-function initializeWebSocket() {
-    // Check if Socket.IO is available
-    if (typeof io === 'undefined') {
-        console.warn('Socket.IO not loaded. WebSocket streaming will be disabled.');
-        return;
-    }
-    
-    // Initialize WebSocket client
-    wsClient = new WebSocketTTSClient({
-        socketUrl: window.location.origin,
-        debug: true,
-        onConnect: () => {
-            console.log('WebSocket connected');
-            updateStreamingStatus('connected');
-        },
-        onDisconnect: () => {
-            console.log('WebSocket disconnected');
-            updateStreamingStatus('disconnected');
-        },
-        onError: (error) => {
-            console.error('WebSocket error:', error);
-            updateStreamingStatus('error');
+    const state = {
+        audioBlob: null,
+        audioUrl: null,
+        format: 'mp3',
+        meta: null,
+        wsClient: null,
+        streamingMode: false,
+        activeStreamId: null,
+        defaultText: ''
+    };
+
+    const els = {};
+
+    function init() {
+        cacheDom();
+        if (els.textInput) {
+            state.defaultText = els.textInput.value;
         }
-    });
-}
 
-// Update streaming status indicator
-function updateStreamingStatus(status) {
-    const indicator = document.getElementById('streaming-indicator');
-    if (!indicator) return;
-    
-    indicator.className = 'streaming-status';
-    switch(status) {
-        case 'connected':
-            indicator.classList.add('connected');
-            indicator.innerHTML = '<i class="fas fa-bolt"></i> Streaming Ready';
-            enableStreamingMode(true);
-            break;
-        case 'disconnected':
-            indicator.classList.add('disconnected');
-            indicator.innerHTML = '<i class="fas fa-plug"></i> Streaming Offline';
-            enableStreamingMode(false);
-            break;
-        case 'error':
-            indicator.classList.add('error');
-            indicator.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Connection Error';
-            enableStreamingMode(false);
-            break;
-        case 'streaming':
-            indicator.classList.add('streaming');
-            indicator.innerHTML = '<i class="fas fa-stream"></i> Streaming...';
-            break;
+        attachCoreEvents();
+        attachUtilityEvents();
+        attachHotkeys();
+        initializeTooltips();
+        setupStreamingUi();
+        initWebSocket();
+
+        checkAuthStatus();
+        loadVoices();
+        loadFormats();
+        updateCharCount();
+        updateAudioSummary();
+        updateActionButtons(false);
     }
-}
 
-// Enable/disable streaming mode
-function enableStreamingMode(enabled) {
-    const streamToggle = document.getElementById('stream-mode-toggle');
-    if (streamToggle) {
-        streamToggle.disabled = !enabled;
-        if (!enabled && streamingMode) {
-            streamingMode = false;
-            streamToggle.checked = false;
+    function cacheDom() {
+        els.form = document.getElementById('tts-form');
+        els.textInput = document.getElementById('text-input');
+        els.voiceSelect = document.getElementById('voice-select');
+        els.formatSelect = document.getElementById('format-select');
+        els.instructionsInput = document.getElementById('instructions-input');
+        els.apiKeyInput = document.getElementById('api-key-input');
+        els.maxLengthInput = document.getElementById('max-length-input');
+        els.validateLengthCheck = document.getElementById('validate-length-check');
+        els.autoCombineCheck = document.getElementById('auto-combine-check');
+        els.autoCombineStatus = document.getElementById('auto-combine-status');
+        els.charCount = document.getElementById('char-count');
+        els.lengthStatus = document.getElementById('length-status');
+        els.generateBtn = document.getElementById('generate-btn');
+        els.clearBtn = document.getElementById('clear-text-btn');
+        els.validateBtn = document.getElementById('validate-text-btn');
+        els.randomBtn = document.getElementById('random-text-btn');
+        els.resetBtn = document.getElementById('reset-form-btn');
+        els.downloadBtn = document.getElementById('download-btn');
+        els.shareBtn = document.getElementById('share-btn');
+        els.replayBtn = document.getElementById('replay-btn');
+        els.audioResult = document.getElementById('audio-result');
+        els.audioPlayer = document.getElementById('audio-player');
+        els.audioInfo = document.getElementById('audio-info');
+        els.audioDuration = document.getElementById('audio-duration');
+        els.audioSize = document.getElementById('audio-size');
+        els.audioVoice = document.getElementById('audio-voice');
+        els.audioFormat = document.getElementById('audio-format');
+        els.apiKeyToggle = document.getElementById('toggle-api-key-visibility');
+    }
+
+    function attachCoreEvents() {
+        if (els.form) {
+            els.form.addEventListener('submit', handleSubmit);
+        }
+        if (els.textInput) {
+            els.textInput.addEventListener('input', updateCharCount);
+        }
+        if (els.maxLengthInput) {
+            els.maxLengthInput.addEventListener('input', updateCharCount);
+        }
+        if (els.autoCombineCheck) {
+            els.autoCombineCheck.addEventListener('change', updateCharCount);
+        }
+        if (els.validateLengthCheck) {
+            els.validateLengthCheck.addEventListener('change', updateCharCount);
+        }
+        if (els.voiceSelect) {
+            els.voiceSelect.addEventListener('change', () => updateAudioSummary());
+        }
+        if (els.formatSelect) {
+            els.formatSelect.addEventListener('change', () => updateAudioSummary());
         }
     }
-}
+    function attachUtilityEvents() {
+        if (els.clearBtn) {
+            els.clearBtn.addEventListener('click', clearText);
+        }
+        if (els.validateBtn) {
+            els.validateBtn.addEventListener('click', validateText);
+        }
+        if (els.randomBtn) {
+            els.randomBtn.addEventListener('click', loadRandomText);
+        }
+        if (els.resetBtn) {
+            els.resetBtn.addEventListener('click', resetForm);
+        }
+        if (els.downloadBtn) {
+            els.downloadBtn.addEventListener('click', downloadAudio);
+        }
+        if (els.shareBtn) {
+            els.shareBtn.addEventListener('click', shareAudio);
+        }
+        if (els.replayBtn) {
+            els.replayBtn.addEventListener('click', replayAudio);
+        }
+        if (els.apiKeyToggle) {
+            els.apiKeyToggle.addEventListener('click', toggleApiKeyVisibility);
+        }
+    }
 
-// Check authentication status
-async function checkAuthStatus() {
-    try {
-        const response = await fetch('/api/auth-status');
-        const data = await response.json();
-
-        const apiKeySection = document.getElementById('api-key-section');
-        if (apiKeySection) {
-            if (data.api_key_required) {
-                apiKeySection.style.display = 'block';
-                const apiKeyInput = document.getElementById('api-key-input');
-                if (apiKeyInput) {
-                    apiKeyInput.required = true;
+    function attachHotkeys() {
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                event.preventDefault();
+                if (els.generateBtn) {
+                    els.generateBtn.click();
                 }
-            } else {
-                apiKeySection.style.display = 'none';
             }
-        }
-    } catch (error) {
-        console.warn('Could not check auth status:', error);
+        });
     }
-}
 
-function initializePlayground() {
-    console.log('Initializing enhanced playground...');
-    checkAuthStatus();
-    loadVoices();
-    loadFormats();
-    updateCharCount();
-    setupEventListeners();
-    setupStreamingControls();
-    console.log('Enhanced playground initialization complete');
-}
+    function initializeTooltips() {
+        if (typeof bootstrap === 'undefined') {
+            return;
+        }
+        const triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        triggers.forEach((el) => new bootstrap.Tooltip(el));
+    }
 
-function setupStreamingControls() {
-    // Add streaming mode toggle
-    const generateButton = document.getElementById('generate-btn');
-    if (generateButton && generateButton.parentElement) {
-        const streamingControls = document.createElement('div');
-        streamingControls.className = 'streaming-controls mt-3';
-        streamingControls.innerHTML = `
+    function setupStreamingUi() {
+        if (!els.generateBtn) {
+            return;
+        }
+
+        const controls = document.createElement('div');
+        controls.className = 'streaming-controls mt-3';
+        controls.innerHTML = `
             <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="stream-mode-toggle" disabled>
                 <label class="form-check-label" for="stream-mode-toggle">
-                    <i class="fas fa-bolt me-1"></i>
-                    Enable WebSocket Streaming
+                    <i class="fas fa-bolt me-1"></i>Enable WebSocket Streaming
                     <small class="text-muted">(Real-time audio chunks)</small>
                 </label>
             </div>
             <div id="streaming-indicator" class="streaming-status mt-2"></div>
         `;
-        generateButton.parentElement.appendChild(streamingControls);
-        
-        // Add toggle event listener
-        const toggle = document.getElementById('stream-mode-toggle');
-        if (toggle) {
-            toggle.addEventListener('change', (e) => {
-                streamingMode = e.target.checked;
-                console.log('Streaming mode:', streamingMode ? 'ON' : 'OFF');
-                
-                // Update button text
-                const btnText = generateButton.querySelector('.btn-text');
-                if (btnText) {
-                    if (streamingMode) {
-                        btnText.innerHTML = '<i class="fas fa-bolt me-2"></i>Stream Speech';
-                    } else {
-                        btnText.innerHTML = '<i class="fas fa-magic me-2"></i>' + 
-                            (window.currentLocale === 'zh' ? '生成语音' : 'Generate Speech');
-                    }
-                }
+        els.generateBtn.parentElement.appendChild(controls);
+
+        els.streamToggle = controls.querySelector('#stream-mode-toggle');
+        els.streamingIndicator = controls.querySelector('#streaming-indicator');
+        if (els.streamToggle) {
+            els.streamToggle.addEventListener('change', (event) => {
+                state.streamingMode = event.target.checked;
+                updateGenerateButtonLabel();
             });
         }
-    }
-    
-    // Add streaming progress section and error message div
-    const audioResult = document.getElementById('audio-result');
-    if (audioResult && audioResult.parentElement) {
-        // Add error message div
+        updateGenerateButtonLabel();
+        updateStreamingStatus('disconnected');
+
+        if (!els.audioResult || !els.audioResult.parentElement) {
+            return;
+        }
+
+        const parent = els.audioResult.parentElement;
+
         const errorDiv = document.createElement('div');
         errorDiv.id = 'error-message';
         errorDiv.className = 'alert alert-danger';
         errorDiv.style.display = 'none';
-        audioResult.parentElement.insertBefore(errorDiv, audioResult);
-        
-        // Add loading section
+        parent.insertBefore(errorDiv, els.audioResult);
+        els.errorBox = errorDiv;
+
         const loadingDiv = document.createElement('div');
         loadingDiv.id = 'loading-section';
         loadingDiv.className = 'text-center';
@@ -177,9 +197,9 @@ function setupStreamingControls() {
             </div>
             <p class="mt-2">Generating speech...</p>
         `;
-        audioResult.parentElement.insertBefore(loadingDiv, audioResult);
-        
-        // Add progress section
+        parent.insertBefore(loadingDiv, els.audioResult);
+        els.loadingBox = loadingDiv;
+
         const progressSection = document.createElement('div');
         progressSection.id = 'streaming-progress';
         progressSection.className = 'streaming-progress-section';
@@ -191,10 +211,7 @@ function setupStreamingControls() {
                         <i class="fas fa-stream me-2"></i>Streaming Progress
                     </h5>
                     <div class="progress mb-3" style="height: 25px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                             id="stream-progress-bar" 
-                             role="progressbar" 
-                             style="width: 0%">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="stream-progress-bar" role="progressbar" style="width: 0%">
                             <span id="stream-progress-text">0%</span>
                         </div>
                     </div>
@@ -216,422 +233,811 @@ function setupStreamingControls() {
                 </div>
             </div>
         `;
-        audioResult.parentElement.insertBefore(progressSection, audioResult);
+        parent.insertBefore(progressSection, els.audioResult);
+        els.streamingProgress = progressSection;
+        els.streamProgressBar = progressSection.querySelector('#stream-progress-bar');
+        els.streamProgressText = progressSection.querySelector('#stream-progress-text');
+        els.streamChunks = progressSection.querySelector('#chunks-count');
+        els.streamTotalChunks = progressSection.querySelector('#total-chunks');
+        els.streamData = progressSection.querySelector('#data-transferred');
+        els.streamTime = progressSection.querySelector('#stream-time');
+        els.streamVisual = progressSection.querySelector('#chunks-visualization');
     }
-}
+    function initWebSocket() {
+        if (typeof io === 'undefined' || typeof WebSocketTTSClient === 'undefined') {
+            console.warn('Socket.IO client not available; streaming disabled.');
+            return;
+        }
 
-function setupEventListeners() {
-    console.log('Setting up event listeners...');
-
-    // Form and input events
-    const textInput = document.getElementById('text-input');
-    if (textInput) {
-        textInput.addEventListener('input', updateCharCount);
-    }
-
-    // Form submit
-    const form = document.getElementById('tts-form');
-    if (form) {
-        form.addEventListener('submit', function(event) {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            if (streamingMode && wsClient && wsClient.isConnected()) {
-                generateSpeechStreaming(event);
-            } else {
-                generateSpeech(event);
-            }
-            
-            return false;
-        });
-    }
-
-    // Download button
-    const downloadBtn = document.getElementById('download-btn');
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', downloadAudio);
-    }
-}
-
-// Generate speech using WebSocket streaming
-async function generateSpeechStreaming(event) {
-    event.preventDefault();
-    
-    const text = document.getElementById('text-input').value.trim();
-    const voice = document.getElementById('voice-select').value;
-    const format = document.getElementById('format-select').value;
-    
-    if (!text) {
-        showError('Please enter some text to convert');
-        return;
-    }
-    
-    // Reset UI
-    hideError();
-    hideResults();
-    disableForm();
-    
-    // Show streaming progress
-    const progressSection = document.getElementById('streaming-progress');
-    if (progressSection) progressSection.style.display = 'block';
-    
-    // Reset progress
-    updateStreamingProgress(0, 0, 0);
-    const chunksViz = document.getElementById('chunks-visualization');
-    if (chunksViz) chunksViz.innerHTML = '';
-    
-    // Update status
-    updateStreamingStatus('streaming');
-    
-    const startTime = Date.now();
-    let audioChunks = [];
-    
-    try {
-        const result = await wsClient.generateSpeech(text, {
-            voice: voice,
-            format: format,
-            chunkSize: 512,
-            onStart: (data) => {
-                currentStreamRequest = data.request_id;
-                console.log('Streaming started:', data);
+        state.wsClient = new WebSocketTTSClient({
+            socketUrl: window.location.origin,
+            debug: false,
+            onConnect: () => {
+                updateStreamingStatus('connected');
             },
-            onProgress: (progress) => {
-                updateStreamingProgress(
-                    progress.progress,
-                    progress.chunksCompleted,
-                    progress.totalChunks
-                );
-                
-                const elapsed = (Date.now() - startTime) / 1000;
-                const timeEl = document.getElementById('stream-time');
-                if (timeEl) timeEl.textContent = `${elapsed.toFixed(1)}s`;
-            },
-            onChunk: (chunk) => {
-                // Visualize chunk
-                const chunksViz = document.getElementById('chunks-visualization');
-                if (chunksViz) {
-                    const chunkViz = document.createElement('div');
-                    chunkViz.className = 'chunk-indicator';
-                    chunkViz.title = `Chunk ${chunk.chunkIndex + 1} - ${(chunk.audioData.byteLength / 1024).toFixed(1)}KB`;
-                    chunkViz.innerHTML = `<i class="fas fa-music"></i>`;
-                    chunksViz.appendChild(chunkViz);
-                }
-                
-                // Update data transferred
-                const dataEl = document.getElementById('data-transferred');
-                if (dataEl) {
-                    const currentData = parseFloat(dataEl.textContent) || 0;
-                    const newData = currentData + (chunk.audioData.byteLength / 1024);
-                    dataEl.textContent = `${newData.toFixed(1)} KB`;
-                }
-                
-                audioChunks.push(chunk);
-            },
-            onComplete: (result) => {
-                console.log('Streaming complete:', result);
-                
-                // Create blob from audio data
-                currentAudioBlob = new Blob([result.audioData], { type: `audio/${result.format}` });
-                currentFormat = result.format;
-                
-                // Show results
-                showResults(currentAudioBlob, result.format);
-                
-                // Update final stats
-                const totalTime = (Date.now() - startTime) / 1000;
-                showStreamingStats({
-                    chunks: result.chunks.length,
-                    totalSize: (result.audioData.byteLength / 1024).toFixed(1),
-                    totalTime: totalTime.toFixed(2),
-                    format: result.format
-                });
+            onDisconnect: () => {
+                updateStreamingStatus('disconnected');
             },
             onError: (error) => {
-                showError(`Streaming error: ${error.message}`);
-                enableForm();
-                if (progressSection) progressSection.style.display = 'none';
+                console.error('WebSocket error', error);
+                updateStreamingStatus('error');
             }
         });
-        
-    } catch (error) {
-        showError(`Failed to stream speech: ${error.message}`);
-        enableForm();
-        if (progressSection) progressSection.style.display = 'none';
-    } finally {
-        updateStreamingStatus('connected');
-        currentStreamRequest = null;
     }
-}
 
-function updateStreamingProgress(progress, chunks, totalChunks) {
-    const progressBar = document.getElementById('stream-progress-bar');
-    const progressText = document.getElementById('stream-progress-text');
-    const chunksCount = document.getElementById('chunks-count');
-    const totalChunksEl = document.getElementById('total-chunks');
-    
-    if (progressBar) {
-        progressBar.style.width = `${progress}%`;
-        if (progressText) progressText.textContent = `${progress}%`;
+    function updateGenerateButtonLabel() {
+        if (!els.generateBtn) {
+            return;
+        }
+        const label = els.generateBtn.querySelector('.btn-text');
+        if (!label) {
+            return;
+        }
+        if (state.streamingMode) {
+            label.innerHTML = '<i class="fas fa-bolt me-2"></i>Stream Speech';
+        } else {
+            label.innerHTML = '<i class="fas fa-magic me-2"></i>Generate Speech';
+        }
     }
-    if (chunksCount) chunksCount.textContent = chunks;
-    if (totalChunksEl) totalChunksEl.textContent = totalChunks;
-}
 
-function showStreamingStats(stats) {
-    const progressSection = document.getElementById('streaming-progress');
-    if (!progressSection) return;
-    
-    const statsHtml = `
-        <div class="alert alert-success mt-3">
-            <h6><i class="fas fa-check-circle me-2"></i>Streaming Complete!</h6>
+    function handleSubmit(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (state.streamingMode && state.wsClient && state.wsClient.isConnected()) {
+            generateStreaming();
+        } else {
+            generateHttp();
+        }
+        return false;
+    }
+
+    async function generateHttp() {
+        const text = (els.textInput?.value || '').trim();
+        const voice = els.voiceSelect?.value || 'alloy';
+        const format = els.formatSelect?.value || state.format;
+        const instructions = (els.instructionsInput?.value || '').trim();
+        const apiKey = (els.apiKeyInput?.value || '').trim();
+
+        if (!text) {
+            showError('Please enter some text to convert.');
+            return;
+        }
+
+        hideError();
+        hideResults();
+        showLoading();
+        setFormDisabled(true);
+
+        try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (apiKey) {
+                headers['Authorization'] = `Bearer ${apiKey}`;
+            }
+            const body = { text, voice, format };
+            if (instructions) {
+                body.instructions = instructions;
+            }
+
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                let message = `Error: ${response.status} ${response.statusText}`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData.error?.message) {
+                        message = errorData.error.message;
+                    }
+                } catch (error) {
+                    // ignore parse errors
+                }
+                throw new Error(message);
+            }
+
+            const blob = await response.blob();
+            state.audioBlob = blob;
+            state.format = format;
+
+            const meta = buildGenerationMeta({
+                voice,
+                voiceLabel: getSelectedText(els.voiceSelect) || voice,
+                format,
+                formatLabel: (getSelectedText(els.formatSelect) || format).toUpperCase(),
+                textLength: text.length,
+                instructions,
+                streaming: false,
+                sizeBytes: blob.size
+            });
+
+            showResults(blob, meta);
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            hideLoading();
+            setFormDisabled(false);
+        }
+    }
+
+    function resetStreamingUi() {
+        if (els.streamingProgress) {
+            els.streamingProgress.style.display = 'block';
+        }
+        if (els.streamProgressBar) {
+            els.streamProgressBar.style.width = '0%';
+        }
+        if (els.streamProgressText) {
+            els.streamProgressText.textContent = '0%';
+        }
+        if (els.streamChunks) {
+            els.streamChunks.textContent = '0';
+        }
+        if (els.streamTotalChunks) {
+            els.streamTotalChunks.textContent = '0';
+        }
+        if (els.streamData) {
+            els.streamData.textContent = '0 KB';
+        }
+        if (els.streamTime) {
+            els.streamTime.textContent = '0.0s';
+        }
+        if (els.streamVisual) {
+            els.streamVisual.innerHTML = '';
+        }
+    }
+    async function generateStreaming() {
+        const text = (els.textInput?.value || '').trim();
+        const voice = els.voiceSelect?.value || 'alloy';
+        const format = els.formatSelect?.value || state.format;
+        const instructions = (els.instructionsInput?.value || '').trim();
+
+        if (!text) {
+            showError('Please enter some text to convert.');
+            return;
+        }
+
+        if (!state.wsClient || !state.wsClient.isConnected()) {
+            showError('WebSocket connection is not ready yet.');
+            return;
+        }
+
+        hideError();
+        hideResults();
+        setFormDisabled(true);
+        resetStreamingUi();
+        updateStreamingStatus('streaming');
+
+        const startTime = performance.now();
+        try {
+            await state.wsClient.generateSpeech(text, {
+                voice,
+                format,
+                chunkSize: 512,
+                onStart: (data) => {
+                    state.activeStreamId = data.request_id;
+                },
+                onProgress: (progress) => {
+                    updateStreamingProgress(progress.progress, progress.chunksCompleted, progress.totalChunks);
+                    if (els.streamTime) {
+                        const elapsed = (performance.now() - startTime) / 1000;
+                        els.streamTime.textContent = `${elapsed.toFixed(1)}s`;
+                    }
+                },
+                onChunk: (chunk) => {
+                    if (els.streamVisual) {
+                        const element = document.createElement('div');
+                        element.className = 'chunk-indicator';
+                        element.title = `Chunk ${chunk.chunkIndex + 1} - ${(chunk.audioData.byteLength / 1024).toFixed(1)} KB`;
+                        element.innerHTML = '<i class="fas fa-music"></i>';
+                        els.streamVisual.appendChild(element);
+                    }
+                    if (els.streamData) {
+                        const current = parseFloat(els.streamData.textContent) || 0;
+                        const next = current + (chunk.audioData.byteLength / 1024);
+                        els.streamData.textContent = `${next.toFixed(1)} KB`;
+                    }
+                },
+                onComplete: (result) => {
+                    const blob = new Blob([result.audioData], { type: `audio/${result.format}` });
+                    state.audioBlob = blob;
+                    state.format = result.format;
+
+                    const meta = buildGenerationMeta({
+                        voice,
+                        voiceLabel: getSelectedText(els.voiceSelect) || voice,
+                        format: result.format,
+                        formatLabel: result.format.toUpperCase(),
+                        textLength: text.length,
+                        instructions,
+                        streaming: true,
+                        sizeBytes: result.audioData.byteLength,
+                        chunks: result.chunks.length,
+                        elapsedMs: performance.now() - startTime
+                    });
+
+                    showResults(blob, meta);
+                    showStreamingStats(meta);
+                    updateStreamingStatus('connected');
+                    setFormDisabled(false);
+                },
+                onError: (error) => {
+                    showError(`Streaming error: ${error.message}`);
+                    updateStreamingStatus('error');
+                    setFormDisabled(false);
+                }
+            });
+        } catch (error) {
+            showError(`Failed to stream speech: ${error.message}`);
+            updateStreamingStatus('error');
+        } finally {
+            state.activeStreamId = null;
+        }
+    }
+
+    function updateStreamingProgress(progress, chunks, totalChunks) {
+        if (els.streamProgressBar) {
+            els.streamProgressBar.style.width = `${progress}%`;
+        }
+        if (els.streamProgressText) {
+            els.streamProgressText.textContent = `${progress}%`;
+        }
+        if (els.streamChunks) {
+            els.streamChunks.textContent = chunks;
+        }
+        if (els.streamTotalChunks) {
+            els.streamTotalChunks.textContent = totalChunks;
+        }
+    }
+
+    function showStreamingStats(meta) {
+        if (!els.streamingProgress) {
+            return;
+        }
+        const summary = document.createElement('div');
+        summary.className = 'alert alert-success mt-3';
+        summary.innerHTML = `
+            <h6><i class="fas fa-check-circle me-2"></i>Streaming Complete</h6>
             <div class="row mt-2">
-                <div class="col-md-3">
-                    <strong>Chunks:</strong> ${stats.chunks}
-                </div>
-                <div class="col-md-3">
-                    <strong>Total Size:</strong> ${stats.totalSize} KB
-                </div>
-                <div class="col-md-3">
-                    <strong>Time:</strong> ${stats.totalTime}s
-                </div>
-                <div class="col-md-3">
-                    <strong>Format:</strong> ${stats.format.toUpperCase()}
-                </div>
+                <div class="col-md-3"><strong>Chunks:</strong> ${meta.chunks || 0}</div>
+                <div class="col-md-3"><strong>Total Size:</strong> ${formatBytes(meta.sizeBytes || 0)}</div>
+                <div class="col-md-3"><strong>Time:</strong> ${meta.elapsedMs ? (meta.elapsedMs / 1000).toFixed(2) + 's' : '--'}</div>
+                <div class="col-md-3"><strong>Format:</strong> ${(meta.format || state.format).toUpperCase()}</div>
             </div>
-        </div>
-    `;
-    
-    const statsDiv = document.createElement('div');
-    statsDiv.innerHTML = statsHtml;
-    progressSection.appendChild(statsDiv);
-}
+        `;
+        els.streamingProgress.appendChild(summary);
+    }
 
-// Load available voices
-async function loadVoices() {
-    try {
-        const response = await fetch('/api/voices');
-        const data = await response.json();
-        
-        const voiceSelect = document.getElementById('voice-select');
-        if (voiceSelect) {
-            voiceSelect.innerHTML = '';
-            
-            data.voices.forEach(voice => {
+    function updateStreamingStatus(status) {
+        if (!els.streamingIndicator) {
+            return;
+        }
+        els.streamingIndicator.className = 'streaming-status';
+        switch (status) {
+            case 'connected':
+                els.streamingIndicator.classList.add('connected');
+                els.streamingIndicator.innerHTML = '<i class="fas fa-bolt"></i> Streaming Ready';
+                if (els.streamToggle) {
+                    els.streamToggle.disabled = false;
+                }
+                break;
+            case 'streaming':
+                els.streamingIndicator.classList.add('streaming');
+                els.streamingIndicator.innerHTML = '<i class="fas fa-stream"></i> Streaming...';
+                break;
+            case 'error':
+                els.streamingIndicator.classList.add('error');
+                els.streamingIndicator.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Connection Error';
+                if (els.streamToggle) {
+                    els.streamToggle.disabled = true;
+                    els.streamToggle.checked = false;
+                }
+                state.streamingMode = false;
+                updateGenerateButtonLabel();
+                break;
+            default:
+                els.streamingIndicator.classList.add('disconnected');
+                els.streamingIndicator.innerHTML = '<i class="fas fa-plug"></i> Streaming Offline';
+                if (els.streamToggle) {
+                    els.streamToggle.disabled = true;
+                    els.streamToggle.checked = false;
+                }
+                state.streamingMode = false;
+                updateGenerateButtonLabel();
+                break;
+        }
+    }
+    async function checkAuthStatus() {
+        try {
+            const response = await fetch('/api/auth-status');
+            const data = await response.json();
+            const section = document.getElementById('api-key-section');
+            if (!section) {
+                return;
+            }
+            if (data.api_key_required) {
+                section.style.display = 'block';
+                if (els.apiKeyInput) {
+                    els.apiKeyInput.required = true;
+                }
+            } else {
+                section.style.display = 'none';
+            }
+        } catch (error) {
+            console.warn('Could not check auth status:', error);
+        }
+    }
+
+    async function loadVoices() {
+        try {
+            const response = await fetch('/api/voices');
+            const data = await response.json();
+            if (!els.voiceSelect) {
+                return;
+            }
+            els.voiceSelect.innerHTML = '';
+            data.voices.forEach((voice) => {
                 const option = document.createElement('option');
                 option.value = voice.id;
                 option.textContent = voice.name;
                 if (voice.id === 'alloy') {
                     option.selected = true;
                 }
-                voiceSelect.appendChild(option);
+                els.voiceSelect.appendChild(option);
             });
+            updateAudioSummary();
+        } catch (error) {
+            console.error('Failed to load voices:', error);
         }
-    } catch (error) {
-        console.error('Failed to load voices:', error);
     }
-}
 
-// Load available formats
-async function loadFormats() {
-    try {
-        const response = await fetch('/api/formats');
-        const data = await response.json();
-        
-        const formatSelect = document.getElementById('format-select');
-        if (formatSelect) {
-            formatSelect.innerHTML = '';
-            
-            data.formats.forEach(format => {
+    async function loadFormats() {
+        try {
+            const response = await fetch('/api/formats');
+            const data = await response.json();
+            if (!els.formatSelect) {
+                return;
+            }
+            els.formatSelect.innerHTML = '';
+            data.formats.forEach((format) => {
                 const option = document.createElement('option');
                 option.value = format.id;
                 option.textContent = `${format.name} - ${format.quality}`;
                 if (format.id === 'mp3') {
                     option.selected = true;
                 }
-                formatSelect.appendChild(option);
+                els.formatSelect.appendChild(option);
             });
+            updateAudioSummary();
+        } catch (error) {
+            console.error('Failed to load formats:', error);
         }
-    } catch (error) {
-        console.error('Failed to load formats:', error);
     }
-}
 
-// Update character count
-function updateCharCount() {
-    const textInput = document.getElementById('text-input');
-    const charCount = document.getElementById('char-count');
-    const maxLengthInput = document.getElementById('max-length-input');
-    
-    if (textInput && charCount) {
-        const currentLength = textInput.value.length;
-        const maxLength = maxLengthInput ? parseInt(maxLengthInput.value) : 4096;
-        
-        charCount.textContent = currentLength;
-        
-        if (currentLength > maxLength) {
-            charCount.className = 'text-danger fw-bold';
-        } else if (currentLength > maxLength * 0.8) {
-            charCount.className = 'text-warning fw-bold';
-        } else {
-            charCount.className = '';
-        }
-    }
-}
-
-// Generate speech (original HTTP method)
-async function generateSpeech(event) {
-    event.preventDefault();
-    
-    const text = document.getElementById('text-input').value.trim();
-    const voice = document.getElementById('voice-select').value;
-    const format = document.getElementById('format-select').value;
-    const instructions = document.getElementById('instructions-input')?.value.trim() || '';
-    const apiKey = document.getElementById('api-key-input')?.value.trim() || '';
-    
-    if (!text) {
-        showError('Please enter some text to convert');
-        return;
-    }
-    
-    hideError();
-    hideResults();
-    showLoading();
-    disableForm();
-    
-    try {
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-        
-        if (apiKey) {
-            headers['Authorization'] = `Bearer ${apiKey}`;
-        }
-        
-        const requestBody = {
-            text: text,
-            voice: voice,
-            format: format
-        };
-        
-        if (instructions) {
-            requestBody.instructions = instructions;
-        }
-        
-        const response = await fetch('/api/generate', {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(requestBody)
-        });
-        
-        if (!response.ok) {
-            let errorMessage = `Error: ${response.status} ${response.statusText}`;
-            try {
-                const errorData = await response.json();
-                if (errorData.error?.message) {
-                    errorMessage = errorData.error.message;
-                }
-            } catch (e) {
-                // Use default error message
+    function updateCharCount() {
+        const current = els.textInput ? els.textInput.value.length : 0;
+        const max = els.maxLengthInput ? parseInt(els.maxLengthInput.value, 10) || 4096 : 4096;
+        if (els.charCount) {
+            els.charCount.textContent = current;
+            if (current > max) {
+                els.charCount.className = 'text-danger fw-bold';
+            } else if (current > max * 0.8) {
+                els.charCount.className = 'text-warning fw-bold';
+            } else {
+                els.charCount.className = '';
             }
-            throw new Error(errorMessage);
         }
-        
-        const blob = await response.blob();
-        currentAudioBlob = blob;
-        currentFormat = format;
-        
-        showResults(blob, format);
-        
-    } catch (error) {
-        showError(error.message);
-    } finally {
-        hideLoading();
-        enableForm();
+        updateLengthStatus(current, max);
     }
-}
 
-// Show/hide functions
-function showLoading() {
-    const loading = document.getElementById('loading-section');
-    if (loading) loading.style.display = 'block';
-}
-
-function hideLoading() {
-    const loading = document.getElementById('loading-section');
-    if (loading) loading.style.display = 'none';
-}
-
-function showResults(blob, format) {
-    const audioUrl = URL.createObjectURL(blob);
-    const audioPlayer = document.getElementById('audio-player');
-    if (audioPlayer) {
-        audioPlayer.src = audioUrl;
+    function updateLengthStatus(current, max) {
+        if (!els.lengthStatus) {
+            return;
+        }
+        const validateEnabled = !els.validateLengthCheck || els.validateLengthCheck.checked;
+        if (!validateEnabled) {
+            els.lengthStatus.textContent = '';
+            els.lengthStatus.className = '';
+        } else if (current === 0) {
+            els.lengthStatus.textContent = 'Waiting for input...';
+            els.lengthStatus.className = 'text-muted';
+        } else {
+            const remaining = max - current;
+            if (remaining >= 0) {
+                els.lengthStatus.textContent = `${remaining} characters remaining`;
+                els.lengthStatus.className = remaining <= Math.max(50, max * 0.05) ? 'text-warning' : 'text-success';
+            } else {
+                els.lengthStatus.textContent = `${Math.abs(remaining)} characters over the limit`;
+                els.lengthStatus.className = 'text-danger fw-bold';
+            }
+        }
+        if (els.autoCombineStatus) {
+            const shouldShow = els.autoCombineCheck && els.autoCombineCheck.checked && current > max;
+            if (shouldShow) {
+                els.autoCombineStatus.classList.remove('d-none');
+            } else {
+                els.autoCombineStatus.classList.add('d-none');
+            }
+        }
     }
-    
-    const audioResult = document.getElementById('audio-result');
-    if (audioResult) {
-        audioResult.classList.remove('d-none');
+
+    function clearText() {
+        if (!els.textInput) {
+            return;
+        }
+        els.textInput.value = '';
+        updateCharCount();
+        els.textInput.focus();
     }
-    
-    const downloadBtn = document.getElementById('download-btn');
-    if (downloadBtn) {
-        downloadBtn.disabled = false;
+
+    function loadRandomText() {
+        if (!els.textInput) {
+            return;
+        }
+        const sample = SAMPLE_TEXTS[Math.floor(Math.random() * SAMPLE_TEXTS.length)];
+        els.textInput.value = sample;
+        updateCharCount();
+        els.textInput.focus();
     }
-    
-    enableForm();
-}
 
-function hideResults() {
-    const audioResult = document.getElementById('audio-result');
-    if (audioResult) {
-        audioResult.classList.add('d-none');
+    function validateText() {
+        if (!els.lengthStatus) {
+            return;
+        }
+        const current = els.textInput ? els.textInput.value.length : 0;
+        const max = els.maxLengthInput ? parseInt(els.maxLengthInput.value, 10) || 4096 : 4096;
+        updateLengthStatus(current, max);
+        if (current === 0) {
+            els.lengthStatus.textContent = 'Add some text to generate speech.';
+            els.lengthStatus.className = 'text-warning';
+        } else if (current <= max) {
+            els.lengthStatus.textContent = 'Text length looks good!';
+            els.lengthStatus.className = 'text-success fw-bold';
+        }
     }
-}
 
-function showError(message) {
-    const errorDiv = document.getElementById('error-message');
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
+    function resetForm() {
+        if (els.form) {
+            els.form.reset();
+        }
+        if (els.textInput) {
+            els.textInput.value = state.defaultText;
+        }
+        state.audioBlob = null;
+        state.audioUrl = null;
+        state.meta = null;
+        hideResults();
+        hideError();
+        updateCharCount();
+        updateAudioSummary();
+        updateActionButtons(false);
+        if (els.streamToggle) {
+            els.streamToggle.checked = false;
+        }
+        state.streamingMode = false;
+        updateGenerateButtonLabel();
+        if (els.streamingProgress) {
+            const summaries = els.streamingProgress.querySelectorAll('.alert');
+            summaries.forEach((node) => node.remove());
+            resetStreamingUi();
+            els.streamingProgress.style.display = 'none';
+        }
     }
-}
-
-function hideError() {
-    const errorDiv = document.getElementById('error-message');
-    if (errorDiv) {
-        errorDiv.style.display = 'none';
+    function showLoading() {
+        if (els.loadingBox) {
+            els.loadingBox.style.display = 'block';
+        }
     }
-}
 
-function disableForm() {
-    const elements = ['generate-btn', 'text-input', 'voice-select', 'format-select'];
-    elements.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.disabled = true;
-    });
-}
+    function hideLoading() {
+        if (els.loadingBox) {
+            els.loadingBox.style.display = 'none';
+        }
+    }
 
-function enableForm() {
-    const elements = ['generate-btn', 'text-input', 'voice-select', 'format-select'];
-    elements.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.disabled = false;
-    });
-}
+    function showError(message) {
+        if (els.errorBox) {
+            els.errorBox.style.display = 'block';
+            els.errorBox.textContent = message;
+        }
+    }
 
-// Download audio
-function downloadAudio() {
-    if (!currentAudioBlob) return;
-    
-    const url = URL.createObjectURL(currentAudioBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tts_${Date.now()}.${currentFormat}`;
-    a.click();
-    URL.revokeObjectURL(url);
-}
+    function hideError() {
+        if (els.errorBox) {
+            els.errorBox.style.display = 'none';
+        }
+    }
 
-// Add CSS for streaming visualization
+    function setFormDisabled(disabled) {
+        [els.generateBtn, els.textInput, els.voiceSelect, els.formatSelect, els.instructionsInput, els.validateBtn, els.randomBtn, els.clearBtn].forEach((element) => {
+            if (element) {
+                element.disabled = disabled;
+            }
+        });
+    }
+
+    function showResults(blob, meta) {
+        if (state.audioUrl) {
+            URL.revokeObjectURL(state.audioUrl);
+        }
+        state.audioUrl = URL.createObjectURL(blob);
+        state.meta = meta;
+
+        if (els.audioPlayer) {
+            els.audioPlayer.src = state.audioUrl;
+            els.audioPlayer.load();
+            els.audioPlayer.addEventListener('loadedmetadata', () => {
+                if (isFinite(els.audioPlayer.duration)) {
+                    state.meta.durationSeconds = els.audioPlayer.duration;
+                    updateAudioSummary();
+                }
+            }, { once: true });
+        }
+
+        if (els.audioResult) {
+            els.audioResult.classList.remove('d-none');
+            els.audioResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        updateAudioSummary();
+        updateActionButtons(true);
+    }
+
+    function hideResults() {
+        if (els.audioResult) {
+            els.audioResult.classList.add('d-none');
+        }
+        if (els.audioPlayer) {
+            els.audioPlayer.pause();
+            els.audioPlayer.src = '';
+        }
+        if (state.audioUrl) {
+            URL.revokeObjectURL(state.audioUrl);
+            state.audioUrl = null;
+        }
+        state.audioBlob = null;
+        state.meta = null;
+        updateAudioSummary();
+        updateActionButtons(false);
+    }
+
+    function updateAudioSummary() {
+        const meta = state.meta;
+        if (!meta) {
+            if (els.audioInfo) {
+                els.audioInfo.textContent = '';
+            }
+            if (els.audioDuration) {
+                els.audioDuration.textContent = '--';
+            }
+            if (els.audioSize) {
+                els.audioSize.textContent = '--';
+            }
+            if (els.audioVoice) {
+                els.audioVoice.textContent = '--';
+            }
+            if (els.audioFormat) {
+                els.audioFormat.textContent = '--';
+            }
+            return;
+        }
+
+        if (els.audioDuration) {
+            els.audioDuration.textContent = meta.durationSeconds ? formatDuration(meta.durationSeconds) : '--';
+        }
+        if (els.audioSize) {
+            els.audioSize.textContent = formatBytes(meta.sizeBytes || (state.audioBlob ? state.audioBlob.size : 0));
+        }
+        if (els.audioVoice) {
+            els.audioVoice.textContent = meta.voiceLabel || meta.voice || '--';
+        }
+        if (els.audioFormat) {
+            const label = meta.formatLabel || meta.format || state.format;
+            els.audioFormat.textContent = label ? label.toString().toUpperCase() : '--';
+        }
+        if (els.audioInfo) {
+            const parts = [];
+            if (meta.generatedAt) {
+                parts.push(`Generated ${formatClock(meta.generatedAt)}`);
+            }
+            if (meta.streaming) {
+                parts.push('Streaming');
+            }
+            if (typeof meta.textLength === 'number') {
+                parts.push(`${meta.textLength} chars`);
+            }
+            if (meta.sizeBytes || (state.audioBlob && state.audioBlob.size)) {
+                parts.push(formatBytes(meta.sizeBytes || state.audioBlob.size));
+            }
+            if (meta.durationSeconds) {
+                parts.push(formatDuration(meta.durationSeconds));
+            }
+            els.audioInfo.textContent = parts.join(' | ');
+        }
+    }
+
+    function updateActionButtons(enabled) {
+        [els.downloadBtn, els.shareBtn, els.replayBtn].forEach((button) => {
+            if (button) {
+                button.disabled = !enabled;
+            }
+        });
+    }
+    function downloadAudio() {
+        if (!state.audioBlob) {
+            return;
+        }
+        const format = (state.meta?.format || state.format || 'mp3').replace(/[^a-z0-9]/gi, '');
+        const fileName = buildDownloadFileName(format);
+        const url = URL.createObjectURL(state.audioBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    function replayAudio() {
+        if (!els.audioPlayer || !els.audioPlayer.src) {
+            return;
+        }
+        try {
+            els.audioPlayer.currentTime = 0;
+            els.audioPlayer.play().catch(() => {});
+        } catch (error) {
+            console.warn('Unable to replay audio:', error);
+        }
+    }
+
+    async function shareAudio() {
+        if (!state.audioBlob) {
+            return;
+        }
+        const format = state.meta?.format || state.format || 'mp3';
+        const fileName = buildDownloadFileName(format);
+        const file = new File([state.audioBlob], fileName, { type: `audio/${format}` });
+        const shareText = buildShareText();
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], title: 'TTSFM Audio', text: shareText });
+                return;
+            } catch (error) {
+                if (error?.name === 'AbortError') {
+                    return;
+                }
+                console.warn('Share failed, falling back to clipboard.', error);
+            }
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            try {
+                await navigator.clipboard.writeText(shareText);
+                if (els.audioInfo) {
+                    els.audioInfo.textContent = `${shareText} (copied to clipboard)`;
+                }
+                return;
+            } catch (error) {
+                console.warn('Clipboard copy failed:', error);
+            }
+        }
+
+        showError('Sharing is not supported in this browser. Please download the audio instead.');
+    }
+
+    function toggleApiKeyVisibility() {
+        if (!els.apiKeyInput) {
+            return;
+        }
+        const eyeIcon = document.getElementById('api-key-eye-icon');
+        if (els.apiKeyInput.type === 'password') {
+            els.apiKeyInput.type = 'text';
+            if (eyeIcon) {
+                eyeIcon.className = 'fas fa-eye-slash';
+            }
+        } else {
+            els.apiKeyInput.type = 'password';
+            if (eyeIcon) {
+                eyeIcon.className = 'fas fa-eye';
+            }
+        }
+    }
+
+    function buildGenerationMeta(overrides) {
+        return {
+            voice: overrides.voice,
+            voiceLabel: overrides.voiceLabel,
+            format: overrides.format,
+            formatLabel: overrides.formatLabel,
+            textLength: overrides.textLength,
+            instructions: overrides.instructions,
+            streaming: overrides.streaming,
+            sizeBytes: overrides.sizeBytes,
+            chunks: overrides.chunks || 0,
+            elapsedMs: overrides.elapsedMs,
+            generatedAt: overrides.generatedAt || new Date()
+        };
+    }
+
+    function buildDownloadFileName(format) {
+        const voicePart = state.meta?.voice || state.meta?.voiceLabel || 'voice';
+        const safeVoice = slugify(voicePart || 'voice');
+        const timestamp = new Date().toISOString().replace(/[:T]/g, '-').split('.')[0];
+        return `tts-${safeVoice}-${timestamp}.${format}`;
+    }
+
+    function buildShareText() {
+        const meta = state.meta || {};
+        const parts = ['TTSFM generation'];
+        if (meta.voiceLabel || meta.voice) {
+            parts.push(`Voice: ${meta.voiceLabel || meta.voice}`);
+        }
+        if (meta.format) {
+            parts.push(`Format: ${meta.format.toUpperCase()}`);
+        }
+        if (meta.textLength) {
+            parts.push(`Length: ${meta.textLength} characters`);
+        }
+        if (meta.durationSeconds) {
+            parts.push(`Duration: ${formatDuration(meta.durationSeconds)}`);
+        }
+        return parts.join(' | ');
+    }
+
+    function formatBytes(bytes) {
+        if (!bytes || Number.isNaN(bytes)) {
+            return '0 KB';
+        }
+        if (bytes < 1024) {
+            return `${bytes} B`;
+        }
+        if (bytes < 1024 * 1024) {
+            return `${(bytes / 1024).toFixed(1)} KB`;
+        }
+        return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    }
+
+    function formatDuration(seconds) {
+        if (!seconds || !isFinite(seconds)) {
+            return '--';
+        }
+        if (seconds < 60) {
+            return `${seconds.toFixed(1)}s`;
+        }
+        const minutes = Math.floor(seconds / 60);
+        const remaining = Math.round(seconds % 60);
+        return `${minutes}:${remaining.toString().padStart(2, '0')} min`;
+    }
+
+    function formatClock(date) {
+        if (!(date instanceof Date)) {
+            return '';
+        }
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function getSelectedText(select) {
+        if (!select) {
+            return '';
+        }
+        const option = select.options[select.selectedIndex];
+        return option ? option.textContent : '';
+    }
+
+    function slugify(value) {
+        return (value || '').toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'audio';
+    }
+
+    return { init };
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+    PlaygroundApp.init();
+});
+// Streaming styles injected dynamically for visual feedback.
 const style = document.createElement('style');
 style.textContent = `
 .streaming-controls {

@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.9] - 2025-09-16
+
+### Container build
+- Replaced the Docker image with a multi-stage build that installs dependencies in a throwaway stage and keeps only the runtime layers.
+- Taught the entrypoint build to accept a VERSION build argument so tagged releases surface the correct version without bundling .git metadata.
+- Added a .dockerignore that drops virtualenvs, docs, tests, and lock artifacts from the build context for faster, smaller builds.
+
+### Continuous integration
+- Extended the Docker workflow to run on pushes and pull requests so image regressions surface before releases.
+- Simplified release pushes by skipping image size enforcement while keeping multi-arch publishing for tagged releases.
+
+### Web playground
+- Rebuilt the playground controller so validation, random prompts, reset, and share/download buttons behave again.
+- Restored audio metadata reporting (duration, size, format, voice, timestamps) and added richer streaming progress indicators.
+
 ## [3.2.8] - 2025-09-16
 
 ### 🐳 Docker Reliability Improvements
