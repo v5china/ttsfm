@@ -497,15 +497,32 @@ const PlaygroundApp = (() => {
         }
         const summary = document.createElement('div');
         summary.className = 'alert alert-success mt-3';
-        summary.innerHTML = `
-            <h6><i class="fas fa-check-circle me-2"></i>Streaming Complete</h6>
-            <div class="row mt-2">
-                <div class="col-md-3"><strong>Chunks:</strong> ${meta.chunks || 0}</div>
-                <div class="col-md-3"><strong>Total Size:</strong> ${formatBytes(meta.sizeBytes || 0)}</div>
-                <div class="col-md-3"><strong>Time:</strong> ${meta.elapsedMs ? (meta.elapsedMs / 1000).toFixed(2) + 's' : '--'}</div>
-                <div class="col-md-3"><strong>Format:</strong> ${(meta.format || state.format).toUpperCase()}</div>
-            </div>
-        `;
+
+        const heading = document.createElement('h6');
+        heading.innerHTML = '<i class="fas fa-check-circle me-2"></i>Streaming Complete';
+        summary.appendChild(heading);
+
+        const row = document.createElement('div');
+        row.className = 'row mt-2';
+
+        [
+            { label: 'Chunks:', value: meta.chunks || 0 },
+            { label: 'Total Size:', value: formatBytes(meta.sizeBytes || 0) },
+            { label: 'Time:', value: meta.elapsedMs ? (meta.elapsedMs / 1000).toFixed(2) + 's' : '--' },
+            { label: 'Format:', value: (meta.format || state.format).toUpperCase() },
+        ].forEach((stat) => {
+            const col = document.createElement('div');
+            col.className = 'col-md-3';
+
+            const strong = document.createElement('strong');
+            strong.textContent = stat.label;
+            col.appendChild(strong);
+
+            col.appendChild(document.createTextNode(` ${String(stat.value)}`));
+            row.appendChild(col);
+        });
+
+        summary.appendChild(row);
         els.streamingProgress.appendChild(summary);
     }
 

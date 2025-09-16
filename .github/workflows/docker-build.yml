@@ -61,6 +61,10 @@ jobs:
           if [ -z "$version" ]; then
             version="${GITHUB_SHA:0:12}"
           fi
+          if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            safe_branch=$(echo "$version" | tr -c 'A-Za-z0-9' '-')
+            version="0.0.0+${safe_branch}"
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
