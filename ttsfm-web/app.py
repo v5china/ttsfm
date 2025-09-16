@@ -53,7 +53,23 @@ app.secret_key = os.getenv("SECRET_KEY", "ttsfm-secret-key-change-in-production"
 CORS(app)
 
 # Configuration (moved up for socketio initialization)
-HOST = os.getenv("HOST", "localhost")
+
+
+def _default_host() -> str:
+    """Choose a sensible default bind host.
+
+    Docker containers need to listen on all interfaces so port mappings work,
+    while local installs can continue to use localhost.
+    """
+
+    # Common indicator that we're running inside a Docker container
+    if os.path.exists("/.dockerenv"):
+        return "0.0.0.0"
+
+    return "localhost"
+
+
+HOST = os.getenv("HOST", _default_host())
 PORT = int(os.getenv("PORT", "8000"))
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
@@ -669,7 +685,7 @@ def get_status():
         return jsonify({
             "status": "online",
             "tts_service": "openai.fm (free)",
-            "package_version": "3.2.3",
+            "package_version": "3.2.8",
             "timestamp": datetime.now().isoformat()
         })
         
@@ -687,7 +703,7 @@ def health_check():
     """Simple health check endpoint."""
     return jsonify({
         "status": "healthy",
-        "package_version": "3.2.3",
+        "package_version": "3.2.8",
         "timestamp": datetime.now().isoformat()
     })
 

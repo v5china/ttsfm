@@ -77,6 +77,9 @@ docker run -p 8000:8000 ghcr.io/dbccccccc/ttsfm:latest
 docker run -p 8000:8000 dbcccc/ttsfm:latest
 ```
 
+容器现在默认监听 `0.0.0.0`，因此端口映射会立即对宿主机开放。如需限制
+监听地址，可以通过设置 `HOST` 环境变量进行覆盖。
+
 **可用端点：**
 - 🌐 **Web界面**: http://localhost:8000
 - 🔗 **OpenAI API**: http://localhost:8000/v1/audio/speech
@@ -545,7 +548,7 @@ services:
 |----------|-------|-------------|
 | GitHub Container Registry | `ghcr.io/dbccccccc/ttsfm:latest` | 最新稳定版本 |
 | Docker Hub | `dbcccc/ttsfm:latest` | Docker Hub镜像 |
-| GitHub Container Registry | `ghcr.io/dbccccccc/ttsfm:v3.2.2` | 特定版本 |
+| GitHub Container Registry | `ghcr.io/dbccccccc/ttsfm:v3.2.8` | 特定版本 |
 
 ## 🛠️ 高级用法
 
@@ -740,18 +743,12 @@ curl -X POST http://localhost:8000/v1/audio/speech \
 
 查看[CHANGELOG.md](CHANGELOG.md)了解详细版本历史。
 
-### 最新更改（v3.2.3）
+### 最新更改（v3.2.8）
 
-- ✨ **默认自动合并**：长文本现在自动分割并合并为单个音频文件
-- 🔄 **统一API端点**：单个`/v1/audio/speech`端点智能处理短文本和长文本
-- 🎛️ **可配置行为**：新的`auto_combine`参数（默认：`true`）提供完全控制
-- 🤖 **增强OpenAI兼容性**：具有智能长文本处理的直接替代品
-- 📊 **丰富响应头**：`X-Auto-Combine`、`X-Chunks-Combined`和处理元数据
-- 🧹 **简化Web界面**：移除传统批处理，提供更清洁的用户体验
-- 📖 **简化文档**：Web文档强调现代自动合并方法
-- 🎮 **增强试用平台**：专注于自动合并功能的清洁界面
-- 🔐 **API密钥保护**：用于安全部署的可选OpenAI兼容身份验证
-- 🛡️ **安全功能**：具有详细日志的全面访问控制
+- 🐳 **Docker 默认监听升级**：容器自动绑定 `0.0.0.0`，解决端口映射后 WebSocket 长时间“Starting”及 HTTP 502 的问题。
+- 📘 **文档同步更新**：README 新增说明，展示如何通过 `HOST` 环境变量重写绑定地址。
+- 🌐 **界面版本同步**：Web 徽章、健康检查和多语言文案均更新为 v3.2.8，方便快速确认运行版本。
+- 🧪 **发布就绪**：包元数据与分发清单已对齐，为 v3.2.8 的 PyPI 与镜像发布做好准备。
 
 ## 🤝 支持和社区
 

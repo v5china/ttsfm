@@ -77,6 +77,10 @@ docker run -p 8000:8000 ghcr.io/dbccccccc/ttsfm:latest
 docker run -p 8000:8000 dbcccc/ttsfm:latest
 ```
 
+The container now binds to `0.0.0.0` by default so the mapped port is reachable
+from your host immediately. You can still override the bind address by setting
+the `HOST` environment variable if you need to lock it down further.
+
 **Available endpoints:**
 - 🌐 **Web Interface**: http://localhost:8000
 - 🔗 **OpenAI API**: http://localhost:8000/v1/audio/speech
@@ -547,7 +551,7 @@ services:
 |----------|-------|-------------|
 | GitHub Container Registry | `ghcr.io/dbccccccc/ttsfm:latest` | Latest stable release |
 | Docker Hub | `dbcccc/ttsfm:latest` | Mirror on Docker Hub |
-| GitHub Container Registry | `ghcr.io/dbccccccc/ttsfm:v3.2.2` | Specific version |
+| GitHub Container Registry | `ghcr.io/dbccccccc/ttsfm:v3.2.8` | Specific version |
 
 ## 🛠️ Advanced Usage
 
@@ -742,18 +746,12 @@ These remain accessible without authentication:
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-### Latest Changes (v3.2.3)
+### Latest Changes (v3.2.8)
 
-- ✨ **Auto-Combine by Default**: Long text is now automatically split and combined into single audio files
-- 🔄 **Unified API Endpoint**: Single `/v1/audio/speech` endpoint handles both short and long text intelligently
-- 🎛️ **Configurable Behavior**: New `auto_combine` parameter (default: `true`) for full control
-- 🤖 **Enhanced OpenAI Compatibility**: Drop-in replacement with intelligent long-text handling
-- 📊 **Rich Response Headers**: `X-Auto-Combine`, `X-Chunks-Combined`, and processing metadata
-- 🧹 **Streamlined Web Interface**: Removed legacy batch processing for cleaner user experience
-- 📖 **Simplified Documentation**: Web docs emphasize modern auto-combine approach
-- 🎮 **Enhanced Playground**: Clean interface focused on auto-combine functionality
-- 🔐 **API Key Protection**: Optional OpenAI-compatible authentication for secure deployments
-- 🛡️ **Security Features**: Comprehensive access control with detailed logging
+- 🐳 **Docker-Ready Defaults**: Containers now bind to `0.0.0.0` automatically, fixing WebSocket startup loops and HTTP 502 errors when port-mapped.
+- 📘 **Docs Refreshed**: README guidance highlights the new default and shows how to override the bind address with the `HOST` environment variable.
+- 🌐 **UI Version Sync**: Web badges, health endpoint metadata, and translations display v3.2.8 so users always see the running release.
+- 🧪 **Release Prep**: Package metadata and distribution manifests updated for the v3.2.8 PyPI and image rollout.
 
 ## 🤝 Support & Community
 
