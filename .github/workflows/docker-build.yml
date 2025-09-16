@@ -62,7 +62,11 @@ jobs:
             version="${GITHUB_SHA:0:12}"
           fi
           if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+'; then
-            safe_branch=$(echo "$version" | tr -c 'A-Za-z0-9' '-')
+            safe_branch=$(printf %s "$version" | tr -c 'A-Za-z0-9' '-')
+            safe_branch=${safe_branch%-}
+            if [ -z "$safe_branch" ]; then
+              safe_branch="sha-${GITHUB_SHA:0:12}"
+            fi
             version="0.0.0+${safe_branch}"
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
