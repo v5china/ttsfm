@@ -9,7 +9,8 @@ import os
 import io
 import time
 import logging
-import hashlib
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHash, VerificationError
 from collections import defaultdict, deque
 from datetime import datetime
 from pathlib import Path
@@ -94,21 +95,45 @@ init_i18n(app)
 # API Key configuration
 REQUIRE_API_KEY = os.getenv("REQUIRE_API_KEY", "false").lower() == "true"
 
+ARGON2_HASH_PREFIXES = ("$argon2i$", "$argon2d$", "$argon2id$")
+PASSWORD_HASHER = PasswordHasher()
+
+
+def _hash_key(value: str) -> str:
+    """Hash an API key value with Argon2."""
+    if not value:
+        raise ValueError("API key value must not be empty.")
+    return PASSWORD_HASHER.hash(value)
+
 
 def _load_api_key_hashes() -> List[str]:
-    keys: List[str] = []
+    """Load configured API keys and normalize them to Argon2 hashes."""
+    plain_keys: List[str] = []
+    prehashed_entries: List[str] = []
+
+    hashed_env = os.getenv("TTSFM_API_KEY_HASHES")
+    if hashed_env:
+        prehashed_entries.extend([item.strip() for item in hashed_env.split(",") if item.strip()])
+
     multi_keys = os.getenv("TTSFM_API_KEYS")
     if multi_keys:
-        keys.extend([item.strip() for item in multi_keys.split(",") if item.strip()])
+        plain_keys.extend([item.strip() for item in multi_keys.split(",") if item.strip()])
 
     single_key = os.getenv("TTSFM_API_KEY")
     if single_key:
-        keys.append(single_key.strip())
+        plain_keys.append(single_key.strip())
 
-    hashes = []
-    for key in keys:
+    hashes: List[str] = []
+    for entry in prehashed_entries:
+        if entry.startswith(ARGON2_HASH_PREFIXES):
+            hashes.append(entry)
+        elif entry:
+            logger.warning("Ignoring unsupported API key hash format; expected Argon2 hashes.")
+
+    for key in plain_keys:
         if key:
-            hashes.append(hashlib.sha256(key.encode("utf-8")).hexdigest())
+            hashes.append(_hash_key(key))
+
     return hashes
 
 
@@ -189,15 +214,26 @@ def require_api_key(f):
     return decorated_function
 
 
-def _hash_key(value: str) -> str:
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
-
-
 def _is_valid_api_key(provided: Optional[str]) -> bool:
     if not provided:
         return False
-    hashed = _hash_key(provided)
-    return hashed in API_KEY_HASHES
+
+    for stored_hash in API_KEY_HASHES:
+        if not stored_hash.startswith(ARGON2_HASH_PREFIXES):
+            logger.warning("Unsupported API key hash format encountered; ignoring entry.")
+            continue
+
+        try:
+            PASSWORD_HASHER.verify(stored_hash, provided)
+        except InvalidHash:
+            logger.warning("Skipping invalid API key hash entry in configuration.")
+            continue
+        except VerificationError:
+            continue
+        else:
+            return True
+
+    return False
 
 
 def _register_failed_attempt(ip: str) -> None:
@@ -1073,4 +1109,5 @@ if __name__ == '__main__':
         logger.error(f"Failed to start application: {e}")
     finally:
         logger.info("TTSFM web application shut down")
+
 

@@ -195,6 +195,38 @@ def validate_text_length(text: str, max_length: int = 4096, raise_error: bool = 
     return True
 
 
+_SENTENCE_TERMINATORS = {".", "!", "?"}
+
+
+def _split_into_sentences(text: str) -> List[str]:
+    sentences: List[str] = []
+    buffer: List[str] = []
+    length = len(text)
+    i = 0
+
+    while i < length:
+        char = text[i]
+        buffer.append(char)
+
+        if char in _SENTENCE_TERMINATORS:
+            j = i + 1
+            while j < length and text[j] in _SENTENCE_TERMINATORS:
+                buffer.append(text[j])
+                j += 1
+            sentence = ''.join(buffer).strip()
+            if sentence:
+                sentences.append(sentence)
+            buffer = []
+            i = j - 1
+        i += 1
+
+    remainder = ''.join(buffer).strip()
+    if remainder:
+        sentences.append(remainder)
+
+    return sentences
+
+
 def split_text_by_length(text: str, max_length: int = 4096, preserve_words: bool = True) -> List[str]:
     """Split text into chunks no longer than ``max_length`` characters."""
     if not text:
@@ -206,13 +238,14 @@ def split_text_by_length(text: str, max_length: int = 4096, preserve_words: bool
     chunks: List[str] = []
 
     if preserve_words:
-        sentence_pattern = re.compile(r'[^.!?]+[.!?]+|[^.!?]+$', re.DOTALL)
-        sentences = [match.group().strip() for match in sentence_pattern.finditer(text) if match.group().strip()]
-
+        sentences = _split_into_sentences(text)
         current_segment: List[str] = []
         current_length = 0
 
         for sentence in sentences:
+            if not sentence:
+                continue
+
             separator = ' ' if current_segment else ''
             candidate_length = current_length + len(separator) + len(sentence)
 
@@ -225,7 +258,6 @@ def split_text_by_length(text: str, max_length: int = 4096, preserve_words: bool
                 chunks.append(' '.join(current_segment))
 
             if len(sentence) > max_length:
-                # Keep the original sentence intact to preserve punctuation even if it exceeds the nominal chunk size.
                 chunks.append(sentence)
                 current_segment = []
                 current_length = 0
@@ -245,42 +277,7 @@ def split_text_by_length(text: str, max_length: int = 4096, preserve_words: bool
     return [chunk for chunk in chunks if chunk.strip()]
 
 
-def _split_by_words(text: str, max_length: int) -> List[str]:
-    """
-    Split text by words when sentences are too long.
 
-    Args:
-        text: Text to split
-        max_length: Maximum length per chunk
-
-    Returns:
-        List[str]: List of word-based chunks
-    """
-    words = text.split()
-    chunks = []
-    current_chunk = ""
-
-    for word in words:
-        test_chunk = current_chunk + (" " if current_chunk else "") + word
-
-        if len(test_chunk) <= max_length:
-            current_chunk = test_chunk
-        else:
-            if current_chunk:
-                chunks.append(current_chunk)
-
-            # If single word is too long, split it
-            if len(word) > max_length:
-                for i in range(0, len(word), max_length):
-                    chunks.append(word[i:i + max_length])
-                current_chunk = ""
-            else:
-                current_chunk = word
-
-    if current_chunk:
-        chunks.append(current_chunk)
-
-    return chunks
 
 
 def sanitize_text(text: str) -> str:
