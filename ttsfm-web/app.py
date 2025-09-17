@@ -6,17 +6,18 @@ for the TTSFM text-to-speech package.
 """
 
 import os
-import json
-import logging
-import tempfile
 import io
+import time
+import logging
+import hashlib
+from collections import defaultdict, deque
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Iterator
 from functools import wraps
 from urllib.parse import urlparse, urljoin
 
-from flask import Flask, request, jsonify, send_file, Response, render_template, redirect, url_for
+from flask import Flask, request, jsonify, Response, render_template, redirect, url_for, stream_with_context
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from dotenv import load_dotenv
@@ -47,8 +48,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+APP_ROOT = Path(__file__).resolve().parent
+INSTANCE_PATH = APP_ROOT / 'instance'
+
 # Create Flask app
-app = Flask(__name__, static_folder='static', static_url_path='/static')
+app = Flask(
+    __name__,
+    static_folder='static',
+    static_url_path='/static',
+    root_path=str(APP_ROOT),
+    instance_path=str(INSTANCE_PATH),
+)
 app.secret_key = os.getenv("SECRET_KEY", "ttsfm-secret-key-change-in-production")
 CORS(app)
 
@@ -82,15 +92,43 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode=async_mode)
 init_i18n(app)
 
 # API Key configuration
-API_KEY = os.getenv("TTSFM_API_KEY")  # Set this environment variable for API protection
 REQUIRE_API_KEY = os.getenv("REQUIRE_API_KEY", "false").lower() == "true"
 
-# Create TTS client - now uses openai.fm directly, no configuration needed
-tts_client = TTSClient()
+
+def _load_api_key_hashes() -> List[str]:
+    keys: List[str] = []
+    multi_keys = os.getenv("TTSFM_API_KEYS")
+    if multi_keys:
+        keys.extend([item.strip() for item in multi_keys.split(",") if item.strip()])
+
+    single_key = os.getenv("TTSFM_API_KEY")
+    if single_key:
+        keys.append(single_key.strip())
+
+    hashes = []
+    for key in keys:
+        if key:
+            hashes.append(hashlib.sha256(key.encode("utf-8")).hexdigest())
+    return hashes
+
+
+API_KEY_HASHES = _load_api_key_hashes()
+API_KEYS_CONFIGURED = bool(API_KEY_HASHES)
+
+RATE_LIMIT_WINDOW = int(os.getenv("TTSFM_AUTH_WINDOW_SECONDS", "60"))
+RATE_LIMIT_ATTEMPTS = int(os.getenv("TTSFM_AUTH_MAX_ATTEMPTS", "5"))
+_FAILED_AUTH_ATTEMPTS: Dict[str, deque] = defaultdict(deque)
+
+
+def create_tts_client() -> TTSClient:
+    """Factory returning an isolated TTS client per request."""
+    default_prompt = os.getenv("TTSFM_DEFAULT_PROMPT", "false").lower() == "true"
+    return TTSClient(use_default_prompt=default_prompt)
+
 
 # Initialize WebSocket handler
 from websocket_handler import WebSocketTTSHandler
-websocket_handler = WebSocketTTSHandler(socketio, tts_client)
+websocket_handler = WebSocketTTSHandler(socketio, create_tts_client)
 
 logger.info("Initialized web app with TTSFM using openai.fm free service")
 logger.info(f"WebSocket support enabled with {async_mode} async mode")
@@ -105,10 +143,10 @@ def require_api_key(f):
             return f(*args, **kwargs)
 
         # Check if API key is configured
-        if not API_KEY:
-            logger.warning("API key protection is enabled but TTSFM_API_KEY is not set")
+        if not API_KEYS_CONFIGURED:
+            logger.warning("API key protection is enabled but no API keys are configured")
             return jsonify({
-                "error": "API key protection is enabled but not configured properly"
+                "error": "Authentication service is unavailable"
             }), 500
 
         # Get API key from request headers - prioritize Authorization header (OpenAI compatible)
@@ -133,91 +171,108 @@ def require_api_key(f):
             if data:
                 provided_key = data.get('api_key')
 
+        client_ip = request.remote_addr or "unknown"
+
+        if _is_rate_limited(client_ip):
+            logger.warning("Authentication rate limit exceeded for %s", client_ip)
+            return jsonify({"error": "Too many authentication attempts"}), 429
+
         # Validate API key
-        if not provided_key or provided_key != API_KEY:
-            logger.warning(f"Invalid API key attempt from {request.remote_addr}")
-            return jsonify({
-                "error": {
-                    "message": "Invalid API key provided",
-                    "type": "invalid_request_error",
-                    "code": "invalid_api_key"
-                }
-            }), 401
+        if not _is_valid_api_key(provided_key):
+            _register_failed_attempt(client_ip)
+            logger.warning("Invalid API key attempt from %s", client_ip)
+            return jsonify({"error": "Authentication failed"}), 401
+
+        _reset_failed_attempts(client_ip)
 
         return f(*args, **kwargs)
     return decorated_function
 
+
+def _hash_key(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _is_valid_api_key(provided: Optional[str]) -> bool:
+    if not provided:
+        return False
+    hashed = _hash_key(provided)
+    return hashed in API_KEY_HASHES
+
+
+def _register_failed_attempt(ip: str) -> None:
+    attempts = _FAILED_AUTH_ATTEMPTS[ip]
+    now = time.monotonic()
+    attempts.append(now)
+    _trim_attempts(attempts, now)
+
+
+def _reset_failed_attempts(ip: str) -> None:
+    _FAILED_AUTH_ATTEMPTS.pop(ip, None)
+
+
+def _trim_attempts(attempts: deque, now: float) -> None:
+    while attempts and now - attempts[0] > RATE_LIMIT_WINDOW:
+        attempts.popleft()
+
+
+def _is_rate_limited(ip: str) -> bool:
+    attempts = _FAILED_AUTH_ATTEMPTS[ip]
+    now = time.monotonic()
+    _trim_attempts(attempts, now)
+    return len(attempts) >= RATE_LIMIT_ATTEMPTS
+
+
+def _chunk_bytes(data: bytes, chunk_size: int = 64 * 1024) -> Iterator[bytes]:
+    view = memoryview(data)
+    for offset in range(0, len(view), chunk_size):
+        yield bytes(view[offset:offset + chunk_size])
+
+
+try:
+    from pydub import AudioSegment  # type: ignore
+except ImportError:  # pragma: no cover - optional dependency
+    AudioSegment = None  # type: ignore
+
+
 def combine_audio_chunks(audio_chunks: List[bytes], format_type: str = "mp3") -> bytes:
-    """
-    Combine multiple audio chunks into a single audio file.
+    """Combine multiple audio chunks into a single audio file."""
+    if not audio_chunks:
+        return b''
 
-    Args:
-        audio_chunks: List of audio data as bytes
-        format_type: Audio format (mp3, wav, etc.)
+    fmt = format_type.lower()
 
-    Returns:
-        bytes: Combined audio data
-    """
+    if AudioSegment is None and fmt != "wav":
+        raise RuntimeError("Combining audio requires pydub for non-WAV formats. Install ttsfm[web].")
+
     try:
-        # Try to use pydub for audio processing if available
-        try:
-            from pydub import AudioSegment
+        if AudioSegment is None:
+            return _simple_wav_concatenation(audio_chunks)
 
-            # Convert each chunk to AudioSegment
-            audio_segments = []
-            for chunk in audio_chunks:
-                if format_type.lower() == "mp3":
-                    segment = AudioSegment.from_mp3(io.BytesIO(chunk))
-                elif format_type.lower() == "wav":
-                    segment = AudioSegment.from_wav(io.BytesIO(chunk))
-                elif format_type.lower() == "opus":
-                    # For OPUS, we'll treat it as WAV since openai.fm returns WAV for OPUS requests
-                    segment = AudioSegment.from_wav(io.BytesIO(chunk))
-                else:
-                    # For other formats, try to auto-detect or default to WAV
-                    try:
-                        segment = AudioSegment.from_file(io.BytesIO(chunk))
-                    except:
-                        segment = AudioSegment.from_wav(io.BytesIO(chunk))
-
-                audio_segments.append(segment)
-
-            # Combine all segments
-            combined = audio_segments[0]
-            for segment in audio_segments[1:]:
-                combined += segment
-
-            # Export to bytes
-            output_buffer = io.BytesIO()
-            if format_type.lower() == "mp3":
-                combined.export(output_buffer, format="mp3")
-            elif format_type.lower() == "wav":
-                combined.export(output_buffer, format="wav")
+        audio_segments = []
+        for chunk in audio_chunks:
+            buffer = io.BytesIO(chunk)
+            if fmt == "mp3":
+                segment = AudioSegment.from_mp3(buffer)
+            elif fmt == "wav":
+                segment = AudioSegment.from_wav(buffer)
+            elif fmt == "opus":
+                segment = AudioSegment.from_wav(buffer)
             else:
-                # Default to the original format or WAV
-                try:
-                    combined.export(output_buffer, format=format_type.lower())
-                except:
-                    combined.export(output_buffer, format="wav")
+                segment = AudioSegment.from_file(buffer)
+            audio_segments.append(segment)
 
-            return output_buffer.getvalue()
+        combined = audio_segments[0]
+        for segment in audio_segments[1:]:
+            combined += segment
 
-        except ImportError:
-            # Fallback: Simple concatenation for WAV files
-            logger.warning("pydub not available, using simple concatenation for WAV files")
-
-            if format_type.lower() == "wav":
-                return _simple_wav_concatenation(audio_chunks)
-            else:
-                # For non-WAV formats without pydub, just concatenate raw bytes
-                # This won't produce valid audio but is better than failing
-                logger.warning(f"Cannot properly combine {format_type} files without pydub, using raw concatenation")
-                return b''.join(audio_chunks)
-
-    except Exception as e:
-        logger.error(f"Error combining audio chunks: {e}")
-        # Fallback to simple concatenation
-        return b''.join(audio_chunks)
+        output_buffer = io.BytesIO()
+        export_format = fmt if fmt in {"mp3", "wav", "aac", "flac", "opus", "pcm"} else "wav"
+        combined.export(output_buffer, format=export_format)
+        return output_buffer.getvalue()
+    except Exception as exc:
+        logger.error("Error combining audio chunks: %s", exc)
+        raise
 
 def _simple_wav_concatenation(wav_chunks: List[bytes]) -> bytes:
     """
@@ -410,6 +465,7 @@ def get_formats():
         return jsonify({"error": "Failed to get formats"}), 500
 
 @app.route('/api/validate-text', methods=['POST'])
+@require_api_key
 def validate_text():
     """Validate text length and provide splitting suggestions."""
     try:
@@ -486,9 +542,9 @@ def generate_speech():
             }), 400
         
         logger.info(f"Generating speech: text='{text[:50]}...', voice={voice}, format={response_format}")
-        
-        # Generate speech using the TTSFM package with validation
-        response = tts_client.generate_speech(
+
+        client = create_tts_client()
+        response = client.generate_speech(
             text=text,
             voice=voice_enum,
             response_format=format_enum,
@@ -496,17 +552,18 @@ def generate_speech():
             max_length=max_length,
             validate_length=validate_length
         )
-        
-        # Return audio data
+
+        headers = {
+            'Content-Disposition': f'attachment; filename="speech.{response.format.value}"',
+            'X-Audio-Format': response.format.value,
+            'X-Audio-Size': str(response.size)
+        }
+
         return Response(
-            response.audio_data,
+            stream_with_context(_chunk_bytes(response.audio_data)),
             mimetype=response.content_type,
-            headers={
-                'Content-Disposition': f'attachment; filename="speech.{response.format.value}"',
-                'Content-Length': str(response.size),
-                'X-Audio-Format': response.format.value,
-                'X-Audio-Size': str(response.size)
-            }
+            headers=headers,
+            direct_passthrough=True
         )
         
     except ValidationException as e:
@@ -565,7 +622,9 @@ def generate_speech_combined():
                 logger.warning(f"Invalid voice or format: {e}")
                 return jsonify({"error": "Invalid voice or format specified"}), 400
 
-            response = tts_client.generate_speech(
+            client = create_tts_client()
+
+            response = client.generate_speech(
                 text=text,
                 voice=voice_enum,
                 response_format=format_enum,
@@ -574,16 +633,18 @@ def generate_speech_combined():
                 validate_length=True
             )
 
+            single_headers = {
+                'Content-Disposition': f'attachment; filename="combined_speech.{response.format.value}"',
+                'X-Audio-Format': response.format.value,
+                'X-Audio-Size': str(response.size),
+                'X-Chunks-Combined': '1'
+            }
+
             return Response(
-                response.audio_data,
+                stream_with_context(_chunk_bytes(response.audio_data)),
                 mimetype=response.content_type,
-                headers={
-                    'Content-Disposition': f'attachment; filename="combined_speech.{response.format.value}"',
-                    'Content-Length': str(response.size),
-                    'X-Audio-Format': response.format.value,
-                    'X-Audio-Size': str(response.size),
-                    'X-Chunks-Combined': '1'
-                }
+                headers=single_headers,
+                direct_passthrough=True
             )
 
         # Text is long, split and combine
@@ -598,13 +659,15 @@ def generate_speech_combined():
 
         # Generate speech chunks
         try:
-            responses = tts_client.generate_speech_long_text(
+            client = create_tts_client()
+
+            responses = client.generate_speech_long_text(
                 text=text,
                 voice=voice_enum,
                 response_format=format_enum,
                 instructions=instructions,
                 max_length=max_length,
-                preserve_words=preserve_words
+                preserve_words=preserve_words,
             )
         except Exception as e:
             logger.error(f"Long text generation failed: {e}")
@@ -633,17 +696,19 @@ def generate_speech_combined():
 
         logger.info(f"Successfully combined {len(responses)} chunks into single audio file ({len(combined_audio)} bytes)")
 
+        combined_headers = {
+            'Content-Disposition': f'attachment; filename="combined_speech.{format_enum.value}"',
+            'X-Audio-Format': format_enum.value,
+            'X-Audio-Size': str(len(combined_audio)),
+            'X-Chunks-Combined': str(len(responses)),
+            'X-Original-Text-Length': str(len(text))
+        }
+
         return Response(
-            combined_audio,
+            stream_with_context(_chunk_bytes(combined_audio)),
             mimetype=content_type,
-            headers={
-                'Content-Disposition': f'attachment; filename="combined_speech.{format_enum.value}"',
-                'Content-Length': str(len(combined_audio)),
-                'X-Audio-Format': format_enum.value,
-                'X-Audio-Size': str(len(combined_audio)),
-                'X-Chunks-Combined': str(len(responses)),
-                'X-Original-Text-Length': str(len(text))
-            }
+            headers=combined_headers,
+            direct_passthrough=True
         )
 
     except ValidationException as e:
@@ -676,7 +741,9 @@ def get_status():
     """Get service status."""
     try:
         # Try to make a simple request to check if the TTS service is available
-        test_response = tts_client.generate_speech(
+        client = create_tts_client()
+
+        test_response = client.generate_speech(
             text="test",
             voice=Voice.ALLOY,
             response_format=AudioFormat.MP3
@@ -685,7 +752,7 @@ def get_status():
         return jsonify({
             "status": "online",
             "tts_service": "openai.fm (free)",
-            "package_version": "3.2.9",
+            "package_version": "3.3.0-alpha",
             "timestamp": datetime.now().isoformat()
         })
         
@@ -703,7 +770,7 @@ def health_check():
     """Simple health check endpoint."""
     return jsonify({
         "status": "healthy",
-        "package_version": "3.2.9",
+        "package_version": "3.3.0-alpha",
         "timestamp": datetime.now().isoformat()
     })
 
@@ -724,7 +791,7 @@ def auth_status():
     """Get authentication status and requirements."""
     return jsonify({
         "api_key_required": REQUIRE_API_KEY,
-        "api_key_configured": bool(API_KEY) if REQUIRE_API_KEY else None,
+        "api_key_configured": API_KEYS_CONFIGURED if REQUIRE_API_KEY else None,
         "timestamp": datetime.now().isoformat()
     })
 
@@ -806,13 +873,15 @@ def openai_speech():
 
         logger.info(f"OpenAI API: Generating speech: text='{input_text[:50]}...', voice={voice}, format={response_format}, auto_combine={auto_combine}")
 
+        client = create_tts_client()
+
         # Check if text exceeds limit and auto_combine is enabled
         if len(input_text) > max_length and auto_combine:
             # Long text with auto-combine enabled: split and combine
             logger.info(f"Long text detected ({len(input_text)} chars), auto-combining enabled")
 
             # Generate speech chunks
-            responses = tts_client.generate_speech_long_text(
+            responses = client.generate_speech_long_text(
                 text=input_text,
                 voice=voice_enum,
                 response_format=format_enum,
@@ -847,19 +916,21 @@ def openai_speech():
 
             logger.info(f"Successfully combined {len(responses)} chunks into single audio file")
 
+            headers = {
+                'Content-Type': content_type,
+                'X-Audio-Format': format_enum.value,
+                'X-Audio-Size': str(len(combined_audio)),
+                'X-Chunks-Combined': str(len(responses)),
+                'X-Original-Text-Length': str(len(input_text)),
+                'X-Auto-Combine': 'true',
+                'X-Powered-By': 'TTSFM-OpenAI-Compatible'
+            }
+
             return Response(
-                combined_audio,
+                stream_with_context(_chunk_bytes(combined_audio)),
                 mimetype=content_type,
-                headers={
-                    'Content-Type': content_type,
-                    'Content-Length': str(len(combined_audio)),
-                    'X-Audio-Format': format_enum.value,
-                    'X-Audio-Size': str(len(combined_audio)),
-                    'X-Chunks-Combined': str(len(responses)),
-                    'X-Original-Text-Length': str(len(input_text)),
-                    'X-Auto-Combine': 'true',
-                    'X-Powered-By': 'TTSFM-OpenAI-Compatible'
-                }
+                headers=headers,
+                direct_passthrough=True
             )
 
         else:
@@ -875,7 +946,7 @@ def openai_speech():
                 }), 400
 
             # Generate speech using the TTSFM package
-            response = tts_client.generate_speech(
+            response = client.generate_speech(
                 text=input_text,
                 voice=voice_enum,
                 response_format=format_enum,
@@ -884,19 +955,20 @@ def openai_speech():
                 validate_length=True
             )
 
-            # Return audio data in OpenAI format
+            headers = {
+                'Content-Type': response.content_type,
+                'X-Audio-Format': response.format.value,
+                'X-Audio-Size': str(response.size),
+                'X-Chunks-Combined': '1',
+                'X-Auto-Combine': str(auto_combine).lower(),
+                'X-Powered-By': 'TTSFM-OpenAI-Compatible'
+            }
+
             return Response(
-                response.audio_data,
+                stream_with_context(_chunk_bytes(response.audio_data)),
                 mimetype=response.content_type,
-                headers={
-                    'Content-Type': response.content_type,
-                    'Content-Length': str(response.size),
-                    'X-Audio-Format': response.format.value,
-                    'X-Audio-Size': str(response.size),
-                    'X-Chunks-Combined': '1',
-                    'X-Auto-Combine': str(auto_combine).lower(),
-                    'X-Powered-By': 'TTSFM-OpenAI-Compatible'
-                }
+                headers=headers,
+                direct_passthrough=True
             )
 
     except ValidationException as e:
@@ -982,12 +1054,12 @@ if __name__ == '__main__':
 
     # Log API key protection status
     if REQUIRE_API_KEY:
-        if API_KEY:
+        if API_KEYS_CONFIGURED:
             logger.info("🔒 API key protection is ENABLED")
             logger.info("All TTS generation requests require a valid API key")
         else:
-            logger.warning("⚠️  API key protection is enabled but TTSFM_API_KEY is not set!")
-            logger.warning("Please set the TTSFM_API_KEY environment variable")
+            logger.warning("⚠️ API key protection is enabled but TTSFM_API_KEY(S) are not configured!")
+            logger.warning("Please set the TTSFM_API_KEY or TTSFM_API_KEYS environment variables")
     else:
         logger.info("🔓 API key protection is DISABLED - all requests are allowed")
         logger.info("Set REQUIRE_API_KEY=true to enable API key protection")
@@ -1000,5 +1072,5 @@ if __name__ == '__main__':
     except Exception as e:
         logger.error(f"Failed to start application: {e}")
     finally:
-        # Clean up TTS client
-        tts_client.close()
+        logger.info("TTSFM web application shut down")
+

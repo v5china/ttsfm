@@ -61,7 +61,15 @@ pip install ttsfm[web,dev,docs]
 
 - **Python**: 3.8+ (tested on 3.8, 3.9, 3.10, 3.11, 3.12)
 - **OS**: Windows, macOS, Linux
-- **Dependencies**: `requests`, `aiohttp`, `fake-useragent`
+- **Dependencies**: `requests`, `aiohttp`, `python-dotenv` (plus `pydub` for the optional web UI)
+
+## ⚖️ Reliability & Legal Notes
+
+- TTSFM talks to the reverse-engineered `openai.fm` backend. That service is operated by a third party, can change without notice, and may refuse traffic. Always build fallbacks or graceful degradation into your applications.
+- Respect downstream terms. You are responsible for ensuring you have the right to send text for synthesis and for storing or redistributing the returned audio.
+- Network access is optional by design: deterministic request headers and a vendored user-agent list mean deployments without outbound internet connectivity keep working.
+- When running the bundled web UI, API keys are hashed in-memory and simple rate limiting throttles repeated failures. Wire the app behind your own gateway if you need stronger guarantees.
+- Want a deeper dive? See [docs/architecture.md](docs/architecture.md) for a bird’s-eye diagram of the components.
 
 ## 🚀 Quick Start
 
@@ -118,6 +126,9 @@ response.save_to_file("output")  # Saves as output.mp3
 # Or get raw audio data
 audio_bytes = response.audio_data
 print(f"Generated {len(audio_bytes)} bytes of audio")
+
+# Prefer the original OpenAI prompt tuning? Pass ``use_default_prompt=True`` when
+# constructing ``TTSClient`` or ``AsyncTTSClient`` to re-enable that behaviour.
 ```
 
 #### Asynchronous Client
@@ -639,11 +650,7 @@ docker run -p 8000:8000 ttsfm:local
 
 ### Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, coding standards, and the test/lint commands that must pass before a pull request is reviewed.
 
 ## 📊 Performance
 

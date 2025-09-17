@@ -1,3 +1,4 @@
+import { fetchVoices, fetchFormats } from './api-client.js';
 
 // TTSFM Playground with HTTP and WebSocket streaming support.
 // Reworked to restore utility actions and populate generation metadata.
@@ -586,10 +587,9 @@ const PlaygroundApp = (() => {
         }
     }
 
-    async function loadVoices() {
+    async function loadVoices({ refresh = false } = {}) {
         try {
-            const response = await fetch('/api/voices');
-            const data = await response.json();
+            const data = await fetchVoices({ refresh });
             if (!els.voiceSelect) {
                 return;
             }
@@ -609,10 +609,9 @@ const PlaygroundApp = (() => {
         }
     }
 
-    async function loadFormats() {
+    async function loadFormats({ refresh = false } = {}) {
         try {
-            const response = await fetch('/api/formats');
-            const data = await response.json();
+            const data = await fetchFormats({ refresh });
             if (!els.formatSelect) {
                 return;
             }

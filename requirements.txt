@@ -1,4 +1,4 @@
 # Core dependencies for the TTSFM package
 requests>=2.25.0
 aiohttp>=3.8.0
-fake-useragent>=1.4.0
+python-dotenv>=1.0.1

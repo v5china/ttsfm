@@ -9,6 +9,7 @@ import json
 import time
 import uuid
 import logging
+import threading
 from typing import Optional, Dict, Any, Union, List
 from urllib.parse import urljoin
 
@@ -57,6 +58,8 @@ class TTSClient:
         max_retries: int = 3,
         verify_ssl: bool = True,
         preferred_format: Optional[AudioFormat] = None,
+        default_headers: Optional[Dict[str, str]] = None,
+        use_default_prompt: bool = False,
         **kwargs
     ):
         """
@@ -77,13 +80,16 @@ class TTSClient:
         self.max_retries = max_retries
         self.verify_ssl = verify_ssl
         self.preferred_format = preferred_format or AudioFormat.WAV
-        
+        self.use_default_prompt = use_default_prompt
+        self.default_headers = default_headers or {}
+
         # Validate base URL
         if not validate_url(self.base_url):
             raise ValidationException(f"Invalid base URL: {self.base_url}")
         
         # Setup HTTP session with retry strategy
         self.session = requests.Session()
+        self._session_lock = threading.RLock()
 
         # Configure retry strategy
         retry_strategy = Retry(
@@ -102,7 +108,8 @@ class TTSClient:
         self.session.mount("https://", adapter)
 
         # Set default headers
-        self.session.headers.update(get_realistic_headers())
+        base_headers = get_realistic_headers(self.default_headers)
+        self.session.headers.update(base_headers)
 
         if self.api_key:
             self.session.headers["Authorization"] = f"Bearer {self.api_key}"
@@ -326,7 +333,7 @@ class TTSClient:
         # Add prompt/instructions if provided
         if request.instructions:
             form_data['prompt'] = request.instructions
-        else:
+        elif self.use_default_prompt:
             # Default prompt for better quality
             form_data['prompt'] = (
                 "Affect/personality: Natural and clear\n\n"
@@ -362,13 +369,15 @@ class TTSClient:
                     time.sleep(delay)
 
                 # Use multipart form data as required by openai.fm
-                response = self.session.post(
-                    url,
-                    data=form_data,
-                    headers=format_headers,
-                    timeout=self.timeout,
-                    verify=self.verify_ssl
-                )
+                payload = dict(form_data)
+                with self._session_lock:
+                    response = self.session.post(
+                        url,
+                        data=payload,
+                        headers=format_headers,
+                        timeout=self.timeout,
+                        verify=self.verify_ssl
+                    )
                 
                 # Handle different response types
                 if response.status_code == 200:

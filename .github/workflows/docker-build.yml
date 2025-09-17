@@ -138,6 +138,28 @@ jobs:
           build-args: |
             VERSION=${{ steps.version.outputs.version }}
 
+      - name: Smoke test local image
+        if: steps.build-config.outputs.load == 'true'
+        run: |
+          set -euo pipefail
+          IMAGE="${{ steps.meta-local.outputs.tags }}"
+          echo "Running smoke test for $IMAGE"
+          docker run -d --rm --name ttsfm-smoke -p 127.0.0.1:8000:8000 "$IMAGE"
+          success=""
+          for attempt in $(seq 1 10); do
+            if curl --fail --silent --max-time 5 http://127.0.0.1:8000/api/health > /tmp/ttsfm-health.json; then
+              success="yes"
+              cat /tmp/ttsfm-health.json
+              break
+            fi
+            sleep 3
+          done
+          docker rm -f ttsfm-smoke
+          if [ -z "$success" ]; then
+            echo "Container health check failed" >&2
+            exit 1
+          fi
+
       - name: Show image info
         run: |
           echo "Pushed tags: ${{ steps.meta.outputs.tags || steps.meta-local.outputs.tags }}"

@@ -56,6 +56,8 @@ class AsyncTTSClient:
         max_retries: int = 3,
         verify_ssl: bool = True,
         max_concurrent: int = 10,
+        default_headers: Optional[Dict[str, str]] = None,
+        use_default_prompt: bool = False,
         **kwargs
     ):
         """
@@ -76,6 +78,8 @@ class AsyncTTSClient:
         self.max_retries = max_retries
         self.verify_ssl = verify_ssl
         self.max_concurrent = max_concurrent
+        self.use_default_prompt = use_default_prompt
+        self.default_headers = default_headers or {}
         
         # Validate base URL
         if not validate_url(self.base_url):
@@ -100,7 +104,7 @@ class AsyncTTSClient:
         """Ensure HTTP session is created."""
         if self._session is None or self._session.closed:
             # Setup headers
-            headers = get_realistic_headers()
+            headers = get_realistic_headers(self.default_headers)
             if self.api_key:
                 headers["Authorization"] = f"Bearer {self.api_key}"
             
@@ -280,14 +284,16 @@ class AsyncTTSClient:
         # Process requests concurrently with semaphore limiting
         tasks = [self._make_request(request) for request in requests]
         responses = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         # Check for exceptions and convert them
         results = []
         for i, response in enumerate(responses):
             if isinstance(response, Exception):
-                raise TTSException(f"Request {i} failed: {str(response)}")
+                if isinstance(response, TTSException):
+                    raise response
+                raise TTSException(f"Request {i} failed") from response
             results.append(response)
-        
+
         return results
     
     async def generate_speech_from_request(self, request: TTSRequest) -> TTSResponse:
@@ -331,7 +337,7 @@ class AsyncTTSClient:
             # Add prompt/instructions if provided
             if request.instructions:
                 form_data['prompt'] = request.instructions
-            else:
+            elif self.use_default_prompt:
                 # Default prompt for better quality
                 form_data['prompt'] = (
                     "Affect/personality: Natural and clear\n\n"
@@ -355,7 +361,8 @@ class AsyncTTSClient:
                         await asyncio.sleep(delay)
 
                     # Use form data as required by openai.fm
-                    async with self._session.post(url, data=form_data) as response:
+                    payload = dict(form_data)
+                    async with self._session.post(url, data=payload) as response:
                         # Handle different response types
                         if response.status == 200:
                             return await self._process_openai_fm_response(response, request)

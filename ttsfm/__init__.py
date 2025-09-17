@@ -62,7 +62,7 @@ from .utils import (
     split_text_by_length
 )
 
-__version__ = "3.2.8"
+__version__ = "3.3.0-alpha"
 __author__ = "dbcccc"
 __email__ = "120614547+dbccccccc@users.noreply.github.com"
 __description__ = "Text-to-Speech API Client with OpenAI compatibility"
@@ -191,3 +191,4 @@ __all__ = [
     "__description__",
     "__url__"
 ]
+
