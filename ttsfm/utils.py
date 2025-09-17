@@ -10,6 +10,9 @@ import re
 import time
 import random
 import logging
+from html import unescape
+from itertools import cycle
+from threading import Lock
 from typing import Dict, Any, Optional, Union, List
 from urllib.parse import urljoin, urlparse
 
@@ -17,80 +20,146 @@ from urllib.parse import urljoin, urlparse
 # Configure logging
 logger = logging.getLogger(__name__)
 
+DEFAULT_USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+]
+
+_HEADER_SEED = os.getenv("TTSFM_HEADER_SEED")
+_USE_FAKE_USERAGENT = os.getenv("TTSFM_USE_FAKE_USERAGENT", "false").lower() == "true"
+_RANDOMIZE_HEADERS = os.getenv("TTSFM_RANDOMIZE_HEADERS", "false").lower() == "true"
+
+_HEADER_RANDOM: Optional[random.Random]
+if _RANDOMIZE_HEADERS:
+    _HEADER_RANDOM = random.Random(_HEADER_SEED) if _HEADER_SEED is not None else random.Random()
+else:
+    _HEADER_RANDOM = None
+
+_LANGUAGE_OPTIONS = ["en-US,en;q=0.9", "en-GB,en;q=0.8", "en-CA,en;q=0.7"]
+_PLATFORM_OPTIONS = ['"Windows"', '"macOS"', '"Linux"']
+_LANGUAGE_CYCLE = cycle(_LANGUAGE_OPTIONS)
+_PLATFORM_CYCLE = cycle(_PLATFORM_OPTIONS)
+_LANGUAGE_LOCK = Lock()
+_PLATFORM_LOCK = Lock()
+_UPGRADE_TOGGLE = cycle([True, False])
+_UPGRADE_LOCK = Lock()
+
+_USER_AGENT_CYCLE = cycle(DEFAULT_USER_AGENTS)
+_USER_AGENT_LOCK = Lock()
+
+try:  # Optional dependency – only used when explicitly enabled
+    if _USE_FAKE_USERAGENT:
+        from fake_useragent import UserAgent  # type: ignore
+    else:
+        UserAgent = None  # type: ignore
+except Exception as exc:  # pragma: no cover - defensive import guard
+    logger.debug("fake-useragent unavailable: %s", exc)
+    UserAgent = None  # type: ignore
+
+QUOTE_CHAR_MAP = dict.fromkeys(
+    [0x201C, 0x201D, 0x201E, 0x201F, 0x0060],
+    '"'
+)
+QUOTE_CHAR_MAP.update({
+    0x2019: "'",
+    0x2018: "'",
+    0x201A: "'",
+    0x00B4: "'",
+})
+QUOTE_TRANSLATION = str.maketrans(QUOTE_CHAR_MAP)
+
 
 def get_user_agent() -> str:
-    """
-    Generate a realistic User-Agent string.
-    
-    Returns:
-        str: User-Agent string for HTTP requests
-    """
-    try:
-        from fake_useragent import UserAgent
-        ua = UserAgent()
-        return ua.random
-    except ImportError:
-        # Fallback if fake_useragent is not available
-        return "TTSFM-Client/3.0.0 (Python)"
+    """Return a realistic User-Agent string without requiring network access."""
+    override = os.getenv("TTSFM_USER_AGENT")
+    if override:
+        return override.strip()
+
+    if _USE_FAKE_USERAGENT and UserAgent is not None:  # pragma: no cover - requires optional dependency
+        try:
+            ua = UserAgent(fallback=DEFAULT_USER_AGENTS[0])
+            candidate = ua.random
+            if candidate:
+                return candidate
+        except Exception as exc:  # pragma: no cover - fake_useragent instability
+            logger.debug("fake-useragent lookup failed, using static list: %s", exc)
+
+    with _USER_AGENT_LOCK:
+        return next(_USER_AGENT_CYCLE)
 
 
-def get_realistic_headers() -> Dict[str, str]:
-    """
-    Generate realistic HTTP headers for requests.
-    
-    Returns:
-        Dict[str, str]: HTTP headers dictionary
-    """
+
+def _next_language() -> str:
+    with _LANGUAGE_LOCK:
+        return next(_LANGUAGE_CYCLE)
+
+
+def _next_platform() -> str:
+    with _PLATFORM_LOCK:
+        return next(_PLATFORM_CYCLE)
+
+
+def _upgrade_insecure_requests() -> bool:
+    if _HEADER_RANDOM:
+        return _HEADER_RANDOM.random() < 0.5
+    with _UPGRADE_LOCK:
+        return next(_UPGRADE_TOGGLE)
+
+
+def get_realistic_headers(custom_headers: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    """Generate HTTP headers that mimic a browser while remaining deterministic."""
     user_agent = get_user_agent()
-    
+
     headers = {
         "Accept": "application/json, audio/*",
         "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": random.choice(["en-US,en;q=0.9", "en-GB,en;q=0.8", "en-CA,en;q=0.7"]),
+        "Accept-Language": _next_language(),
         "Cache-Control": "no-cache",
         "DNT": "1",
         "Pragma": "no-cache",
         "User-Agent": user_agent,
         "X-Requested-With": "XMLHttpRequest",
     }
-    
-    # Add browser-specific headers for Chromium-based browsers
-    if any(browser in user_agent.lower() for browser in ['chrome', 'edge', 'chromium']):
+
+    if any(browser in user_agent.lower() for browser in ["chrome", "edge", "chromium"]):
         version_match = re.search(r'(?:Chrome|Edge|Chromium)/(\d+)', user_agent)
         major_version = version_match.group(1) if version_match else "121"
-        
-        brands = []
+
         if 'google chrome' in user_agent.lower():
-            brands.extend([
+            brands = [
                 f'"Google Chrome";v="{major_version}"',
                 f'"Chromium";v="{major_version}"',
-                '"Not A(Brand";v="99"'
-            ])
+                '"Not A(Brand";v="99"',
+            ]
         elif 'microsoft edge' in user_agent.lower():
-            brands.extend([
+            brands = [
                 f'"Microsoft Edge";v="{major_version}"',
                 f'"Chromium";v="{major_version}"',
-                '"Not A(Brand";v="99"'
-            ])
+                '"Not A(Brand";v="99"',
+            ]
         else:
-            brands.extend([
+            brands = [
                 f'"Chromium";v="{major_version}"',
-                '"Not A(Brand";v="8"'
-            ])
-        
+                '"Not A(Brand";v="8"',
+            ]
+
         headers.update({
             "Sec-Ch-Ua": ", ".join(brands),
             "Sec-Ch-Ua-Mobile": "?0",
-            "Sec-Ch-Ua-Platform": random.choice(['"Windows"', '"macOS"', '"Linux"']),
+            "Sec-Ch-Ua-Platform": _next_platform(),
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin"
+            "Sec-Fetch-Site": "same-origin",
         })
-    
-    # Randomly add some optional headers
-    if random.random() < 0.5:
+
+    if _upgrade_insecure_requests():
         headers["Upgrade-Insecure-Requests"] = "1"
-    
+
+    if custom_headers:
+        headers.update(custom_headers)
+
     return headers
 
 
@@ -126,178 +195,108 @@ def validate_text_length(text: str, max_length: int = 4096, raise_error: bool = 
     return True
 
 
+_SENTENCE_TERMINATORS = {".", "!", "?"}
+
+
+def _split_into_sentences(text: str) -> List[str]:
+    sentences: List[str] = []
+    buffer: List[str] = []
+    length = len(text)
+    i = 0
+
+    while i < length:
+        char = text[i]
+        buffer.append(char)
+
+        if char in _SENTENCE_TERMINATORS:
+            j = i + 1
+            while j < length and text[j] in _SENTENCE_TERMINATORS:
+                buffer.append(text[j])
+                j += 1
+            sentence = ''.join(buffer).strip()
+            if sentence:
+                sentences.append(sentence)
+            buffer = []
+            i = j - 1
+        i += 1
+
+    remainder = ''.join(buffer).strip()
+    if remainder:
+        sentences.append(remainder)
+
+    return sentences
+
+
 def split_text_by_length(text: str, max_length: int = 4096, preserve_words: bool = True) -> List[str]:
-    """
-    Split text into chunks that don't exceed the maximum length.
-
-    Args:
-        text: Text to split
-        max_length: Maximum length per chunk
-        preserve_words: Whether to avoid splitting words
-
-    Returns:
-        List[str]: List of text chunks
-    """
+    """Split text into chunks no longer than ``max_length`` characters."""
     if not text:
         return []
 
     if len(text) <= max_length:
         return [text]
 
-    chunks = []
+    chunks: List[str] = []
 
     if preserve_words:
-        # Split by sentences first, then by words if needed
-        sentences = re.split(r'[.!?]+', text)
-        current_chunk = ""
+        sentences = _split_into_sentences(text)
+        current_segment: List[str] = []
+        current_length = 0
 
         for sentence in sentences:
-            sentence = sentence.strip()
             if not sentence:
                 continue
 
-            # Add sentence ending punctuation back
-            if not sentence.endswith(('.', '!', '?')):
-                sentence += '.'
+            separator = ' ' if current_segment else ''
+            candidate_length = current_length + len(separator) + len(sentence)
 
-            # Check if adding this sentence would exceed the limit
-            test_chunk = current_chunk + (" " if current_chunk else "") + sentence
+            if candidate_length <= max_length:
+                current_segment.append(sentence)
+                current_length = candidate_length
+                continue
 
-            if len(test_chunk) <= max_length:
-                current_chunk = test_chunk
-            else:
-                # Save current chunk if it has content
-                if current_chunk:
-                    chunks.append(current_chunk.strip())
+            if current_segment:
+                chunks.append(' '.join(current_segment))
 
-                # If single sentence is too long, split by words
-                if len(sentence) > max_length:
-                    word_chunks = _split_by_words(sentence, max_length)
-                    chunks.extend(word_chunks)
-                    current_chunk = ""
-                else:
-                    current_chunk = sentence
+            if len(sentence) > max_length:
+                chunks.append(sentence)
+                current_segment = []
+                current_length = 0
+                continue
 
-        # Add remaining chunk
-        if current_chunk:
-            chunks.append(current_chunk.strip())
+            current_segment = [sentence]
+            current_length = len(sentence)
+
+        if current_segment:
+            chunks.append(' '.join(current_segment))
     else:
-        # Simple character-based splitting
         for i in range(0, len(text), max_length):
-            chunks.append(text[i:i + max_length])
+            chunk = text[i:i + max_length]
+            if chunk.strip():
+                chunks.append(chunk)
 
     return [chunk for chunk in chunks if chunk.strip()]
 
 
-def _split_by_words(text: str, max_length: int) -> List[str]:
-    """
-    Split text by words when sentences are too long.
 
-    Args:
-        text: Text to split
-        max_length: Maximum length per chunk
-
-    Returns:
-        List[str]: List of word-based chunks
-    """
-    words = text.split()
-    chunks = []
-    current_chunk = ""
-
-    for word in words:
-        test_chunk = current_chunk + (" " if current_chunk else "") + word
-
-        if len(test_chunk) <= max_length:
-            current_chunk = test_chunk
-        else:
-            if current_chunk:
-                chunks.append(current_chunk)
-
-            # If single word is too long, split it
-            if len(word) > max_length:
-                for i in range(0, len(word), max_length):
-                    chunks.append(word[i:i + max_length])
-                current_chunk = ""
-            else:
-                current_chunk = word
-
-    if current_chunk:
-        chunks.append(current_chunk)
-
-    return chunks
 
 
 def sanitize_text(text: str) -> str:
-    """
-    Sanitize input text for TTS processing.
-
-    Removes HTML markup and potentially problematic characters to ensure
-    clean text input for text-to-speech generation. Uses safe regex patterns
-    to prevent ReDoS attacks.
-
-    Args:
-        text: Input text to sanitize
-
-    Returns:
-        str: Sanitized text safe for TTS processing
-
-    Raises:
-        ValueError: If input text is too long (>50000 characters)
-    """
+    """Sanitize input text for TTS processing while keeping user content intact."""
     if not text:
         return ""
 
-    # Prevent ReDoS attacks by limiting input length
     if len(text) > 50000:
         raise ValueError("Input text too long for sanitization (max 50000 characters)")
 
-    # Use a simple character-by-character approach to remove HTML-like content
-    # This avoids complex regex patterns that can cause ReDoS
-    result = []
-    i = 0
-    while i < len(text):
-        if text[i] == '<':
-            # Find the end of the tag
-            j = i + 1
-            while j < len(text) and text[j] != '>':
-                j += 1
-            if j < len(text):
-                # Skip the entire tag
-                i = j + 1
-            else:
-                # No closing >, treat as regular character
-                result.append(text[i])
-                i += 1
-        elif text[i] == '&':
-            # Handle HTML entities
-            j = i + 1
-            while j < len(text) and j < i + 10 and text[j] not in ' \t\n\r<>&':
-                j += 1
-            if j < len(text) and text[j] == ';':
-                # Skip the entity
-                i = j + 1
-            else:
-                # Not a valid entity, keep the &
-                result.append(' ')  # Replace with space for TTS
-                i += 1
-        else:
-            # Regular character
-            char = text[i]
-            # Normalize quotes for TTS
-            if char in '""''`':
-                result.append('"')
-            elif char in '<>':
-                # Skip these characters
-                pass
-            else:
-                result.append(char)
-            i += 1
+    normalized = unescape(text)
+    normalized = normalized.translate(QUOTE_TRANSLATION)
+    normalized = normalized.replace(' ', ' ')
 
-    # Join and normalize whitespace using a safe regex
-    sanitized = ''.join(result)
-    sanitized = re.sub(r'[ \t\n\r\f\v]+', ' ', sanitized)
+    without_tags = re.sub(r'<[^>]+>', ' ', normalized)
+    cleaned = without_tags.replace('<', ' ').replace('>', ' ')
+    cleaned = re.sub(r'\s+', ' ', cleaned)
 
-    return sanitized.strip()
+    return cleaned.strip()
 
 
 def validate_url(url: str) -> bool:

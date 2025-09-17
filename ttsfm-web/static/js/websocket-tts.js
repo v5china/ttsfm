@@ -99,6 +99,10 @@ class WebSocketTTSClient {
         this.socket.on('stream_error', (data) => {
             this.handleStreamError(data);
         });
+
+        this.socket.on('stream_cancelled', (data) => {
+            this.handleStreamCancelled(data);
+        });
     }
     
     /**
@@ -151,8 +155,7 @@ class WebSocketTTSClient {
             return;
         }
         
-        // Convert hex string back to binary
-        const audioData = this.hexToArrayBuffer(data.audio_data);
+        const audioData = this.decodeAudioPayload(data);
         
         // Store chunk
         request.audioChunks.push({
@@ -173,7 +176,7 @@ class WebSocketTTSClient {
             request.onChunk({
                 chunkIndex: data.chunk_index,
                 totalChunks: data.total_chunks,
-                audioData: audioData,
+                audioData,
                 duration: data.duration,
                 text: data.chunk_text
             });
@@ -256,6 +259,22 @@ class WebSocketTTSClient {
         
         this.log('Stream error:', data.request_id, data.error);
     }
+
+    handleStreamCancelled(data) {
+        const request = this.activeRequests.get(data.request_id);
+        if (!request) {
+            return;
+        }
+
+        this.log('Stream cancelled:', data.request_id);
+        if (request.onError) {
+            request.onError(new Error('Stream cancelled'));
+        }
+
+        request.reject(new Error('Stream cancelled'));
+        this.activeRequests.delete(data.request_id);
+        this.audioQueue.delete(data.request_id);
+    }
     
     /**
      * Cancel an active stream
@@ -319,6 +338,34 @@ class WebSocketTTSClient {
     /**
      * Utility functions
      */
+    decodeAudioPayload(data) {
+        if (!data || !data.audio_data) {
+            return new ArrayBuffer(0);
+        }
+
+        const encoding = (data.encoding || 'base64').toLowerCase();
+        if (encoding === 'base64') {
+            return this.base64ToArrayBuffer(data.audio_data);
+        }
+        if (encoding === 'hex') {
+            return this.hexToArrayBuffer(data.audio_data);
+        }
+
+        this.log('Unknown audio encoding:', encoding, '— defaulting to base64');
+        return this.base64ToArrayBuffer(data.audio_data);
+    }
+
+    base64ToArrayBuffer(base64String) {
+        const normalized = base64String.replace(/\s/g, '');
+        const binaryString = atob(normalized);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
     hexToArrayBuffer(hex) {
         const bytes = new Uint8Array(hex.length / 2);
         for (let i = 0; i < hex.length; i += 2) {

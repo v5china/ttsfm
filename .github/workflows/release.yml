@@ -25,10 +25,19 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install build twine
+        pip install '.[web,dev]'
+
+    - name: Run linters and type checks
+      run: |
+        flake8 ttsfm ttsfm-web
+        mypy ttsfm
+        black --check ttsfm ttsfm-web tests
+
+    - name: Run tests
+      run: pytest
 
     - name: Test package install and import
       run: |
-        pip install '.[web]'
         python -c "import ttsfm; print('TTSFM imported successfully')"
         python -c "from ttsfm import TTSClient; print('TTSClient imported successfully')"
         python -m ttsfm.cli --help > /dev/null

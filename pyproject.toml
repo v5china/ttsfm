@@ -43,7 +43,6 @@ requires-python = ">=3.8"
 dependencies = [
     "requests>=2.25.0",
     "aiohttp>=3.8.0",
-    "fake-useragent>=1.4.0",
     "python-dotenv>=1.0.1",
 ]
 
@@ -70,6 +69,8 @@ web = [
     "python-socketio>=5.10.0",
     "eventlet>=0.33.3",
     "waitress>=3.0.0",
+    "pydub>=0.25.0",
+    "argon2-cffi>=23.1.0",
 ]
 
 [project.urls]
@@ -85,6 +86,7 @@ ttsfm = "ttsfm.cli:main"
 version_scheme = "no-guess-dev"
 local_scheme = "no-local-version"
 
+fallback_version = "3.3.0-alpha"
 [tool.setuptools]
 packages = ["ttsfm"]
 
@@ -167,3 +169,4 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
+

@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0-alpha] - 2025-09-17
+
+### Added
+- Flask web app now spins up per-request TTS clients, streams responses, hashes API keys, and enforces simple rate limits.
+- WebSocket handler tracks active tasks, supports cancellation, and streams base64 audio chunks for responsive UIs.
+- Frontend metadata fetches use a cached API client, and CI now runs lint/test gates before packaging artifacts.
+
+### Changed
+- Deterministic HTTP header generation no longer depends on network user-agent lookups.
+- Default narration prompts are opt-in for both sync and async clients, and retry logic preserves original exceptions.
+- Audio combining requires "pydub" for non-WAV formats and fails fast when the dependency is missing.
+
+### Fixed
+- Async client retry payload handling copies request bodies per attempt to avoid mutation side effects.
+
 ## [3.2.9] - 2025-09-16
 
 ### Container build
@@ -291,3 +306,5 @@ The following versions were service/API server releases only and were not availa
 
 ### [1.0.0] - 2025-03-26
 - First service release
+
+
