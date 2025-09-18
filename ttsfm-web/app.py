@@ -531,6 +531,10 @@ def generate_speech():
             ), 400
 
         effective_format = get_supported_format(format_enum)
+        if len(input_text) > max_length and auto_combine and effective_format is AudioFormat.MP3:
+            effective_format = AudioFormat.WAV
+        if len(text) > max_length and effective_format is AudioFormat.MP3:
+            effective_format = AudioFormat.WAV
 
         logger.info(
             "Generating speech: text='%s...', voice=%s, requested_format=%s (effective=%s)",
@@ -656,8 +660,9 @@ def generate_speech_combined():
             return jsonify({"error": "Invalid voice or format specified"}), 400
 
         logger.info(
-            "Generating combined speech for long text: %s characters, splitting into chunks",
+            "Combining long text (%s chars) using format %s",
             len(text),
+            effective_format.value,
         )
 
         # Generate speech chunks
@@ -667,7 +672,7 @@ def generate_speech_combined():
             responses = client.generate_speech_long_text(
                 text=text,
                 voice=voice_enum,
-                response_format=format_enum,
+                response_format=effective_format,
                 instructions=instructions,
                 max_length=max_length,
                 preserve_words=preserve_words,
@@ -717,8 +722,10 @@ def generate_speech_combined():
             'X-Audio-Size': str(len(combined_audio)),
             'X-Chunks-Combined': str(len(responses)),
             'X-Original-Text-Length': str(len(text)),
+            'X-Auto-Combine': 'true',
+            'X-Powered-By': 'TTSFM-OpenAI-Compatible',
             'X-Requested-Format': format_enum.value,
-            'X-Effective-Format': get_supported_format(format_enum).value
+            'X-Effective-Format': effective_format.value
         }
 
         return Response(
@@ -770,7 +777,7 @@ def get_status():
         return jsonify({
             "status": "online",
             "tts_service": "openai.fm (free)",
-            "package_version": "3.3.0-alpha5",
+            "package_version": "3.3.0-beta1",
             "timestamp": datetime.now().isoformat()
         })
 
@@ -789,7 +796,7 @@ def health_check():
     """Simple health check endpoint."""
     return jsonify({
         "status": "healthy",
-        "package_version": "3.3.0-alpha5",
+        "package_version": "3.3.0-beta1",
         "timestamp": datetime.now().isoformat()
     })
 
@@ -924,15 +931,16 @@ def openai_speech():
         if len(input_text) > max_length and auto_combine:
             # Long text with auto-combine enabled: split and combine
             logger.info(
-                "Long text detected (%s chars), auto-combining enabled",
+                "Long text detected (%s chars); auto-combining with format %s",
                 len(input_text),
+                effective_format.value,
             )
 
             # Generate speech chunks
             responses = client.generate_speech_long_text(
                 text=input_text,
                 voice=voice_enum,
-                response_format=format_enum,
+                response_format=effective_format,
                 instructions=instructions,
                 max_length=max_length,
                 preserve_words=True

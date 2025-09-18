@@ -5,11 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0-beta1] - 2025-09-22
+
+### Changed
+- Promoted the release to **beta1** now that HTTP endpoints are stable and long-text combining no longer depends on external ffmpeg tooling.
+- No additional functional changes beyond the alpha5 hotfixes; this is a stability re-tag for broader testing.
+
 ## [3.3.0-alpha5] - 2025-09-19
 
 ### Fixed
 - Restored lint compliance across the repo (flake8, import hygiene, line wrapping) so the release pipeline can publish successfully.
 - Hardened Docker smoke test to manage container lifecycle and surface logs when health checks fail.
+- Ensured Eventlet monkey patching happens before Flask imports to stop recursion-depth crashes and restore HTTP endpoint health.
+- Forced long-text auto-combine flows to request WAV when MP3 would require `ffmpeg`, avoiding runtime errors on stock deployments.
 
 ### Documentation
 - Updated release notes to point to the `alpha5` build.

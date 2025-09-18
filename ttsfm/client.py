@@ -317,7 +317,7 @@ class TTSClient:
         responses = self.generate_speech_batch(
             text=text,
             voice=voice,
-            response_format=response_format,
+            response_format=self._resolve_long_text_format(response_format, auto_combine),
             instructions=instructions,
             max_length=max_length,
             preserve_words=preserve_words,
@@ -325,9 +325,41 @@ class TTSClient:
         )
 
         if auto_combine:
-            return combine_responses(responses)
+            combined = combine_responses(responses)
+            original_format = self._normalise_format_value(response_format)
+            if combined.metadata is None:
+                combined.metadata = {}
+            combined.metadata.setdefault("actual_format", combined.format.value)
+            if original_format != combined.format.value:
+                combined.metadata["original_requested_format"] = original_format
+            return combined
 
         return responses
+
+    @staticmethod
+    def _normalise_format_value(response_format: Union[AudioFormat, str]) -> str:
+        if isinstance(response_format, AudioFormat):
+            return response_format.value
+        return str(response_format).lower()
+
+    def _resolve_long_text_format(
+        self,
+        response_format: Union[AudioFormat, str],
+        auto_combine: bool,
+    ) -> Union[AudioFormat, str]:
+        if not auto_combine:
+            return response_format
+
+        fmt_value = self._normalise_format_value(response_format)
+        try:
+            fmt_enum = AudioFormat(fmt_value)
+        except ValueError:
+            return AudioFormat.WAV
+
+        if fmt_enum is AudioFormat.MP3:
+            return AudioFormat.WAV
+
+        return response_format
 
     def _make_request(self, request: TTSRequest) -> TTSResponse:
         """
