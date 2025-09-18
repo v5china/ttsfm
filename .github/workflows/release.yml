@@ -103,4 +103,5 @@ jobs:
           ### Documentation
           See [README](https://github.com/dbccccccc/ttsfm#readme) for full documentation.
         draft: false
-        prerelease: false
+        prerelease: ${{ contains(github.ref_name, '-' ) }}
+
