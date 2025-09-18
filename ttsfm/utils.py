@@ -227,6 +227,61 @@ def _split_into_sentences(text: str) -> List[str]:
     return sentences
 
 
+def _split_long_segment(segment: str, max_length: int) -> List[str]:
+    """Fallback splitter for oversized segments."""
+    if len(segment) <= max_length:
+        return [segment]
+
+    parts: List[str] = []
+    words = segment.split()
+
+    if not words:
+        for i in range(0, len(segment), max_length):
+            chunk = segment[i:i + max_length]
+            if chunk.strip():
+                parts.append(chunk)
+        return parts
+
+    current_words: List[str] = []
+    current_len = 0
+
+    for word in words:
+        word_len = len(word)
+
+        if word_len > max_length:
+            if current_words:
+                parts.append(' '.join(current_words))
+                current_words = []
+                current_len = 0
+
+            for i in range(0, word_len, max_length):
+                chunk = word[i:i + max_length]
+                if chunk.strip():
+                    parts.append(chunk)
+            continue
+
+        separator = 1 if current_words else 0
+        proposed = current_len + word_len + separator
+
+        if proposed <= max_length:
+            if separator:
+                current_len += 1
+            current_words.append(word)
+            current_len += word_len
+            continue
+
+        if current_words:
+            parts.append(' '.join(current_words))
+
+        current_words = [word]
+        current_len = word_len
+
+    if current_words:
+        parts.append(' '.join(current_words))
+
+    return parts
+
+
 def split_text_by_length(text: str, max_length: int = 4096, preserve_words: bool = True) -> List[str]:
     """Split text into chunks no longer than ``max_length`` characters."""
     if not text:
@@ -236,6 +291,8 @@ def split_text_by_length(text: str, max_length: int = 4096, preserve_words: bool
         return [text]
 
     chunks: List[str] = []
+    effective_max = max(1, max_length)
+    tolerance = min(32, max(8, effective_max // 10))
 
     if preserve_words:
         sentences = _split_into_sentences(text)
@@ -257,8 +314,8 @@ def split_text_by_length(text: str, max_length: int = 4096, preserve_words: bool
             if current_segment:
                 chunks.append(' '.join(current_segment))
 
-            if len(sentence) > max_length:
-                chunks.append(sentence)
+            if len(sentence) > effective_max + tolerance:
+                chunks.extend(_split_long_segment(sentence, max_length))
                 current_segment = []
                 current_length = 0
                 continue

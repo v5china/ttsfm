@@ -235,6 +235,10 @@ class WebSocketTTSHandler:
             logger.error(f"Stream generation failed: {str(e)}")
             self._emit_error(session_id, request_id, str(e))
         finally:
+            try:
+                client.close()
+            except Exception as exc:  # pragma: no cover - defensive cleanup
+                logger.debug("Failed to close TTS client cleanly: %s", exc)
             self._remove_task(session_id, request_id)
 
     def _emit_error(self, session_id: str, request_id: str, error_message: str):

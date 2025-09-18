@@ -26,7 +26,7 @@ TTSFM provides both synchronous and asynchronous Python clients for text-to-spee
 - 🔧 **CLI Tool** - Command-line interface for quick TTS generation
 - 📦 **Type Hints** - Full type annotation support for better IDE experience
 - 🛡️ **Error Handling** - Comprehensive exception hierarchy with retry logic
-- ✨ **Auto-Combine** - Automatically handles long text with seamless audio combining
+- ✨ **Auto-Combine** (Web API) - Docker/OpenAI-compatible endpoint can split and merge long text for you
 - 📊 **Text Validation** - Automatic text length validation and splitting
 - 🔐 **API Key Protection** - Optional OpenAI-compatible authentication for secure deployments
 
