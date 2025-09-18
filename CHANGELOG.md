@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Restored lint compliance across the repo (flake8, import hygiene, line wrapping) so the release pipeline can publish successfully.
+- Hardened Docker smoke test to manage container lifecycle and surface logs when health checks fail.
 
 ### Documentation
 - Updated release notes to point to the `alpha5` build.
