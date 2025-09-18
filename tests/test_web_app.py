@@ -45,6 +45,46 @@ def test_voices_endpoint_returns_data(monkeypatch):
     assert payload['count'] == len(payload['voices'])
 
 
+def test_combine_audio_chunks_uses_format_hint(monkeypatch):
+    module = load_web_app(monkeypatch, REQUIRE_API_KEY='false', TTSFM_API_KEY=None)
+
+    class DummySegment:
+        def __init__(self, tag: str):
+            self.tag = tag
+
+        def __iadd__(self, other: "DummySegment"):
+            self.tag += other.tag
+            return self
+
+        def export(self, buffer, format: str):
+            buffer.write(f"{format}:{self.tag}".encode())
+
+    class DummyAudioSegment:
+        formats = []
+
+        @classmethod
+        def from_mp3(cls, buffer):
+            cls.formats.append("mp3")
+            return DummySegment("mp3")
+
+        @classmethod
+        def from_wav(cls, buffer):
+            cls.formats.append("wav")
+            return DummySegment("wav")
+
+        @classmethod
+        def from_file(cls, buffer, format: str):
+            cls.formats.append(format)
+            return DummySegment(format)
+
+    monkeypatch.setattr(module, "AudioSegment", DummyAudioSegment)
+
+    output = module.combine_audio_chunks([b"one", b"two"], "opus")
+
+    assert output == b"opus:opusopus"
+    assert DummyAudioSegment.formats == ["opus", "opus"]
+
+
 @pytest.mark.parametrize('header_name, header_value', [
     ('Authorization', 'Bearer super-secret'),
     ('X-API-Key', 'super-secret'),

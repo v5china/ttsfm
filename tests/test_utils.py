@@ -14,6 +14,25 @@ def test_split_text_preserves_sentence_punctuation():
     assert chunks[2].endswith("."), chunks
 
 
+def test_split_text_handles_oversized_sentence():
+    long_sentence = " ".join(["word"] * 600)
+    chunks = utils.split_text_by_length(long_sentence, max_length=120)
+
+    assert all(len(chunk) <= 120 for chunk in chunks)
+    assert sum(len(chunk.split()) for chunk in chunks) == 600
+
+
+def test_split_text_handles_extremely_long_word():
+    max_length = 50
+    painful_word = "a" * 140
+    text = f"start {painful_word} end"
+
+    chunks = utils.split_text_by_length(text, max_length=max_length)
+
+    assert any(painful_word[:max_length] in chunk for chunk in chunks)
+    assert all(len(chunk) <= max_length for chunk in chunks)
+
+
 def test_sanitize_text_retains_ampersands():
     text = "R&D and Fish & Chips &amp; Co. <b>Bold</b>"
     sanitized = utils.sanitize_text(text)

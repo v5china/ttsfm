@@ -292,10 +292,9 @@ def combine_audio_chunks(audio_chunks: List[bytes], format_type: str = "mp3") ->
                 segment = AudioSegment.from_mp3(buffer)
             elif fmt == "wav":
                 segment = AudioSegment.from_wav(buffer)
-            elif fmt == "opus":
-                segment = AudioSegment.from_wav(buffer)
             else:
-                segment = AudioSegment.from_file(buffer)
+                # OPUS/FLAC/AAC/PCM all require an explicit decoder hint
+                segment = AudioSegment.from_file(buffer, format=fmt)
             audio_segments.append(segment)
 
         combined = audio_segments[0]
