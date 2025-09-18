@@ -787,7 +787,7 @@ def get_status():
         return jsonify({
             "status": "online",
             "tts_service": "openai.fm (free)",
-            "package_version": "3.3.0-alpha",
+            "package_version": "3.3.0-alpha2",
             "timestamp": datetime.now().isoformat()
         })
         
@@ -805,7 +805,7 @@ def health_check():
     """Simple health check endpoint."""
     return jsonify({
         "status": "healthy",
-        "package_version": "3.3.0-alpha",
+        "package_version": "3.3.0-alpha2",
         "timestamp": datetime.now().isoformat()
     })
 

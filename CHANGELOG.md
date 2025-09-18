@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0-alpha2] - 2025-09-18
+
+### Changed
+- Non-WAV audio combining now passes explicit decoder hints so OPUS/AAC/FLAC/PCM chunks merge correctly in the web stack.
+- WebSocket streaming tasks close their per-request `TTSClient` once finished, preventing open `requests.Session` handles from accumulating.
+- Sentence splitting falls back to word-level chunks (with a small tolerance to keep punctuation) ensuring every generated request respects `max_length`.
+
+### Documentation
+- Clarified in README (EN/ZH) that automatic long-text combining is provided by the Docker/OpenAI-compatible API, not the core Python client.
+
+### Testing
+- Added regression tests for the enhanced text splitting and audio combiner behaviour and documented run commands in `AI_NOTES.md`.
+
 ## [3.3.0-alpha] - 2025-09-17
 
 ### Added
