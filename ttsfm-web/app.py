@@ -704,9 +704,10 @@ def generate_speech_combined():
         content_type = responses[0].content_type
 
         logger.info(
-            f"Successfully combined {
-                len(responses)} chunks into single audio file ({
-                len(combined_audio)} bytes)")
+            "Successfully combined %s chunks into single audio file (%s bytes)",
+            len(responses),
+            len(combined_audio),
+        )
 
         combined_headers = {
             'Content-Disposition': (
