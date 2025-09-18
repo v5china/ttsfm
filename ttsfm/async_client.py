@@ -17,7 +17,7 @@ from aiohttp import ClientTimeout, ClientSession
 from .audio import combine_responses
 from .models import (
     TTSRequest, TTSResponse, Voice, AudioFormat,
-    get_content_type, get_format_from_content_type
+    get_content_type, get_format_from_content_type, get_supported_format
 )
 from .exceptions import (
     TTSException, APIException, NetworkException, ValidationException,
@@ -373,6 +373,16 @@ class AsyncTTSClient:
 
                     # Use form data as required by openai.fm
                     payload = dict(form_data)
+                    # Normalize requested format to supported value before sending
+                    requested_format = request.response_format
+                    if isinstance(requested_format, str):
+                        try:
+                            requested_format = AudioFormat(requested_format.lower())
+                        except ValueError:
+                            requested_format = AudioFormat.WAV
+
+                    target_format = get_supported_format(requested_format)
+                    payload['response_format'] = target_format.value
                     async with self._session.post(url, data=payload) as response:
                         # Handle different response types
                         if response.status == 200:
@@ -476,7 +486,7 @@ class AsyncTTSClient:
                 requested_format = AudioFormat.MP3  # Default fallback
 
         # Import here to avoid circular imports
-        from .models import maps_to_wav
+        from .models import get_supported_format, maps_to_wav
 
         # Check if format differs from request
         if actual_format != requested_format:
@@ -505,6 +515,7 @@ class AsyncTTSClient:
                 "voice": request.voice.value,
                 "original_text": request.input[:100] + "..." if len(request.input) > 100 else request.input,
                 "requested_format": requested_format.value,
+                "effective_requested_format": get_supported_format(requested_format).value,
                 "actual_format": actual_format.value
             }
         )

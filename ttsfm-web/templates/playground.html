@@ -95,7 +95,7 @@
 
                         <div class="row">
                             <!-- Enhanced Voice Selection -->
-                            <div class="col-md-6 mb-4">
+                            <div class="col-md-12 mb-4">
                                 <label for="voice-select" class="form-label fw-bold d-flex align-items-center">
                                     <i class="fas fa-microphone me-2 text-primary"></i>
                                     {{ _('playground.voice_label') }}
@@ -105,20 +105,6 @@
                                 </select>
                                 <div class="form-text">
                                     <span>{{ _('common.choose_voice') }}</span>
-                                </div>
-                            </div>
-
-                            <!-- Enhanced Format Selection -->
-                            <div class="col-md-6 mb-4">
-                                <label for="format-select" class="form-label fw-bold d-flex align-items-center">
-                                    <i class="fas fa-file-audio me-2 text-primary"></i>
-                                    {{ _('playground.format_label') }}
-                                </label>
-                                <select class="form-select shadow-sm" id="format-select" required>
-                                    <option value="">{{ _('common.loading_formats') }}</option>
-                                </select>
-                                <div class="form-text">
-                                    <span>{{ _('common.select_format') }}</span>
                                 </div>
                             </div>
                         </div>

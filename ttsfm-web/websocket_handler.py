@@ -193,7 +193,8 @@ class WebSocketTTSHandler:
                         'audio_data': encoded_audio,
                         'encoding': 'base64',
                         'byte_length': len(response.audio_data),
-                        'format': format_enum.value,
+                        'format': response.format.value,
+                        'requested_format': format_enum.value,
                         'duration': response.duration,
                         'generation_time': generation_time,
                         'chunk_text': chunk[:50] + '...' if len(chunk) > 50 else chunk

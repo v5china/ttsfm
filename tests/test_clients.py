@@ -1,4 +1,5 @@
 import pytest
+import types
 
 from ttsfm.client import TTSClient
 from ttsfm.async_client import AsyncTTSClient
@@ -12,6 +13,50 @@ def _mk_response(data: bytes) -> TTSResponse:
         format=AudioFormat.MP3,
         size=len(data),
     )
+
+
+class _DummyResponse:
+    def __init__(self, content_type: str, content: bytes, url: str = "https://example.test/audio"):
+        self.status_code = 200
+        self.headers = {"content-type": content_type}
+        self.content = content
+        self.url = url
+        self.text = ""
+
+    def json(self):  # pragma: no cover - not used on success path
+        return {}
+
+
+def test_sync_request_normalizes_non_mp3_format(monkeypatch):
+    client = TTSClient()
+    captured = {}
+
+    def fake_post(self, url, data=None, headers=None, timeout=None, verify=None):
+        captured["data"] = data
+        return _DummyResponse("audio/wav", b"RIFF" + b"\x00" * 64, url)
+
+    monkeypatch.setattr(client.session, "post", types.MethodType(fake_post, client.session))
+
+    response = client.generate_speech(text="hello", voice="alloy", response_format=AudioFormat.FLAC)
+
+    assert captured["data"]["response_format"] == "wav"
+    assert response.format is AudioFormat.WAV
+
+
+def test_sync_request_preserves_mp3_format(monkeypatch):
+    client = TTSClient()
+    captured = {}
+
+    def fake_post(self, url, data=None, headers=None, timeout=None, verify=None):
+        captured["data"] = data
+        return _DummyResponse("audio/mpeg", b"ID3" + b"\x00" * 64, url)
+
+    monkeypatch.setattr(client.session, "post", types.MethodType(fake_post, client.session))
+
+    response = client.generate_speech(text="hello", voice="alloy", response_format=AudioFormat.MP3)
+
+    assert captured["data"]["response_format"] == "mp3"
+    assert response.format is AudioFormat.MP3
 
 
 def test_sync_long_text_auto_combine(monkeypatch):

@@ -39,10 +39,9 @@ def combine_audio_chunks(audio_chunks: Iterable[bytes], format_type: str = "mp3"
 
     fmt = format_type.lower()
 
-    if AudioSegment is None and fmt != "wav":
-        raise RuntimeError("Combining audio requires pydub for non-WAV formats. Install ttsfm[web].")
-
     if AudioSegment is None:
+        if fmt == "mp3":
+            raise RuntimeError("Combining MP3 audio requires pydub. Install ttsfm[web].")
         return _simple_wav_concatenation(chunks_list)
 
     audio_segments = []
@@ -50,10 +49,8 @@ def combine_audio_chunks(audio_chunks: Iterable[bytes], format_type: str = "mp3"
         buffer = io.BytesIO(chunk)
         if fmt == "mp3":
             segment = AudioSegment.from_mp3(buffer)
-        elif fmt == "wav":
-            segment = AudioSegment.from_wav(buffer)
         else:
-            segment = AudioSegment.from_file(buffer, format=fmt)
+            segment = AudioSegment.from_wav(buffer)
         audio_segments.append(segment)
 
     combined = audio_segments[0]
@@ -61,7 +58,7 @@ def combine_audio_chunks(audio_chunks: Iterable[bytes], format_type: str = "mp3"
         combined += segment
 
     output_buffer = io.BytesIO()
-    export_format = fmt if fmt in SUPPORTED_EXPORT_FORMATS else "wav"
+    export_format = "mp3" if fmt == "mp3" else "wav"
     combined.export(output_buffer, format=export_format)
     return output_buffer.getvalue()
 

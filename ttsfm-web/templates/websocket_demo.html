@@ -41,7 +41,7 @@
                         </div>
                         
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-12 mb-3">
                                 <label for="voice-select" class="form-label">
                                     {{ _('playground.voice', 'Voice') }}
                                 </label>
@@ -52,17 +52,6 @@
                                     <option value="onyx">Onyx</option>
                                     <option value="nova">Nova</option>
                                     <option value="shimmer">Shimmer</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label for="format-select" class="form-label">
-                                    {{ _('playground.format', 'Audio Format') }}
-                                </label>
-                                <select class="form-select" id="format-select">
-                                    <option value="mp3">MP3</option>
-                                    <option value="wav">WAV</option>
-                                    <option value="opus">OPUS</option>
                                 </select>
                             </div>
                         </div>
@@ -233,7 +222,7 @@ async function handleStreamingSubmit(e) {
     // Get form values
     const text = document.getElementById('text-input').value.trim();
     const voice = document.getElementById('voice-select').value;
-    const format = document.getElementById('format-select').value;
+    const format = 'mp3';
     
     if (!text) {
         showError('Please enter some text to convert.');

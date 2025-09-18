@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0-alpha4] - 2025-09-19
+
+### Changed
+- Enforced MP3 pass-through while mapping all other requested formats to WAV so the service returns predictable audio without failing compatibility checks.
+- Python clients now normalise outbound `response_format` payloads to the supported set and surface fallback metadata when a WAV result is returned.
+- Docker build workflow tags only `v*` image aliases to avoid duplicate semver tags without the `v` prefix.
+
+### Removed
+- Web playground and WebSocket demo no longer expose manual format selectors, reducing confusion around unavoidable WAV fallbacks.
+
+### Documentation
+- README (EN/ZH) clarifies the MP3-only guarantee and WAV fallback, and the UI copy was refreshed accordingly.
+
 ## [3.3.0-alpha3] - 2025-09-18
 
 ### Added

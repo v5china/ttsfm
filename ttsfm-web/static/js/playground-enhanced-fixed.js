@@ -39,7 +39,12 @@ const PlaygroundApp = (() => {
 
         checkAuthStatus();
         loadVoices();
-        loadFormats();
+
+        if (document.getElementById('format-select')) {
+            loadFormats();
+        } else {
+            state.format = 'mp3';
+        }
         updateCharCount();
         updateAudioSummary();
         updateActionButtons(false);
@@ -50,6 +55,10 @@ const PlaygroundApp = (() => {
         els.textInput = document.getElementById('text-input');
         els.voiceSelect = document.getElementById('voice-select');
         els.formatSelect = document.getElementById('format-select');
+        if (!els.formatSelect) {
+            els.formatSelect = document.createElement('select');
+            els.formatSelect.value = state.format;
+        }
         els.instructionsInput = document.getElementById('instructions-input');
         els.apiKeyInput = document.getElementById('api-key-input');
         els.maxLengthInput = document.getElementById('max-length-input');

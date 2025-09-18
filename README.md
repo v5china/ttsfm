@@ -21,6 +21,7 @@ TTSFM provides both synchronous and asynchronous Python clients for text-to-spee
 - ⚡ **Async & Sync** - Both `asyncio` and synchronous clients available
 - 🗣️ **11 Voices** - All OpenAI-compatible voices (alloy, echo, fable, onyx, nova, shimmer, etc.)
 - 🎵 **6 Audio Formats** - MP3, WAV, OPUS, AAC, FLAC, PCM support
+- 🎼 **Format Fallback** - MP3 requests yield MP3; other OpenAI formats map cleanly to WAV for reliable playback
 - 🐳 **Docker Ready** - One-command deployment with web interface
 - 🌐 **Web Interface** - Interactive playground for testing voices and formats
 - 🔧 **CLI Tool** - Command-line interface for quick TTS generation
@@ -184,6 +185,9 @@ combined = client.generate_speech_long_text(
 )
 
 combined.save_to_file("long_text")  # Saves as long_text.mp3
+
+# Note: Only MP3 requests return MP3 data. Other formats (OPUS/AAC/FLAC/WAV/PCM)
+# are delivered as WAV while remaining API-compatible.
 ```
 
 #### OpenAI Python Client Compatibility
@@ -269,6 +273,9 @@ ttsfm "Hello, world!" --url http://localhost:7000 --output hello.mp3
 
 # Auto-combine long text into a single file
 ttsfm --text-file article.txt --output article.mp3 --split-long-text --auto-combine
+
+> **Heads-up:** The CLI accepts all OpenAI-compatible format options, but anything
+> other than `mp3` will be delivered as WAV by the free upstream service.
 
 # List available voices
 ttsfm --list-voices

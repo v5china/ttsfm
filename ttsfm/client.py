@@ -20,7 +20,7 @@ from urllib3.util.retry import Retry
 from .audio import combine_responses
 from .models import (
     TTSRequest, TTSResponse, Voice, AudioFormat,
-    get_content_type, get_format_from_content_type
+    get_content_type, get_format_from_content_type, get_supported_format
 )
 from .exceptions import (
     TTSException, APIException, NetworkException, ValidationException,
@@ -363,6 +363,10 @@ class TTSClient:
             except ValueError:
                 requested_format = AudioFormat.WAV  # Default to WAV for unknown formats
 
+        # Map to supported format for outbound request payloads
+        target_format = get_supported_format(requested_format)
+        form_data['response_format'] = target_format.value
+
         format_headers = self._get_headers_for_format(requested_format)
 
         logger.info(f"Generating speech for text: '{request.input[:50]}...' with voice: {request.voice}")
@@ -523,6 +527,7 @@ class TTSClient:
                 "voice": request.voice.value,
                 "original_text": request.input[:100] + "..." if len(request.input) > 100 else request.input,
                 "requested_format": requested_format.value,
+                "effective_requested_format": get_supported_format(requested_format).value,
                 "actual_format": actual_format.value
             }
         )

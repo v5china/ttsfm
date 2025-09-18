@@ -57,7 +57,6 @@ function initializePlayground() {
     console.log('Initializing playground...');
     checkAuthStatus();
     loadVoices();
-    loadFormats();
     updateCharCount();
     setupEventListeners();
     console.log('Playground initialization complete');
@@ -185,14 +184,6 @@ function setupEventListeners() {
         console.error('Voice select element not found!');
     }
 
-    const formatSelect = document.getElementById('format-select');
-    if (formatSelect) {
-        formatSelect.addEventListener('change', updateFormatInfo);
-        console.log('Format select event listener added');
-    } else {
-        console.error('Format select element not found!');
-    }
-
     // Example text buttons
     document.querySelectorAll('.use-example').forEach(button => {
         button.addEventListener('click', function() {
@@ -253,38 +244,6 @@ async function loadVoices() {
     } catch (error) {
         console.error('Failed to load voices:', error);
         console.log('Failed to load voices. Please refresh the page.');
-    }
-}
-
-async function loadFormats() {
-    try {
-        // Prepare headers for API key if available (OpenAI compatible format)
-        const headers = {};
-        const apiKeyInput = document.getElementById('api-key-input');
-        if (apiKeyInput && apiKeyInput.value.trim()) {
-            headers['Authorization'] = `Bearer ${apiKeyInput.value.trim()}`;
-        }
-
-        const response = await fetch('/api/formats', { headers });
-        const data = await response.json();
-
-        const select = document.getElementById('format-select');
-        select.innerHTML = '';
-
-        data.formats.forEach(format => {
-            const option = document.createElement('option');
-            option.value = format.id;
-            option.textContent = `${format.name} - ${format.description}`;
-            select.appendChild(option);
-        });
-
-        // Select default format
-        select.value = 'mp3';
-        updateFormatInfo();
-
-    } catch (error) {
-        console.error('Failed to load formats:', error);
-        console.log('Failed to load formats. Please refresh the page.');
     }
 }
 
@@ -494,7 +453,7 @@ function getFormData() {
     return {
         text: document.getElementById('text-input').value.trim(),
         voice: document.getElementById('voice-select').value,
-        format: document.getElementById('format-select').value,
+        format: 'mp3',
         instructions: document.getElementById('instructions-input').value.trim(),
         maxLength: parseInt(document.getElementById('max-length-input').value) || 4096,
         validateLength: document.getElementById('validate-length-check').checked,
@@ -504,7 +463,7 @@ function getFormData() {
 }
 
 function validateFormData(formData) {
-    if (!formData.text || !formData.voice || !formData.format) {
+    if (!formData.text || !formData.voice) {
         console.log('Please fill in all required fields');
         return false;
     }
@@ -574,7 +533,11 @@ async function generateUnifiedSpeech(formData) {
     // Get audio data
     const audioBlob = await response.blob();
     currentAudioBlob = audioBlob;
-    currentFormat = formData.format;
+
+    const requestedFormat = formData.format;
+    const actualFormatHeader = response.headers.get('X-Audio-Format');
+    const actualFormat = actualFormatHeader ? actualFormatHeader.toLowerCase() : requestedFormat;
+    currentFormat = actualFormat;
 
     // Create audio URL and setup player
     const audioUrl = URL.createObjectURL(audioBlob);
@@ -587,13 +550,18 @@ async function generateUnifiedSpeech(formData) {
     const originalLength = response.headers.get('X-Original-Text-Length');
 
     // Use enhanced display function with new metadata
-    displayAudioResult(audioBlob, formData.format, formData.voice, formData.text, {
+    displayAudioResult(audioBlob, actualFormat, formData.voice, formData.text, {
         chunksCount,
         autoCombineUsed,
-        originalLength
+        originalLength,
+        requestedFormat,
+        actualFormat
     });
 
     console.log('Speech generated successfully! Click play to listen.');
+    if (requestedFormat !== actualFormat) {
+        console.log(`Requested format '${requestedFormat}' delivered as '${actualFormat}'.`);
+    }
     if (autoCombineUsed && chunksCount > 1) {
         console.log(`Auto-combine feature combined ${chunksCount} chunks into a single audio file.`);
     }
@@ -693,7 +661,6 @@ function resetForm() {
     // Reset form to default values
     document.getElementById('text-input').value = 'Welcome to TTSFM! Experience the future of text-to-speech technology with our premium AI voices. Generate natural, expressive speech for any application.';
     document.getElementById('voice-select').value = 'alloy';
-    document.getElementById('format-select').value = 'mp3';
     document.getElementById('instructions-input').value = '';
     document.getElementById('max-length-input').value = '4096';
     document.getElementById('validate-length-check').checked = true;
@@ -760,24 +727,6 @@ function updateVoiceInfo() {
     }
 }
 
-function updateFormatInfo() {
-    const formatSelect = document.getElementById('format-select');
-    const formatInfo = document.getElementById('format-info');
-
-    const formatDescriptions = {
-        'mp3': '🎵 MP3 - Good quality, small file size. Best for web and general use.',
-        'opus': '📻 OPUS - Excellent quality, small file size. Best for streaming and VoIP.',
-        'aac': '📱 AAC - Good quality, medium file size. Best for Apple devices and streaming.',
-        'flac': '💿 FLAC - Lossless quality, large file size. Best for archival and high-quality audio.',
-        'wav': '🎧 WAV - Lossless quality, large file size. Best for professional audio production.',
-        'pcm': '🔊 PCM - Raw audio data, large file size. Best for audio processing.'
-    };
-
-    if (formatInfo && formatSelect.value) {
-        formatInfo.textContent = formatDescriptions[formatSelect.value] || 'High-quality audio format';
-    }
-}
-
 function previewVoice(voiceId) {
     // This would typically play a short preview of the voice
     console.log(`Voice preview for ${voiceId} - Feature coming soon!`);
@@ -792,6 +741,7 @@ function displayAudioResult(audioBlob, format, voice, text, metadata = {}) {
     // Create audio URL and setup player
     const audioUrl = URL.createObjectURL(audioBlob);
     audioPlayer.src = audioUrl;
+    currentFormat = format;
 
     // Update audio stats
     const sizeKB = (audioBlob.size / 1024).toFixed(1);
@@ -810,6 +760,10 @@ function displayAudioResult(audioBlob, format, voice, text, metadata = {}) {
 
     // Create info text with auto-combine details
     let infoText = `Generated successfully • ${sizeKB} KB • ${format.toUpperCase()}`;
+
+    if (metadata.requestedFormat && metadata.actualFormat && metadata.requestedFormat !== metadata.actualFormat) {
+        infoText += ` • Requested ${metadata.requestedFormat.toUpperCase()} (delivered as ${metadata.actualFormat.toUpperCase()})`;
+    }
 
     if (metadata.autoCombineUsed && metadata.chunksCount > 1) {
         infoText += ` • Auto-combined ${metadata.chunksCount} chunks`;

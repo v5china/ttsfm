@@ -29,6 +29,7 @@ from i18n import init_i18n, get_locale, set_locale, _
 # Import the TTSFM package
 try:
     from ttsfm import TTSClient, Voice, AudioFormat, TTSException
+    from ttsfm.models import get_supported_format
     from ttsfm.audio import combine_audio_chunks
     from ttsfm.exceptions import APIException, NetworkException, ValidationException
     from ttsfm.utils import validate_text_length, split_text_by_length
@@ -37,6 +38,7 @@ except ImportError:
     import sys
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
     from ttsfm import TTSClient, Voice, AudioFormat, TTSException
+    from ttsfm.models import get_supported_format
     from ttsfm.audio import combine_audio_chunks
     from ttsfm.exceptions import APIException, NetworkException, ValidationException
     from ttsfm.utils import validate_text_length, split_text_by_length
@@ -488,7 +490,12 @@ def generate_speech():
                 "error": f"Invalid format: {response_format}. Must be one of: {[f.value for f in AudioFormat]}"
             }), 400
         
-        logger.info(f"Generating speech: text='{text[:50]}...', voice={voice}, format={response_format}")
+        effective_format = get_supported_format(format_enum)
+
+        logger.info(
+            "Generating speech: text='%s...', voice=%s, requested_format=%s (effective=%s)",
+            text[:50], voice, response_format, effective_format.value
+        )
 
         client = create_tts_client()
         response = client.generate_speech(
@@ -503,7 +510,9 @@ def generate_speech():
         headers = {
             'Content-Disposition': f'attachment; filename="speech.{response.format.value}"',
             'X-Audio-Format': response.format.value,
-            'X-Audio-Size': str(response.size)
+            'X-Audio-Size': str(response.size),
+            'X-Requested-Format': format_enum.value,
+            'X-Effective-Format': effective_format.value
         }
 
         return Response(
@@ -559,16 +568,17 @@ def generate_speech_combined():
         if not text:
             return jsonify({"error": "Text is required"}), 400
 
+        try:
+            voice_enum = Voice(voice.lower())
+            format_enum = AudioFormat(response_format.lower())
+        except ValueError as e:
+            logger.warning(f"Invalid voice or format: {e}")
+            return jsonify({"error": "Invalid voice or format specified"}), 400
+
+        effective_format = get_supported_format(format_enum)
+
         # Check if text needs splitting
         if len(text) <= max_length:
-            # Text is short enough, use regular generation
-            try:
-                voice_enum = Voice(voice.lower())
-                format_enum = AudioFormat(response_format.lower())
-            except ValueError as e:
-                logger.warning(f"Invalid voice or format: {e}")
-                return jsonify({"error": "Invalid voice or format specified"}), 400
-
             client = create_tts_client()
 
             response = client.generate_speech(
@@ -584,7 +594,9 @@ def generate_speech_combined():
                 'Content-Disposition': f'attachment; filename="combined_speech.{response.format.value}"',
                 'X-Audio-Format': response.format.value,
                 'X-Audio-Size': str(response.size),
-                'X-Chunks-Combined': '1'
+                'X-Chunks-Combined': '1',
+                'X-Requested-Format': format_enum.value,
+                'X-Effective-Format': effective_format.value
             }
 
             return Response(
@@ -626,11 +638,12 @@ def generate_speech_combined():
         logger.info(f"Generated {len(responses)} chunks, combining into single audio file")
 
         # Extract audio data from responses
-        audio_chunks = [response.audio_data for response in responses]
+        audio_chunks = [resp.audio_data for resp in responses]
 
         # Combine audio chunks
         try:
-            combined_audio = combine_audio_chunks(audio_chunks, format_enum.value)
+            actual_format = responses[0].format
+            combined_audio = combine_audio_chunks(audio_chunks, actual_format.value)
         except Exception as e:
             logger.error(f"Failed to combine audio chunks: {e}")
             return jsonify({"error": "Failed to combine audio chunks"}), 500
@@ -644,11 +657,13 @@ def generate_speech_combined():
         logger.info(f"Successfully combined {len(responses)} chunks into single audio file ({len(combined_audio)} bytes)")
 
         combined_headers = {
-            'Content-Disposition': f'attachment; filename="combined_speech.{format_enum.value}"',
-            'X-Audio-Format': format_enum.value,
+            'Content-Disposition': f'attachment; filename="combined_speech.{actual_format.value}"',
+            'X-Audio-Format': actual_format.value,
             'X-Audio-Size': str(len(combined_audio)),
             'X-Chunks-Combined': str(len(responses)),
-            'X-Original-Text-Length': str(len(text))
+            'X-Original-Text-Length': str(len(text)),
+            'X-Requested-Format': format_enum.value,
+            'X-Effective-Format': get_supported_format(format_enum).value
         }
 
         return Response(
@@ -699,7 +714,7 @@ def get_status():
         return jsonify({
             "status": "online",
             "tts_service": "openai.fm (free)",
-            "package_version": "3.3.0-alpha3",
+            "package_version": "3.3.0-alpha4",
             "timestamp": datetime.now().isoformat()
         })
         
@@ -717,7 +732,7 @@ def health_check():
     """Simple health check endpoint."""
     return jsonify({
         "status": "healthy",
-        "package_version": "3.3.0-alpha3",
+        "package_version": "3.3.0-alpha4",
         "timestamp": datetime.now().isoformat()
     })
 
@@ -818,7 +833,12 @@ def openai_speech():
                 }
             }), 400
 
-        logger.info(f"OpenAI API: Generating speech: text='{input_text[:50]}...', voice={voice}, format={response_format}, auto_combine={auto_combine}")
+        effective_format = get_supported_format(format_enum)
+
+        logger.info(
+            "OpenAI API: Generating speech: text='%s...', voice=%s, requested_format=%s (effective=%s), auto_combine=%s",
+            input_text[:50], voice, response_format, effective_format.value, auto_combine
+        )
 
         client = create_tts_client()
 
@@ -847,8 +867,9 @@ def openai_speech():
                 }), 400
 
             # Extract audio data and combine
-            audio_chunks = [response.audio_data for response in responses]
-            combined_audio = combine_audio_chunks(audio_chunks, format_enum.value)
+            audio_chunks = [resp.audio_data for resp in responses]
+            actual_format = responses[0].format
+            combined_audio = combine_audio_chunks(audio_chunks, actual_format.value)
 
             if not combined_audio:
                 return jsonify({
@@ -865,12 +886,14 @@ def openai_speech():
 
             headers = {
                 'Content-Type': content_type,
-                'X-Audio-Format': format_enum.value,
+                'X-Audio-Format': actual_format.value,
                 'X-Audio-Size': str(len(combined_audio)),
                 'X-Chunks-Combined': str(len(responses)),
                 'X-Original-Text-Length': str(len(input_text)),
                 'X-Auto-Combine': 'true',
-                'X-Powered-By': 'TTSFM-OpenAI-Compatible'
+                'X-Powered-By': 'TTSFM-OpenAI-Compatible',
+                'X-Requested-Format': format_enum.value,
+                'X-Effective-Format': effective_format.value
             }
 
             return Response(
@@ -908,7 +931,9 @@ def openai_speech():
                 'X-Audio-Size': str(response.size),
                 'X-Chunks-Combined': '1',
                 'X-Auto-Combine': str(auto_combine).lower(),
-                'X-Powered-By': 'TTSFM-OpenAI-Compatible'
+                'X-Powered-By': 'TTSFM-OpenAI-Compatible',
+                'X-Requested-Format': format_enum.value,
+                'X-Effective-Format': effective_format.value
             }
 
             return Response(

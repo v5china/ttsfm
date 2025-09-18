@@ -74,17 +74,12 @@ def test_combine_audio_chunks_uses_format_hint(monkeypatch):
             cls.formats.append("wav")
             return DummySegment("wav")
 
-        @classmethod
-        def from_file(cls, buffer, format: str):
-            cls.formats.append(format)
-            return DummySegment(format)
-
     monkeypatch.setattr(audio_module, "AudioSegment", DummyAudioSegment)
 
     output = audio_module.combine_audio_chunks([b"one", b"two"], "opus")
 
-    assert output == b"opus:opusopus"
-    assert DummyAudioSegment.formats == ["opus", "opus"]
+    assert output == b"wav:wavwav"
+    assert DummyAudioSegment.formats == ["wav", "wav"]
 
 
 @pytest.mark.parametrize('header_name, header_value', [

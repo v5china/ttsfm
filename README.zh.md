@@ -21,6 +21,7 @@ TTSFM为文本转语音生成提供同步和异步Python客户端，使用逆向
 - ⚡ **异步和同步** - 提供`asyncio`和同步客户端
 - 🗣️ **11种声音** - 所有OpenAI兼容的声音（alloy、echo、fable、onyx、nova、shimmer等）
 - 🎵 **6种音频格式** - 支持MP3、WAV、OPUS、AAC、FLAC、PCM
+- 🎼 **格式回退** - 请求MP3时输出MP3；其他OpenAI格式会安全回退为WAV，保证兼容性
 - 🐳 **Docker就绪** - 一键部署，包含Web界面
 - 🌐 **Web界面** - 用于测试声音和格式的交互式试用平台
 - 🔧 **CLI工具** - 用于快速TTS生成的命令行界面
@@ -173,6 +174,9 @@ combined = client.generate_speech_long_text(
 )
 
 combined.save_to_file("long_text")  # 保存为 long_text.mp3
+
+# 提示：只有 MP3 请求会返回 MP3 数据，其余格式（OPUS/AAC/FLAC/WAV/PCM）
+# 会回退为 WAV，以确保兼容免费上游服务。
 ```
 
 #### OpenAI Python客户端兼容性
@@ -264,6 +268,9 @@ ttsfm --list-voices
 
 # 获取帮助
 ttsfm --help
+
+> **提示：** CLI 仍然接受所有 OpenAI 兼容格式参数，但除了 `mp3` 之外的选项都会
+> 回退为 WAV，这与免费上游服务的行为一致。
 ```
 
 ## ⚙️ 配置
