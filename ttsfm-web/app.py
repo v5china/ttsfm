@@ -29,6 +29,7 @@ from i18n import init_i18n, get_locale, set_locale, _
 # Import the TTSFM package
 try:
     from ttsfm import TTSClient, Voice, AudioFormat, TTSException
+    from ttsfm.audio import combine_audio_chunks
     from ttsfm.exceptions import APIException, NetworkException, ValidationException
     from ttsfm.utils import validate_text_length, split_text_by_length
 except ImportError:
@@ -36,6 +37,7 @@ except ImportError:
     import sys
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
     from ttsfm import TTSClient, Voice, AudioFormat, TTSException
+    from ttsfm.audio import combine_audio_chunks
     from ttsfm.exceptions import APIException, NetworkException, ValidationException
     from ttsfm.utils import validate_text_length, split_text_by_length
 
@@ -264,96 +266,6 @@ def _chunk_bytes(data: bytes, chunk_size: int = 64 * 1024) -> Iterator[bytes]:
     for offset in range(0, len(view), chunk_size):
         yield bytes(view[offset:offset + chunk_size])
 
-
-try:
-    from pydub import AudioSegment  # type: ignore
-except ImportError:  # pragma: no cover - optional dependency
-    AudioSegment = None  # type: ignore
-
-
-def combine_audio_chunks(audio_chunks: List[bytes], format_type: str = "mp3") -> bytes:
-    """Combine multiple audio chunks into a single audio file."""
-    if not audio_chunks:
-        return b''
-
-    fmt = format_type.lower()
-
-    if AudioSegment is None and fmt != "wav":
-        raise RuntimeError("Combining audio requires pydub for non-WAV formats. Install ttsfm[web].")
-
-    try:
-        if AudioSegment is None:
-            return _simple_wav_concatenation(audio_chunks)
-
-        audio_segments = []
-        for chunk in audio_chunks:
-            buffer = io.BytesIO(chunk)
-            if fmt == "mp3":
-                segment = AudioSegment.from_mp3(buffer)
-            elif fmt == "wav":
-                segment = AudioSegment.from_wav(buffer)
-            else:
-                # OPUS/FLAC/AAC/PCM all require an explicit decoder hint
-                segment = AudioSegment.from_file(buffer, format=fmt)
-            audio_segments.append(segment)
-
-        combined = audio_segments[0]
-        for segment in audio_segments[1:]:
-            combined += segment
-
-        output_buffer = io.BytesIO()
-        export_format = fmt if fmt in {"mp3", "wav", "aac", "flac", "opus", "pcm"} else "wav"
-        combined.export(output_buffer, format=export_format)
-        return output_buffer.getvalue()
-    except Exception as exc:
-        logger.error("Error combining audio chunks: %s", exc)
-        raise
-
-def _simple_wav_concatenation(wav_chunks: List[bytes]) -> bytes:
-    """
-    Simple WAV file concatenation without external dependencies.
-    This is a basic implementation that works for simple WAV files.
-    """
-    if not wav_chunks:
-        return b''
-
-    if len(wav_chunks) == 1:
-        return wav_chunks[0]
-
-    try:
-        # For WAV files, we can do a simple concatenation by:
-        # 1. Taking the header from the first file
-        # 2. Concatenating all the audio data
-        # 3. Updating the file size in the header
-
-        first_wav = wav_chunks[0]
-        if len(first_wav) < 44:  # WAV header is at least 44 bytes
-            return b''.join(wav_chunks)
-
-        # Extract header from first file (first 44 bytes)
-        header = bytearray(first_wav[:44])
-
-        # Collect all audio data (skip headers for subsequent files)
-        audio_data = first_wav[44:]  # Audio data from first file
-
-        for wav_chunk in wav_chunks[1:]:
-            if len(wav_chunk) > 44:
-                audio_data += wav_chunk[44:]  # Skip header, append audio data
-
-        # Update file size in header (bytes 4-7)
-        total_size = len(header) + len(audio_data) - 8
-        header[4:8] = total_size.to_bytes(4, byteorder='little')
-
-        # Update data chunk size in header (bytes 40-43)
-        data_size = len(audio_data)
-        header[40:44] = data_size.to_bytes(4, byteorder='little')
-
-        return bytes(header) + audio_data
-
-    except Exception as e:
-        logger.error(f"Error in simple WAV concatenation: {e}")
-        # Ultimate fallback
-        return b''.join(wav_chunks)
 
 def _is_safe_url(target: Optional[str]) -> bool:
     """Validate that a target URL is safe for redirection.
@@ -787,7 +699,7 @@ def get_status():
         return jsonify({
             "status": "online",
             "tts_service": "openai.fm (free)",
-            "package_version": "3.3.0-alpha2",
+            "package_version": "3.3.0-alpha3",
             "timestamp": datetime.now().isoformat()
         })
         
@@ -805,7 +717,7 @@ def health_check():
     """Simple health check endpoint."""
     return jsonify({
         "status": "healthy",
-        "package_version": "3.3.0-alpha2",
+        "package_version": "3.3.0-alpha3",
         "timestamp": datetime.now().isoformat()
     })
 
@@ -1108,5 +1020,4 @@ if __name__ == '__main__':
         logger.error(f"Failed to start application: {e}")
     finally:
         logger.info("TTSFM web application shut down")
-
 

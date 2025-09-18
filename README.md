@@ -26,7 +26,7 @@ TTSFM provides both synchronous and asynchronous Python clients for text-to-spee
 - 🔧 **CLI Tool** - Command-line interface for quick TTS generation
 - 📦 **Type Hints** - Full type annotation support for better IDE experience
 - 🛡️ **Error Handling** - Comprehensive exception hierarchy with retry logic
-- ✨ **Auto-Combine** (Web API) - Docker/OpenAI-compatible endpoint can split and merge long text for you
+- ✨ **Auto-Combine** - Web/OpenAI endpoints merge long text automatically; Python client can opt-in with `auto_combine=True`
 - 📊 **Text Validation** - Automatic text length validation and splitting
 - 🔐 **API Key Protection** - Optional OpenAI-compatible authentication for secure deployments
 
@@ -168,11 +168,22 @@ responses = client.generate_speech_long_text(
     preserve_words=True
 )
 
-# Save each chunk as separate files
 for i, response in enumerate(responses, 1):
-    response.save_to_file(f"part_{i:03d}")  # Saves as part_001.mp3, part_002.mp3, etc.
+    response.save_to_file(f"part_{i:03d}")
 
 print(f"Generated {len(responses)} audio files from long text")
+
+# Or combine everything into a single response (requires pydub for non-WAV formats)
+combined = client.generate_speech_long_text(
+    text="Very long text that exceeds 4096 characters...",
+    voice=Voice.ALLOY,
+    response_format=AudioFormat.MP3,
+    max_length=2000,
+    preserve_words=True,
+    auto_combine=True,
+)
+
+combined.save_to_file("long_text")  # Saves as long_text.mp3
 ```
 
 #### OpenAI Python Client Compatibility
@@ -255,6 +266,9 @@ ttsfm --text-file input.txt --output speech.mp3
 
 # Custom service URL
 ttsfm "Hello, world!" --url http://localhost:7000 --output hello.mp3
+
+# Auto-combine long text into a single file
+ttsfm --text-file article.txt --output article.mp3 --split-long-text --auto-combine
 
 # List available voices
 ttsfm --list-voices

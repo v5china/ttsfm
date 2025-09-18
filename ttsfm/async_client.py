@@ -14,6 +14,7 @@ from typing import Optional, Dict, Any, Union, List
 import aiohttp
 from aiohttp import ClientTimeout, ClientSession
 
+from .audio import combine_responses
 from .models import (
     TTSRequest, TTSResponse, Voice, AudioFormat,
     get_content_type, get_format_from_content_type
@@ -173,8 +174,9 @@ class AsyncTTSClient:
         instructions: Optional[str] = None,
         max_length: int = 4096,
         preserve_words: bool = True,
+        auto_combine: bool = False,
         **kwargs
-    ) -> List[TTSResponse]:
+    ) -> Union[TTSResponse, List[TTSResponse]]:
         """
         Generate speech from long text by splitting it into chunks asynchronously.
 
@@ -191,7 +193,8 @@ class AsyncTTSClient:
             **kwargs: Additional parameters
 
         Returns:
-            List[TTSResponse]: List of generated audio responses
+            Union[TTSResponse, List[TTSResponse]]: Combined response when ``auto_combine``
+            is True, otherwise the list of chunk responses
 
         Raises:
             TTSException: If generation fails for any chunk
@@ -220,7 +223,12 @@ class AsyncTTSClient:
             requests.append(request)
 
         # Process all chunks concurrently
-        return await self.generate_speech_batch(requests)
+        responses = await self.generate_speech_batch(requests=requests)
+
+        if auto_combine:
+            return combine_responses(responses)
+
+        return responses
 
     async def generate_speech_from_long_text(
         self,
@@ -230,8 +238,9 @@ class AsyncTTSClient:
         instructions: Optional[str] = None,
         max_length: int = 4096,
         preserve_words: bool = True,
+        auto_combine: bool = False,
         **kwargs
-    ) -> List[TTSResponse]:
+    ) -> Union[TTSResponse, List[TTSResponse]]:
         """
         Generate speech from long text by splitting it into chunks asynchronously.
 
@@ -247,7 +256,8 @@ class AsyncTTSClient:
             **kwargs: Additional parameters
 
         Returns:
-            List[TTSResponse]: List of generated audio responses
+            Union[TTSResponse, List[TTSResponse]]: Combined response when ``auto_combine``
+            is True, otherwise the list of chunk responses
 
         Raises:
             TTSException: If generation fails for any chunk
@@ -259,6 +269,7 @@ class AsyncTTSClient:
             instructions=instructions,
             max_length=max_length,
             preserve_words=preserve_words,
+            auto_combine=auto_combine,
             **kwargs
         )
 

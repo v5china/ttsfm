@@ -17,6 +17,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from .audio import combine_responses
 from .models import (
     TTSRequest, TTSResponse, Voice, AudioFormat,
     get_content_type, get_format_from_content_type
@@ -229,7 +230,8 @@ class TTSClient:
             **kwargs: Additional parameters
 
         Returns:
-            List[TTSResponse]: List of generated audio responses
+            Union[TTSResponse, List[TTSResponse]]: Combined response when ``auto_combine``
+            is True, otherwise the list of chunk responses
 
         Raises:
             TTSException: If generation fails for any chunk
@@ -273,8 +275,9 @@ class TTSClient:
         instructions: Optional[str] = None,
         max_length: int = 4096,
         preserve_words: bool = True,
+        auto_combine: bool = False,
         **kwargs
-    ) -> List[TTSResponse]:
+    ) -> Union[TTSResponse, List[TTSResponse]]:
         """
         Generate speech from long text by splitting it into chunks.
 
@@ -292,12 +295,13 @@ class TTSClient:
             **kwargs: Additional parameters
 
         Returns:
-            List[TTSResponse]: List of generated audio responses
+            Union[TTSResponse, List[TTSResponse]]: Combined response when ``auto_combine``
+            is True, otherwise the list of chunk responses
 
         Raises:
             TTSException: If generation fails for any chunk
         """
-        return self.generate_speech_batch(
+        responses = self.generate_speech_batch(
             text=text,
             voice=voice,
             response_format=response_format,
@@ -306,6 +310,11 @@ class TTSClient:
             preserve_words=preserve_words,
             **kwargs
         )
+
+        if auto_combine:
+            return combine_responses(responses)
+
+        return responses
 
     def _make_request(self, request: TTSRequest) -> TTSResponse:
         """

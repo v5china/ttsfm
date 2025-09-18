@@ -26,7 +26,7 @@ TTSFM为文本转语音生成提供同步和异步Python客户端，使用逆向
 - 🔧 **CLI工具** - 用于快速TTS生成的命令行界面
 - 📦 **类型提示** - 完整的类型注解支持，提供更好的IDE体验
 - 🛡️ **错误处理** - 全面的异常层次结构和重试逻辑
-- ✨ **自动合并（Web API）** - Docker / OpenAI 兼容端点可自动分割并合并长文本
+- ✨ **自动合并** - Web/OpenAI 端点自动处理长文本；Python 客户端可通过 `auto_combine=True` 合并音频
 - 📊 **文本验证** - 自动文本长度验证和分割
 - 🔐 **API密钥保护** - 可选的OpenAI兼容身份验证，用于安全部署
 
@@ -161,6 +161,18 @@ for i, response in enumerate(responses, 1):
     response.save_to_file(f"part_{i:03d}")  # 保存为part_001.mp3、part_002.mp3等
 
 print(f"从长文本生成了 {len(responses)} 个音频文件")
+
+# 或合并为单个音频（非WAV格式需要安装pydub）
+combined = client.generate_speech_long_text(
+    text="超过4096字符的很长文本...",
+    voice=Voice.ALLOY,
+    response_format=AudioFormat.MP3,
+    max_length=2000,
+    preserve_words=True,
+    auto_combine=True
+)
+
+combined.save_to_file("long_text")  # 保存为 long_text.mp3
 ```
 
 #### OpenAI Python客户端兼容性
@@ -243,6 +255,9 @@ ttsfm --text-file input.txt --output speech.mp3
 
 # 自定义服务URL
 ttsfm "你好，世界！" --url http://localhost:7000 --output hello.mp3
+
+# 自动合并长文本并生成单个音频
+ttsfm --text-file article.txt --output article.mp3 --split-long-text --auto-combine
 
 # 列出可用声音
 ttsfm --list-voices

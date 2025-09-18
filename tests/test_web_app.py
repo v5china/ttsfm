@@ -46,7 +46,9 @@ def test_voices_endpoint_returns_data(monkeypatch):
 
 
 def test_combine_audio_chunks_uses_format_hint(monkeypatch):
-    module = load_web_app(monkeypatch, REQUIRE_API_KEY='false', TTSFM_API_KEY=None)
+    load_web_app(monkeypatch, REQUIRE_API_KEY='false', TTSFM_API_KEY=None)
+
+    from ttsfm import audio as audio_module
 
     class DummySegment:
         def __init__(self, tag: str):
@@ -77,9 +79,9 @@ def test_combine_audio_chunks_uses_format_hint(monkeypatch):
             cls.formats.append(format)
             return DummySegment(format)
 
-    monkeypatch.setattr(module, "AudioSegment", DummyAudioSegment)
+    monkeypatch.setattr(audio_module, "AudioSegment", DummyAudioSegment)
 
-    output = module.combine_audio_chunks([b"one", b"two"], "opus")
+    output = audio_module.combine_audio_chunks([b"one", b"two"], "opus")
 
     assert output == b"opus:opusopus"
     assert DummyAudioSegment.formats == ["opus", "opus"]

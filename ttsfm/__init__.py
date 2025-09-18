@@ -57,12 +57,13 @@ from .exceptions import (
     QuotaExceededException,
     AudioProcessingException
 )
+from .audio import combine_audio_chunks, combine_responses
 from .utils import (
     validate_text_length,
     split_text_by_length
 )
 
-__version__ = "3.3.0-alpha2"
+__version__ = "3.3.0-alpha3"
 __author__ = "dbcccc"
 __email__ = "120614547+dbccccccc@users.noreply.github.com"
 __description__ = "Text-to-Speech API Client with OpenAI compatibility"
@@ -124,7 +125,7 @@ def generate_speech(text: str, voice: str = "alloy", **kwargs) -> bytes:
 
     return default_client.generate_speech(text=text, voice=voice, **kwargs)
 
-def generate_speech_long_text(text: str, voice: str = "alloy", **kwargs) -> list:
+def generate_speech_long_text(text: str, voice: str = "alloy", **kwargs):
     """
     Convenience function to generate speech from long text using the default client.
 
@@ -183,6 +184,8 @@ __all__ = [
     # Utility functions
     "validate_text_length",
     "split_text_by_length",
+    "combine_audio_chunks",
+    "combine_responses",
     
     # Package metadata
     "__version__",

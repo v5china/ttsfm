@@ -13,7 +13,7 @@ from typing import Optional
 from pathlib import Path
 
 from .client import TTSClient
-from .models import Voice, AudioFormat
+from .models import Voice, AudioFormat, TTSResponse
 from .exceptions import TTSException, APIException, NetworkException
 
 
@@ -125,6 +125,12 @@ Examples:
         help="Automatically split long text into chunks"
     )
 
+    parser.add_argument(
+        "--auto-combine",
+        action="store_true",
+        help="Combine long-text chunks into a single audio file (requires pydub for non-WAV formats)"
+    )
+
     # Other options
     parser.add_argument(
         "--verbose", "-V",
@@ -222,29 +228,32 @@ def handle_long_text(args, text: str, voice: Voice, audio_format: AudioFormat, s
             response_format=audio_format,
             speed=speed,
             max_length=args.max_length,
-            preserve_words=True
+            preserve_words=True,
+            auto_combine=args.auto_combine
         )
 
         if not responses:
             print("Error: No valid text chunks found after processing.", file=sys.stderr)
             sys.exit(1)
+        if isinstance(responses, TTSResponse):
+            combined_response = responses
+            combined_response.save_to_file(args.output)
+            print(f"Generated combined audio: {args.output}")
+            return
 
         print(f"Generated {len(responses)} audio chunks")
 
-        # Save each response to a file
         base_name, ext = os.path.splitext(args.output)
 
         for i, response in enumerate(responses, 1):
             if args.verbose:
                 print(f"Saving chunk {i}/{len(responses)}...")
 
-            # Generate filename for this chunk
             if len(responses) == 1:
                 output_file = args.output
             else:
                 output_file = f"{base_name}_part{i:03d}{ext}"
 
-            # Save to file
             with open(output_file, 'wb') as f:
                 f.write(response.audio_data)
 

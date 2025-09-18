@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0-alpha3] - 2025-09-18
+
+### Added
+- Centralised audio chunk combining in `ttsfm/audio.py`, including the reusable `combine_responses` helper for both core and web flows.
+- `auto_combine=True` support in the synchronous/asynchronous clients and CLI delivers a single audio file for long text (pydub still optional for non-WAV output).
+- Regression tests (`tests/test_clients.py`) covering the new combination paths.
+
+### Changed
+- Long-text splitting now falls back to word-level chunks with a small tolerance so punctuation stays intact while respecting `max_length` limits.
+
+### Documentation
+- README (EN/ZH) highlights the Python auto-combine option and CLI flag; `AI_NOTES.md` captures the refreshed test instructions.
+
+### Testing
+- Added regression coverage for the audio helper refactor and client auto-combine behaviour; `pytest` commands documented for follow-up runs.
+
 ## [3.3.0-alpha2] - 2025-09-18
 
 ### Changed
