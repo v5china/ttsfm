@@ -157,3 +157,4 @@ local_config.py
 
 # Claude
 .claude/
+VERSION_BUMP_GUIDE.md
