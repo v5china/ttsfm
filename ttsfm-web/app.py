@@ -656,8 +656,9 @@ def generate_speech_combined():
             return jsonify({"error": "Invalid voice or format specified"}), 400
 
         logger.info(
-            f"Generating combined speech for long text: {
-                len(text)} characters, splitting into chunks")
+            "Generating combined speech for long text: %s characters, splitting into chunks",
+            len(text),
+        )
 
         # Generate speech chunks
         try:
@@ -679,8 +680,9 @@ def generate_speech_combined():
             return jsonify({"error": "No valid text chunks found"}), 400
 
         logger.info(
-            f"Generated {
-                len(responses)} chunks, combining into single audio file")
+            "Generated %s chunks, combining into single audio file",
+            len(responses),
+        )
 
         # Extract audio data from responses
         audio_chunks = [resp.audio_data for resp in responses]
