@@ -57,8 +57,8 @@ def test_header_generation_deterministic_upgrade_flag(monkeypatch):
 @pytest.mark.asyncio
 async def test_async_batch_propagates_original_exception(monkeypatch):
     from ttsfm.async_client import AsyncTTSClient
-    from ttsfm.models import TTSRequest, Voice
     from ttsfm.exceptions import NetworkException
+    from ttsfm.models import TTSRequest, Voice
 
     client = AsyncTTSClient()
 

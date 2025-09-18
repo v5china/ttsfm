@@ -6,6 +6,7 @@ import io
 import logging
 from typing import Iterable, List, Sequence
 
+from .models import TTSResponse
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +107,6 @@ def combine_responses(responses: Sequence["TTSResponse"]) -> "TTSResponse":
     audio_format = first.format
 
     audio_bytes = combine_audio_chunks((resp.audio_data for resp in responses), audio_format.value)
-
-    from .models import TTSResponse  # Local import to avoid circular dependency
 
     total_duration = None
     if any(resp.duration is not None for resp in responses):

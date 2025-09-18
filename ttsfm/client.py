@@ -6,32 +6,41 @@ text-to-speech generation with OpenAI-compatible API.
 """
 
 import json
-import time
-import uuid
 import logging
 import threading
-from typing import Optional, Dict, Any, Union, List
-from urllib.parse import urljoin
+import time
+import uuid
+from typing import Dict, List, Optional, Union
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from .audio import combine_responses
-from .models import (
-    TTSRequest, TTSResponse, Voice, AudioFormat,
-    get_content_type, get_format_from_content_type, get_supported_format
-)
 from .exceptions import (
-    TTSException, APIException, NetworkException, ValidationException,
-    create_exception_from_response
+    APIException,
+    NetworkException,
+    TTSException,
+    ValidationException,
+    create_exception_from_response,
+)
+from .models import (
+    AudioFormat,
+    TTSRequest,
+    TTSResponse,
+    Voice,
+    get_supported_format,
 )
 from .utils import (
-    get_realistic_headers, sanitize_text, validate_url, build_url,
-    exponential_backoff, estimate_audio_duration, format_file_size,
-    validate_text_length, split_text_by_length
+    build_url,
+    estimate_audio_duration,
+    exponential_backoff,
+    format_file_size,
+    get_realistic_headers,
+    sanitize_text,
+    split_text_by_length,
+    validate_url,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +48,10 @@ logger = logging.getLogger(__name__)
 class TTSClient:
     """
     Synchronous TTS client for text-to-speech generation.
-    
+
     This client provides a simple interface for generating speech from text
     using OpenAI-compatible TTS services.
-    
+
     Attributes:
         base_url: Base URL for the TTS service
         api_key: API key for authentication (if required)
@@ -50,7 +59,7 @@ class TTSClient:
         max_retries: Maximum number of retry attempts
         verify_ssl: Whether to verify SSL certificates
     """
-    
+
     def __init__(
         self,
         base_url: str = "https://www.openai.fm",
@@ -87,7 +96,7 @@ class TTSClient:
         # Validate base URL
         if not validate_url(self.base_url):
             raise ValidationException(f"Invalid base URL: {self.base_url}")
-        
+
         # Setup HTTP session with retry strategy
         self.session = requests.Session()
         self._session_lock = threading.RLock()
@@ -114,7 +123,7 @@ class TTSClient:
 
         if self.api_key:
             self.session.headers["Authorization"] = f"Bearer {self.api_key}"
-        
+
         logger.info(f"Initialized TTS client with base URL: {self.base_url}")
 
     def _get_headers_for_format(self, requested_format: AudioFormat) -> Dict[str, str]:
@@ -146,7 +155,11 @@ class TTSClient:
             # Use more complex headers to get WAV response
             # This works for WAV, OPUS, AAC, FLAC, PCM formats
             return {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                'User-Agent': (
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                    'AppleWebKit/537.36 (KHTML, like Gecko) '
+                    'Chrome/121.0.0.0 Safari/537.36'
+                ),
                 'Accept': 'audio/*,*/*;q=0.9'
             }
 
@@ -191,7 +204,7 @@ class TTSClient:
         )
 
         return self._make_request(request)
-    
+
     def generate_speech_from_request(self, request: TTSRequest) -> TTSResponse:
         """
         Generate speech from a TTSRequest object.
@@ -336,7 +349,11 @@ class TTSClient:
             'input': request.input,
             'voice': request.voice.value,
             'generation': str(uuid.uuid4()),
-            'response_format': request.response_format.value if hasattr(request.response_format, 'value') else str(request.response_format)
+            'response_format': (
+                request.response_format.value
+                if hasattr(request.response_format, 'value')
+                else str(request.response_format)
+            )
         }
 
         # Add prompt/instructions if provided
@@ -346,15 +363,16 @@ class TTSClient:
             # Default prompt for better quality
             form_data['prompt'] = (
                 "Affect/personality: Natural and clear\n\n"
-                "Tone: Friendly and professional, creating a pleasant listening experience.\n\n"
-                "Pronunciation: Clear, articulate, and steady, ensuring each word is easily understood "
-                "while maintaining a natural, conversational flow.\n\n"
-                "Pause: Brief, purposeful pauses between sentences to allow time for the listener "
-                "to process the information.\n\n"
-                "Emotion: Warm and engaging, conveying the intended message effectively."
+                "Tone: Friendly and professional, creating a pleasant "
+                "listening experience.\n\n"
+                "Pronunciation: Clear, articulate, and steady, ensuring "
+                "each word is easily understood while maintaining a "
+                "natural, conversational flow.\n\n"
+                "Pause: Brief, purposeful pauses between sentences to "
+                "allow time for the listener to process the information.\n\n"
+                "Emotion: Warm and engaging, conveying the intended "
+                "message effectively."
             )
-
-        # Get optimized headers for the requested format
         # Convert string format to AudioFormat enum if needed
         requested_format = request.response_format
         if isinstance(requested_format, str):
@@ -369,7 +387,8 @@ class TTSClient:
 
         format_headers = self._get_headers_for_format(requested_format)
 
-        logger.info(f"Generating speech for text: '{request.input[:50]}...' with voice: {request.voice}")
+        logger.info(
+            f"Generating speech for text: '{request.input[:50]}...' with voice: {request.voice}")
         logger.debug(f"Using headers optimized for {requested_format.value} format")
 
         # Make request with retries
@@ -391,7 +410,7 @@ class TTSClient:
                         timeout=self.timeout,
                         verify=self.verify_ssl
                     )
-                
+
                 # Handle different response types
                 if response.status_code == 200:
                     return self._process_openai_fm_response(response, request)
@@ -401,25 +420,26 @@ class TTSClient:
                         error_data = response.json()
                     except (json.JSONDecodeError, ValueError):
                         error_data = {"error": {"message": response.text or "Unknown error"}}
-                    
+
                     # Create appropriate exception
                     exception = create_exception_from_response(
                         response.status_code,
                         error_data,
                         f"TTS request failed with status {response.status_code}"
                     )
-                    
+
                     # Don't retry for certain errors
                     if response.status_code in [400, 401, 403, 404]:
                         raise exception
-                    
+
                     # For retryable errors, continue to next attempt
                     if attempt == self.max_retries:
                         raise exception
-                    
-                    logger.warning(f"Request failed with status {response.status_code}, retrying...")
+
+                    logger.warning(
+                        f"Request failed with status {response.status_code}, retrying...")
                     continue
-                    
+
             except requests.exceptions.Timeout:
                 if attempt == self.max_retries:
                     raise NetworkException(
@@ -427,31 +447,35 @@ class TTSClient:
                         timeout=self.timeout,
                         retry_count=attempt
                     )
-                logger.warning(f"Request timed out, retrying...")
+                logger.warning("Request timed out, retrying...")
                 continue
-                
+
             except requests.exceptions.ConnectionError as e:
                 if attempt == self.max_retries:
                     raise NetworkException(
                         f"Connection error: {str(e)}",
                         retry_count=attempt
                     )
-                logger.warning(f"Connection error, retrying...")
+                logger.warning("Connection error, retrying...")
                 continue
-                
+
             except requests.exceptions.RequestException as e:
                 if attempt == self.max_retries:
                     raise NetworkException(
                         f"Request error: {str(e)}",
                         retry_count=attempt
                     )
-                logger.warning(f"Request error, retrying...")
+                logger.warning("Request error, retrying...")
                 continue
-        
+
         # This should never be reached, but just in case
         raise TTSException("Maximum retries exceeded")
-    
-    def _process_openai_fm_response(self, response: requests.Response, request: TTSRequest) -> TTSResponse:
+
+    def _process_openai_fm_response(
+        self,
+        response: requests.Response,
+        request: TTSRequest,
+    ) -> TTSResponse:
         """
         Process a successful response from the openai.fm TTS service.
 
@@ -508,8 +532,9 @@ class TTSClient:
                 )
             else:
                 logger.warning(
-                    f"Requested format '{requested_format.value}' but received '{actual_format.value}' "
-                    f"from service."
+                    "Requested format '%s' but received '%s' from service.",
+                    requested_format.value,
+                    actual_format.value,
                 )
 
         # Create response object
@@ -525,29 +550,37 @@ class TTSClient:
                 "url": str(response.url),
                 "service": "openai.fm",
                 "voice": request.voice.value,
-                "original_text": request.input[:100] + "..." if len(request.input) > 100 else request.input,
+                "original_text": (
+                    request.input[:100] + "..."
+                    if len(request.input) > 100
+                    else request.input
+                ),
                 "requested_format": requested_format.value,
-                "effective_requested_format": get_supported_format(requested_format).value,
+                "effective_requested_format": get_supported_format(
+                    requested_format
+                ).value,
                 "actual_format": actual_format.value
             }
         )
 
         logger.info(
-            f"Successfully generated {format_file_size(len(audio_data))} "
-            f"of {actual_format.value.upper()} audio from openai.fm using voice '{request.voice.value}'"
+            "Successfully generated %s of %s audio from openai.fm using voice %s",
+            format_file_size(len(audio_data)),
+            actual_format.value.upper(),
+            request.voice.value,
         )
 
         return tts_response
-    
+
     def close(self):
         """Close the HTTP session."""
         if hasattr(self, 'session'):
             self.session.close()
-    
+
     def __enter__(self):
         """Context manager entry."""
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit."""
         self.close()

@@ -5,43 +5,57 @@ A Flask web application that provides a user-friendly interface
 for the TTSFM text-to-speech package.
 """
 
-import os
-import io
-import time
 import logging
-from argon2 import PasswordHasher
-from argon2.exceptions import InvalidHash, VerificationError
+import os
+import time
+
+try:
+    from .websocket_handler import WebSocketTTSHandler
+except ImportError:  # pragma: no cover - fallback when run as script
+    from websocket_handler import WebSocketTTSHandler
+
 from collections import defaultdict, deque
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, Any, Optional, List, Iterator
 from functools import wraps
-from urllib.parse import urlparse, urljoin
+from pathlib import Path
+from typing import Dict, Iterator, List, Optional
+from urllib.parse import urljoin, urlparse
 
-from flask import Flask, request, jsonify, Response, render_template, redirect, url_for, stream_with_context
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHash, VerificationError
+from dotenv import load_dotenv
+from flask import (
+    Flask,
+    Response,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    stream_with_context,
+    url_for,
+)
 from flask_cors import CORS
 from flask_socketio import SocketIO
-from dotenv import load_dotenv
 
 # Import i18n support
-from i18n import init_i18n, get_locale, set_locale, _
+from i18n import init_i18n, set_locale
 
 # Import the TTSFM package
 try:
-    from ttsfm import TTSClient, Voice, AudioFormat, TTSException
-    from ttsfm.models import get_supported_format
+    from ttsfm import AudioFormat, TTSClient, TTSException, Voice
     from ttsfm.audio import combine_audio_chunks
     from ttsfm.exceptions import APIException, NetworkException, ValidationException
-    from ttsfm.utils import validate_text_length, split_text_by_length
+    from ttsfm.models import get_supported_format
+    from ttsfm.utils import split_text_by_length
 except ImportError:
     # Fallback for development when package is not installed
     import sys
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-    from ttsfm import TTSClient, Voice, AudioFormat, TTSException
-    from ttsfm.models import get_supported_format
+    from ttsfm import AudioFormat, TTSClient, TTSException, Voice
     from ttsfm.audio import combine_audio_chunks
     from ttsfm.exceptions import APIException, NetworkException, ValidationException
-    from ttsfm.utils import validate_text_length, split_text_by_length
+    from ttsfm.models import get_supported_format
+    from ttsfm.utils import split_text_by_length
 
 # Load environment variables
 load_dotenv()
@@ -64,7 +78,9 @@ app = Flask(
     root_path=str(APP_ROOT),
     instance_path=str(INSTANCE_PATH),
 )
-app.secret_key = os.getenv("SECRET_KEY", "ttsfm-secret-key-change-in-production")
+app.secret_key = os.getenv(
+    "SECRET_KEY",
+    "ttsfm-secret-key-change-in-production")
 CORS(app)
 
 # Configuration (moved up for socketio initialization)
@@ -117,11 +133,13 @@ def _load_api_key_hashes() -> List[str]:
 
     hashed_env = os.getenv("TTSFM_API_KEY_HASHES")
     if hashed_env:
-        prehashed_entries.extend([item.strip() for item in hashed_env.split(",") if item.strip()])
+        prehashed_entries.extend(
+            [item.strip() for item in hashed_env.split(",") if item.strip()])
 
     multi_keys = os.getenv("TTSFM_API_KEYS")
     if multi_keys:
-        plain_keys.extend([item.strip() for item in multi_keys.split(",") if item.strip()])
+        plain_keys.extend([item.strip()
+                          for item in multi_keys.split(",") if item.strip()])
 
     single_key = os.getenv("TTSFM_API_KEY")
     if single_key:
@@ -132,7 +150,8 @@ def _load_api_key_hashes() -> List[str]:
         if entry.startswith(ARGON2_HASH_PREFIXES):
             hashes.append(entry)
         elif entry:
-            logger.warning("Ignoring unsupported API key hash format; expected Argon2 hashes.")
+            logger.warning(
+                "Ignoring unsupported API key hash format; expected Argon2 hashes.")
 
     for key in plain_keys:
         if key:
@@ -151,18 +170,22 @@ _FAILED_AUTH_ATTEMPTS: Dict[str, deque] = defaultdict(deque)
 
 def create_tts_client() -> TTSClient:
     """Factory returning an isolated TTS client per request."""
-    default_prompt = os.getenv("TTSFM_DEFAULT_PROMPT", "false").lower() == "true"
+    default_prompt = os.getenv(
+        "TTSFM_DEFAULT_PROMPT",
+        "false").lower() == "true"
     return TTSClient(use_default_prompt=default_prompt)
 
 
 # Initialize WebSocket handler
-from websocket_handler import WebSocketTTSHandler
+
 websocket_handler = WebSocketTTSHandler(socketio, create_tts_client)
 
 logger.info("Initialized web app with TTSFM using openai.fm free service")
 logger.info(f"WebSocket support enabled with {async_mode} async mode")
 
 # API Key validation decorator
+
+
 def require_api_key(f):
     """Decorator to require API key for protected endpoints."""
     @wraps(f)
@@ -173,12 +196,14 @@ def require_api_key(f):
 
         # Check if API key is configured
         if not API_KEYS_CONFIGURED:
-            logger.warning("API key protection is enabled but no API keys are configured")
+            logger.warning(
+                "API key protection is enabled but no API keys are configured")
             return jsonify({
                 "error": "Authentication service is unavailable"
             }), 500
 
-        # Get API key from request headers - prioritize Authorization header (OpenAI compatible)
+        # Get API key from request headers - prioritize Authorization header
+        # (OpenAI compatible)
         provided_key = None
 
         # 1. Check Authorization header first (OpenAI standard)
@@ -203,7 +228,9 @@ def require_api_key(f):
         client_ip = request.remote_addr or "unknown"
 
         if _is_rate_limited(client_ip):
-            logger.warning("Authentication rate limit exceeded for %s", client_ip)
+            logger.warning(
+                "Authentication rate limit exceeded for %s",
+                client_ip)
             return jsonify({"error": "Too many authentication attempts"}), 429
 
         # Validate API key
@@ -224,13 +251,15 @@ def _is_valid_api_key(provided: Optional[str]) -> bool:
 
     for stored_hash in API_KEY_HASHES:
         if not stored_hash.startswith(ARGON2_HASH_PREFIXES):
-            logger.warning("Unsupported API key hash format encountered; ignoring entry.")
+            logger.warning(
+                "Unsupported API key hash format encountered; ignoring entry.")
             continue
 
         try:
             PASSWORD_HASHER.verify(stored_hash, provided)
         except InvalidHash:
-            logger.warning("Skipping invalid API key hash entry in configuration.")
+            logger.warning(
+                "Skipping invalid API key hash entry in configuration.")
             continue
         except VerificationError:
             continue
@@ -288,6 +317,7 @@ def _is_safe_url(target: Optional[str]) -> bool:
     j = urlparse(joined)
     return j.scheme in ("http", "https") and j.netloc == host.netloc
 
+
 @app.route('/set-language/<lang_code>')
 def set_language(lang_code):
     """Set the user's language preference."""
@@ -301,25 +331,30 @@ def set_language(lang_code):
         # Invalid language code, redirect to home
         return redirect(url_for('index'))
 
+
 @app.route('/')
 def index():
     """Serve the main web interface."""
     return render_template('index.html')
+
 
 @app.route('/playground')
 def playground():
     """Serve the interactive playground."""
     return render_template('playground.html')
 
+
 @app.route('/docs')
 def docs():
     """Serve the API documentation."""
     return render_template('docs.html')
 
+
 @app.route('/websocket-demo')
 def websocket_demo():
     """Serve the WebSocket streaming demo page."""
     return render_template('websocket_demo.html')
+
 
 @app.route('/api/voices', methods=['GET'])
 def get_voices():
@@ -333,76 +368,63 @@ def get_voices():
             }
             for voice in Voice
         ]
-        
+
         return jsonify({
             "voices": voices,
             "count": len(voices)
         })
-        
+
     except Exception as e:
         logger.error(f"Error getting voices: {e}")
         return jsonify({"error": "Failed to get voices"}), 500
+
 
 @app.route('/api/formats', methods=['GET'])
 def get_formats():
     """Get list of supported audio formats."""
     try:
-        formats = [
-            {
-                "id": "mp3",
-                "name": "MP3",
-                "mime_type": "audio/mpeg",
-                "description": "MP3 audio format - good quality, small file size",
-                "quality": "Good",
-                "file_size": "Small",
-                "use_case": "Web, mobile apps, general use"
-            },
-            {
-                "id": "opus",
-                "name": "OPUS",
-                "mime_type": "audio/opus",
-                "description": "OPUS audio format - excellent quality, small file size",
-                "quality": "Excellent",
-                "file_size": "Small",
-                "use_case": "Web streaming, VoIP"
-            },
-            {
-                "id": "aac",
-                "name": "AAC",
-                "mime_type": "audio/aac",
-                "description": "AAC audio format - good quality, medium file size",
-                "quality": "Good",
-                "file_size": "Medium",
-                "use_case": "Apple devices, streaming"
-            },
-            {
-                "id": "flac",
-                "name": "FLAC",
-                "mime_type": "audio/flac",
-                "description": "FLAC audio format - lossless quality, large file size",
-                "quality": "Lossless",
-                "file_size": "Large",
-                "use_case": "High-quality archival"
-            },
-            {
-                "id": "wav",
-                "name": "WAV",
-                "mime_type": "audio/wav",
-                "description": "WAV audio format - lossless quality, large file size",
-                "quality": "Lossless",
-                "file_size": "Large",
-                "use_case": "Professional audio"
-            },
-            {
-                "id": "pcm",
-                "name": "PCM",
-                "mime_type": "audio/pcm",
-                "description": "PCM audio format - raw audio data, large file size",
-                "quality": "Raw",
-                "file_size": "Large",
-                "use_case": "Audio processing"
-            }
-        ]
+        formats = [{"id": "mp3",
+                    "name": "MP3",
+                    "mime_type": "audio/mpeg",
+                    "description": "MP3 audio format - good quality, small file size",
+                    "quality": "Good",
+                    "file_size": "Small",
+                    "use_case": "Web, mobile apps, general use"},
+                   {"id": "opus",
+                    "name": "OPUS",
+                    "mime_type": "audio/opus",
+                    "description": "OPUS audio format - excellent quality, small file size",
+                    "quality": "Excellent",
+                    "file_size": "Small",
+                    "use_case": "Web streaming, VoIP"},
+                   {"id": "aac",
+                    "name": "AAC",
+                    "mime_type": "audio/aac",
+                    "description": "AAC audio format - good quality, medium file size",
+                    "quality": "Good",
+                    "file_size": "Medium",
+                    "use_case": "Apple devices, streaming"},
+                   {"id": "flac",
+                    "name": "FLAC",
+                    "mime_type": "audio/flac",
+                    "description": "FLAC audio format - lossless quality, large file size",
+                    "quality": "Lossless",
+                    "file_size": "Large",
+                    "use_case": "High-quality archival"},
+                   {"id": "wav",
+                    "name": "WAV",
+                    "mime_type": "audio/wav",
+                    "description": "WAV audio format - lossless quality, large file size",
+                    "quality": "Lossless",
+                    "file_size": "Large",
+                    "use_case": "Professional audio"},
+                   {"id": "pcm",
+                    "name": "PCM",
+                    "mime_type": "audio/pcm",
+                    "description": "PCM audio format - raw audio data, large file size",
+                    "quality": "Raw",
+                    "file_size": "Large",
+                    "use_case": "Audio processing"}]
 
         return jsonify({
             "formats": formats,
@@ -412,6 +434,7 @@ def get_formats():
     except Exception as e:
         logger.error(f"Error getting formats: {e}")
         return jsonify({"error": "Failed to get formats"}), 500
+
 
 @app.route('/api/validate-text', methods=['POST'])
 @require_api_key
@@ -441,16 +464,22 @@ def validate_text():
         if not is_valid:
             # Provide splitting suggestions
             chunks = split_text_by_length(text, max_length, preserve_words=True)
-            result.update({
-                "suggested_chunks": len(chunks),
-                "chunk_preview": [chunk[:100] + "..." if len(chunk) > 100 else chunk for chunk in chunks[:3]]
-            })
+            result.update(
+                {
+                    "suggested_chunks": len(chunks),
+                    "chunk_preview": [
+                        chunk[:100] + "..." if len(chunk) > 100 else chunk
+                        for chunk in chunks[:3]
+                    ],
+                }
+            )
 
         return jsonify(result)
 
     except Exception as e:
         logger.error(f"Text validation error: {e}")
         return jsonify({"error": "Text validation failed"}), 500
+
 
 @app.route('/api/generate', methods=['POST'])
 @require_api_key
@@ -469,27 +498,38 @@ def generate_speech():
         instructions = data.get('instructions', '').strip() or None
         max_length = data.get('max_length', 4096)
         validate_length = data.get('validate_length', True)
-        
+
         # Validate required fields
         if not text:
             return jsonify({"error": "Text is required"}), 400
-        
+
         # Validate voice
         try:
             voice_enum = Voice(voice.lower())
         except ValueError:
-            return jsonify({
-                "error": f"Invalid voice: {voice}. Must be one of: {[v.value for v in Voice]}"
-            }), 400
-        
+            voice_options = ", ".join(v.value for v in Voice)
+            return jsonify(
+                {
+                    "error": (
+                        f"Invalid voice: {voice}. Must be one of: {voice_options}"
+                    )
+                }
+            ), 400
+
         # Validate format
         try:
             format_enum = AudioFormat(response_format.lower())
         except ValueError:
-            return jsonify({
-                "error": f"Invalid format: {response_format}. Must be one of: {[f.value for f in AudioFormat]}"
-            }), 400
-        
+            format_options = ", ".join(fmt.value for fmt in AudioFormat)
+            return jsonify(
+                {
+                    "error": (
+                        "Invalid format: "
+                        f"{response_format}. Must be one of: {format_options}"
+                    )
+                }
+            ), 400
+
         effective_format = get_supported_format(format_enum)
 
         logger.info(
@@ -521,7 +561,7 @@ def generate_speech():
             headers=headers,
             direct_passthrough=True
         )
-        
+
     except ValidationException as e:
         logger.warning(f"Validation error: {e}")
         return jsonify({"error": "Invalid input parameters"}), 400
@@ -542,11 +582,10 @@ def generate_speech():
     except TTSException as e:
         logger.error(f"TTS error: {e}")
         return jsonify({"error": "Text-to-speech generation failed"}), 500
-        
+
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
         return jsonify({"error": "Internal server error"}), 500
-
 
 
 @app.route('/api/generate-combined', methods=['POST'])
@@ -591,7 +630,9 @@ def generate_speech_combined():
             )
 
             single_headers = {
-                'Content-Disposition': f'attachment; filename="combined_speech.{response.format.value}"',
+                'Content-Disposition': (
+                    f'attachment; filename="combined_speech.{response.format.value}"'
+                ),
                 'X-Audio-Format': response.format.value,
                 'X-Audio-Size': str(response.size),
                 'X-Chunks-Combined': '1',
@@ -614,7 +655,9 @@ def generate_speech_combined():
             logger.warning(f"Invalid voice or format: {e}")
             return jsonify({"error": "Invalid voice or format specified"}), 400
 
-        logger.info(f"Generating combined speech for long text: {len(text)} characters, splitting into chunks")
+        logger.info(
+            f"Generating combined speech for long text: {
+                len(text)} characters, splitting into chunks")
 
         # Generate speech chunks
         try:
@@ -635,7 +678,9 @@ def generate_speech_combined():
         if not responses:
             return jsonify({"error": "No valid text chunks found"}), 400
 
-        logger.info(f"Generated {len(responses)} chunks, combining into single audio file")
+        logger.info(
+            f"Generated {
+                len(responses)} chunks, combining into single audio file")
 
         # Extract audio data from responses
         audio_chunks = [resp.audio_data for resp in responses]
@@ -643,7 +688,8 @@ def generate_speech_combined():
         # Combine audio chunks
         try:
             actual_format = responses[0].format
-            combined_audio = combine_audio_chunks(audio_chunks, actual_format.value)
+            combined_audio = combine_audio_chunks(
+                audio_chunks, actual_format.value)
         except Exception as e:
             logger.error(f"Failed to combine audio chunks: {e}")
             return jsonify({"error": "Failed to combine audio chunks"}), 500
@@ -652,12 +698,18 @@ def generate_speech_combined():
             return jsonify({"error": "Failed to generate combined audio"}), 500
 
         # Determine content type
-        content_type = responses[0].content_type  # Use content type from first chunk
+        # Use content type from first chunk
+        content_type = responses[0].content_type
 
-        logger.info(f"Successfully combined {len(responses)} chunks into single audio file ({len(combined_audio)} bytes)")
+        logger.info(
+            f"Successfully combined {
+                len(responses)} chunks into single audio file ({
+                len(combined_audio)} bytes)")
 
         combined_headers = {
-            'Content-Disposition': f'attachment; filename="combined_speech.{actual_format.value}"',
+            'Content-Disposition': (
+                f'attachment; filename="combined_speech.{actual_format.value}"'
+            ),
             'X-Audio-Format': actual_format.value,
             'X-Audio-Size': str(len(combined_audio)),
             'X-Chunks-Combined': str(len(responses)),
@@ -698,6 +750,7 @@ def generate_speech_combined():
         logger.error(f"Combined generation error: {e}")
         return jsonify({"error": "Combined audio generation failed"}), 500
 
+
 @app.route('/api/status', methods=['GET'])
 def get_status():
     """Get service status."""
@@ -705,19 +758,19 @@ def get_status():
         # Try to make a simple request to check if the TTS service is available
         client = create_tts_client()
 
-        test_response = client.generate_speech(
+        client.generate_speech(
             text="test",
             voice=Voice.ALLOY,
             response_format=AudioFormat.MP3
         )
-        
+
         return jsonify({
             "status": "online",
             "tts_service": "openai.fm (free)",
             "package_version": "3.3.0-alpha4",
             "timestamp": datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         logger.error(f"Status check failed: {e}")
         return jsonify({
@@ -727,6 +780,7 @@ def get_status():
             "timestamp": datetime.now().isoformat()
         }), 503
 
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Simple health check endpoint."""
@@ -735,6 +789,7 @@ def health_check():
         "package_version": "3.3.0-alpha4",
         "timestamp": datetime.now().isoformat()
     })
+
 
 @app.route('/api/websocket/status', methods=['GET'])
 def websocket_status():
@@ -748,6 +803,7 @@ def websocket_status():
         "timestamp": datetime.now().isoformat()
     })
 
+
 @app.route('/api/auth-status', methods=['GET'])
 def auth_status():
     """Get authentication status and requirements."""
@@ -756,6 +812,7 @@ def auth_status():
         "api_key_configured": API_KEYS_CONFIGURED if REQUIRE_API_KEY else None,
         "timestamp": datetime.now().isoformat()
     })
+
 
 @app.route('/api/translations/<lang_code>', methods=['GET'])
 def get_translations(lang_code):
@@ -771,6 +828,8 @@ def get_translations(lang_code):
         return jsonify({"error": "Failed to get translations"}), 500
 
 # OpenAI-compatible API endpoints
+
+
 @app.route('/v1/audio/speech', methods=['POST'])
 @require_api_key
 def openai_speech():
@@ -788,16 +847,16 @@ def openai_speech():
             }), 400
 
         # Extract OpenAI-compatible parameters
-        model = data.get('model', 'gpt-4o-mini-tts')  # Accept but ignore model
         input_text = data.get('input', '').strip()
         voice = data.get('voice', 'alloy')
         response_format = data.get('response_format', 'mp3')
         instructions = data.get('instructions', '').strip() or None
-        speed = data.get('speed', 1.0)  # Accept but ignore speed
 
         # TTSFM-specific parameters
-        auto_combine = data.get('auto_combine', True)  # New parameter: auto-combine long text (default: True)
-        max_length = data.get('max_length', 4096)  # Custom parameter for chunk size
+        # New parameter: auto-combine long text (default: True)
+        auto_combine = data.get('auto_combine', True)
+        # Custom parameter for chunk size
+        max_length = data.get('max_length', 4096)
 
         # Validate required fields
         if not input_text:
@@ -813,31 +872,47 @@ def openai_speech():
         try:
             voice_enum = Voice(voice.lower())
         except ValueError:
-            return jsonify({
-                "error": {
-                    "message": f"Invalid voice: {voice}. Must be one of: {[v.value for v in Voice]}",
-                    "type": "invalid_request_error",
-                    "code": "invalid_voice"
+            voice_options = ", ".join(v.value for v in Voice)
+            return jsonify(
+                {
+                    "error": {
+                        "message": (
+                            f"Invalid voice: {voice}. Must be one of: {voice_options}"
+                        ),
+                        "type": "invalid_request_error",
+                        "code": "invalid_voice",
+                    }
                 }
-            }), 400
+            ), 400
 
         # Validate format
         try:
             format_enum = AudioFormat(response_format.lower())
         except ValueError:
-            return jsonify({
-                "error": {
-                    "message": f"Invalid response_format: {response_format}. Must be one of: {[f.value for f in AudioFormat]}",
-                    "type": "invalid_request_error",
-                    "code": "invalid_format"
+            format_options = ", ".join(fmt.value for fmt in AudioFormat)
+            return jsonify(
+                {
+                    "error": {
+                        "message": (
+                            "Invalid response_format: "
+                            f"{response_format}. Must be one of: {format_options}"
+                        ),
+                        "type": "invalid_request_error",
+                        "code": "invalid_format",
+                    }
                 }
-            }), 400
+            ), 400
 
         effective_format = get_supported_format(format_enum)
 
         logger.info(
-            "OpenAI API: Generating speech: text='%s...', voice=%s, requested_format=%s (effective=%s), auto_combine=%s",
-            input_text[:50], voice, response_format, effective_format.value, auto_combine
+            "OpenAI API: Generating speech: text='%s...', voice=%s, "
+            "requested_format=%s (effective=%s), auto_combine=%s",
+            input_text[:50],
+            voice,
+            response_format,
+            effective_format.value,
+            auto_combine,
         )
 
         client = create_tts_client()
@@ -845,7 +920,10 @@ def openai_speech():
         # Check if text exceeds limit and auto_combine is enabled
         if len(input_text) > max_length and auto_combine:
             # Long text with auto-combine enabled: split and combine
-            logger.info(f"Long text detected ({len(input_text)} chars), auto-combining enabled")
+            logger.info(
+                "Long text detected (%s chars), auto-combining enabled",
+                len(input_text),
+            )
 
             # Generate speech chunks
             responses = client.generate_speech_long_text(
@@ -869,7 +947,8 @@ def openai_speech():
             # Extract audio data and combine
             audio_chunks = [resp.audio_data for resp in responses]
             actual_format = responses[0].format
-            combined_audio = combine_audio_chunks(audio_chunks, actual_format.value)
+            combined_audio = combine_audio_chunks(
+                audio_chunks, actual_format.value)
 
             if not combined_audio:
                 return jsonify({
@@ -882,7 +961,9 @@ def openai_speech():
 
             content_type = responses[0].content_type
 
-            logger.info(f"Successfully combined {len(responses)} chunks into single audio file")
+            logger.info(
+                f"Successfully combined {
+                    len(responses)} chunks into single audio file")
 
             headers = {
                 'Content-Type': content_type,
@@ -907,13 +988,20 @@ def openai_speech():
             # Short text or auto_combine disabled: use regular generation
             if len(input_text) > max_length and not auto_combine:
                 # Text is too long but auto_combine is disabled - return error
-                return jsonify({
-                    "error": {
-                        "message": f"Input text is too long ({len(input_text)} characters). Maximum allowed length is {max_length} characters. Enable auto_combine parameter to automatically split and combine long text.",
-                        "type": "invalid_request_error",
-                        "code": "text_too_long"
+                return jsonify(
+                    {
+                        "error": {
+                            "message": (
+                                f"Input text is too long ({len(input_text)} characters). "
+                                f"Maximum allowed length is {max_length} characters. "
+                                "Enable the auto_combine parameter to split and combine "
+                                "long input automatically."
+                            ),
+                            "type": "invalid_request_error",
+                            "code": "text_too_long",
+                        }
                     }
-                }), 400
+                ), 400
 
             # Generate speech using the TTSFM package
             response = client.generate_speech(
@@ -984,7 +1072,6 @@ def openai_speech():
         }), 500
 
 
-
 @app.route('/v1/models', methods=['GET'])
 def openai_models():
     """OpenAI-compatible models endpoint."""
@@ -1003,21 +1090,25 @@ def openai_models():
         ]
     })
 
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors."""
     return jsonify({"error": "Endpoint not found"}), 404
+
 
 @app.errorhandler(405)
 def method_not_allowed(error):
     """Handle 405 errors."""
     return jsonify({"error": "Method not allowed"}), 405
 
+
 @app.errorhandler(500)
 def internal_error(error):
     """Handle 500 errors."""
     logger.error(f"Internal server error: {error}")
     return jsonify({"error": "Internal server error"}), 500
+
 
 if __name__ == '__main__':
     logger.info(f"Starting TTSFM web application on {HOST}:{PORT}")
@@ -1030,10 +1121,13 @@ if __name__ == '__main__':
             logger.info("🔒 API key protection is ENABLED")
             logger.info("All TTS generation requests require a valid API key")
         else:
-            logger.warning("⚠️ API key protection is enabled but TTSFM_API_KEY(S) are not configured!")
-            logger.warning("Please set the TTSFM_API_KEY or TTSFM_API_KEYS environment variables")
+            logger.warning(
+                "⚠️ API key protection is enabled but TTSFM_API_KEY(S) are not configured!")
+            logger.warning(
+                "Please set the TTSFM_API_KEY or TTSFM_API_KEYS environment variables")
     else:
-        logger.info("🔓 API key protection is DISABLED - all requests are allowed")
+        logger.info(
+            "🔓 API key protection is DISABLED - all requests are allowed")
         logger.info("Set REQUIRE_API_KEY=true to enable API key protection")
 
     try:
@@ -1045,4 +1139,3 @@ if __name__ == '__main__':
         logger.error(f"Failed to start application: {e}")
     finally:
         logger.info("TTSFM web application shut down")
-

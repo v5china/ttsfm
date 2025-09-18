@@ -34,34 +34,31 @@ Example:
     >>> opus_response.save_to_file("compressed")  # Saves as compressed.wav
 """
 
-from .client import TTSClient
 from .async_client import AsyncTTSClient
+from .audio import combine_audio_chunks, combine_responses
+from .client import TTSClient
+from .exceptions import (
+    APIException,
+    AudioProcessingException,
+    AuthenticationException,
+    NetworkException,
+    QuotaExceededException,
+    RateLimitException,
+    ServiceUnavailableException,
+    TTSException,
+    ValidationException,
+)
 from .models import (
+    APIError,
+    AudioFormat,
+    NetworkError,
+    TTSError,
     TTSRequest,
     TTSResponse,
+    ValidationError,
     Voice,
-    AudioFormat,
-    TTSError,
-    APIError,
-    NetworkError,
-    ValidationError
 )
-from .exceptions import (
-    TTSException,
-    APIException,
-    NetworkException,
-    ValidationException,
-    RateLimitException,
-    AuthenticationException,
-    ServiceUnavailableException,
-    QuotaExceededException,
-    AudioProcessingException
-)
-from .audio import combine_audio_chunks, combine_responses
-from .utils import (
-    validate_text_length,
-    split_text_by_length
-)
+from .utils import split_text_by_length, validate_text_length
 
 __version__ = "3.3.0-alpha4"
 __author__ = "dbcccc"
@@ -72,38 +69,42 @@ __url__ = "https://github.com/dbccccccc/ttsfm"
 # Default client instance for convenience
 default_client = None
 
+
 def create_client(base_url: str = None, api_key: str = None, **kwargs) -> TTSClient:
     """
     Create a new TTS client instance.
-    
+
     Args:
         base_url: Base URL for the TTS service
         api_key: API key for authentication (if required)
         **kwargs: Additional client configuration
-        
+
     Returns:
         TTSClient: Configured client instance
     """
     return TTSClient(base_url=base_url, api_key=api_key, **kwargs)
 
+
 def create_async_client(base_url: str = None, api_key: str = None, **kwargs) -> AsyncTTSClient:
     """
     Create a new async TTS client instance.
-    
+
     Args:
         base_url: Base URL for the TTS service
         api_key: API key for authentication (if required)
         **kwargs: Additional client configuration
-        
+
     Returns:
         AsyncTTSClient: Configured async client instance
     """
     return AsyncTTSClient(base_url=base_url, api_key=api_key, **kwargs)
 
+
 def set_default_client(client: TTSClient) -> None:
     """Set the default client instance for convenience functions."""
     global default_client
     default_client = client
+
 
 def generate_speech(text: str, voice: str = "alloy", **kwargs) -> bytes:
     """
@@ -124,6 +125,7 @@ def generate_speech(text: str, voice: str = "alloy", **kwargs) -> bytes:
         raise TTSException("No default client set. Use create_client() first.")
 
     return default_client.generate_speech(text=text, voice=voice, **kwargs)
+
 
 def generate_speech_long_text(text: str, voice: str = "alloy", **kwargs):
     """
@@ -147,22 +149,23 @@ def generate_speech_long_text(text: str, voice: str = "alloy", **kwargs):
 
     return default_client.generate_speech_long_text(text=text, voice=voice, **kwargs)
 
+
 # Export all public components
 __all__ = [
     # Main classes
     "TTSClient",
     "AsyncTTSClient",
-    
+
     # Models
     "TTSRequest",
-    "TTSResponse", 
+    "TTSResponse",
     "Voice",
     "AudioFormat",
     "TTSError",
     "APIError",
     "NetworkError",
     "ValidationError",
-    
+
     # Exceptions
     "TTSException",
     "APIException",
@@ -173,7 +176,7 @@ __all__ = [
     "ServiceUnavailableException",
     "QuotaExceededException",
     "AudioProcessingException",
-    
+
     # Factory functions
     "create_client",
     "create_async_client",
@@ -186,7 +189,7 @@ __all__ = [
     "split_text_by_length",
     "combine_audio_chunks",
     "combine_responses",
-    
+
     # Package metadata
     "__version__",
     "__author__",
@@ -194,4 +197,3 @@ __all__ = [
     "__description__",
     "__url__"
 ]
-

@@ -1,9 +1,10 @@
-import pytest
 import types
 
-from ttsfm.client import TTSClient
+import pytest
+
 from ttsfm.async_client import AsyncTTSClient
-from ttsfm.models import TTSResponse, AudioFormat
+from ttsfm.client import TTSClient
+from ttsfm.models import AudioFormat, TTSResponse
 
 
 def _mk_response(data: bytes) -> TTSResponse:

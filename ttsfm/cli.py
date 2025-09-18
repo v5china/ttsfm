@@ -7,14 +7,13 @@ allowing users to generate speech from text using various options.
 """
 
 import argparse
-import sys
 import os
-from typing import Optional
+import sys
 from pathlib import Path
 
 from .client import TTSClient
-from .models import Voice, AudioFormat, TTSResponse
-from .exceptions import TTSException, APIException, NetworkException
+from .exceptions import APIException, NetworkException, TTSException
+from .models import AudioFormat, TTSResponse, Voice
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -31,7 +30,7 @@ Examples:
   ttsfm --text-file input.txt --output speech.mp3
         """
     )
-    
+
     # Text input options (mutually exclusive)
     text_group = parser.add_mutually_exclusive_group(required=True)
     text_group.add_argument(
@@ -44,7 +43,7 @@ Examples:
         type=str,
         help="Read text from file"
     )
-    
+
     # Output options
     parser.add_argument(
         "--output", "-o",
@@ -52,16 +51,17 @@ Examples:
         required=True,
         help="Output file path"
     )
-    
+
     # TTS options
     parser.add_argument(
         "--voice", "-v",
         type=str,
         default="alloy",
-        choices=["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse"],
+        choices=["alloy", "ash", "ballad", "coral", "echo",
+                 "fable", "nova", "onyx", "sage", "shimmer", "verse"],
         help="Voice to use for speech generation (default: alloy)"
     )
-    
+
     parser.add_argument(
         "--format",
         type=str,
@@ -69,14 +69,14 @@ Examples:
         choices=["mp3", "opus", "aac", "flac", "wav", "pcm"],
         help="Audio format (default: mp3)"
     )
-    
+
     parser.add_argument(
         "--speed",
         type=float,
         default=1.0,
         help="Speech speed (0.25 to 4.0, default: 1.0)"
     )
-    
+
     # Client options
     parser.add_argument(
         "--url", "-u",
@@ -84,20 +84,20 @@ Examples:
         default="http://localhost:7000",
         help="TTS service URL (default: http://localhost:7000)"
     )
-    
+
     parser.add_argument(
         "--api-key", "-k",
         type=str,
         help="API key for authentication"
     )
-    
+
     parser.add_argument(
         "--timeout",
         type=float,
         default=30.0,
         help="Request timeout in seconds (default: 30.0)"
     )
-    
+
     parser.add_argument(
         "--retries",
         type=int,
@@ -128,7 +128,10 @@ Examples:
     parser.add_argument(
         "--auto-combine",
         action="store_true",
-        help="Combine long-text chunks into a single audio file (requires pydub for non-WAV formats)"
+        help=(
+            "Combine long-text chunks into a single audio file "
+            "(requires pydub for non-WAV formats)"
+        )
     )
 
     # Other options
@@ -137,13 +140,13 @@ Examples:
         action="store_true",
         help="Enable verbose output"
     )
-    
+
     parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {get_version()}"
     )
-    
+
     return parser
 
 
@@ -208,10 +211,14 @@ def get_format_enum(format_str: str) -> AudioFormat:
     return format_map[format_str.lower()]
 
 
-def handle_long_text(args, text: str, voice: Voice, audio_format: AudioFormat, speed: float) -> None:
+def handle_long_text(
+    args,
+    text: str,
+    voice: Voice,
+    audio_format: AudioFormat,
+    speed: float,
+) -> None:
     """Handle long text by splitting it into chunks and generating multiple files."""
-    import os
-
     # Create client
     try:
         client = TTSClient(
@@ -275,26 +282,26 @@ def main() -> None:
     """Main CLI entry point."""
     parser = create_parser()
     args = parser.parse_args()
-    
+
     # Get text input
     if args.text:
         text = args.text
     else:
         text = read_text_file(args.text_file)
-    
+
     if not text:
         print("Error: No text provided.", file=sys.stderr)
         sys.exit(1)
-    
+
     # Validate parameters
     speed = validate_speed(args.speed)
     voice = get_voice_enum(args.voice)
     audio_format = get_format_enum(args.format)
-    
+
     # Create output directory if needed
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Check text length and handle accordingly
     text_length = len(text)
     validate_length = not args.no_length_validation
@@ -322,7 +329,7 @@ def main() -> None:
             print("Use --split-long-text to automatically split the text, "
                   "or --no-length-validation to disable this check.", file=sys.stderr)
             sys.exit(1)
-    
+
     # Create client
     try:
         client = TTSClient(
@@ -331,10 +338,10 @@ def main() -> None:
             timeout=args.timeout,
             max_retries=args.retries
         )
-        
+
         if args.verbose:
             print("Generating speech...")
-        
+
         # Generate speech
         response = client.generate_speech(
             text=text,
@@ -348,9 +355,9 @@ def main() -> None:
         # Save to file
         with open(args.output, 'wb') as f:
             f.write(response.audio_data)
-        
+
         print(f"Speech generated successfully: {args.output}")
-        
+
     except NetworkException as e:
         print(f"Network error: {e}", file=sys.stderr)
         sys.exit(1)

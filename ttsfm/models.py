@@ -5,10 +5,10 @@ This module defines the core data structures used throughout the package,
 including request/response models, enums, and error types.
 """
 
-from enum import Enum
-from typing import Optional, Dict, Any, Union
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, Optional, Union
 
 
 class Voice(str, Enum):
@@ -59,7 +59,7 @@ class TTSRequest:
     speed: Optional[float] = None
     max_length: int = 4096
     validate_length: bool = True
-    
+
     def __post_init__(self):
         """Validate and normalize fields after initialization."""
         # Ensure voice is a valid Voice enum
@@ -74,7 +74,8 @@ class TTSRequest:
             try:
                 self.response_format = AudioFormat(self.response_format.lower())
             except ValueError:
-                raise ValueError(f"Invalid format: {self.response_format}. Must be one of {list(AudioFormat)}")
+                raise ValueError(
+                    f"Invalid format: {self.response_format}. Must be one of {list(AudioFormat)}")
 
         # Validate input text
         if not self.input or not self.input.strip():
@@ -98,24 +99,28 @@ class TTSRequest:
         # Validate speed if provided
         if self.speed is not None and (self.speed < 0.25 or self.speed > 4.0):
             raise ValueError("Speed must be between 0.25 and 4.0")
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert request to dictionary for API calls."""
         data = {
             "input": self.input,
             "voice": self.voice.value if isinstance(self.voice, Voice) else self.voice,
-            "response_format": self.response_format.value if isinstance(self.response_format, AudioFormat) else self.response_format
+            "response_format": (
+                self.response_format.value
+                if isinstance(self.response_format, AudioFormat)
+                else self.response_format
+            )
         }
-        
+
         if self.instructions:
             data["instructions"] = self.instructions
-        
+
         if self.model:
             data["model"] = self.model
-            
+
         if self.speed is not None:
             data["speed"] = self.speed
-            
+
         return data
 
 
@@ -123,7 +128,7 @@ class TTSRequest:
 class TTSResponse:
     """
     Response model for TTS generation.
-    
+
     Attributes:
         audio_data: Generated audio as bytes
         content_type: MIME type of the audio data
@@ -138,12 +143,12 @@ class TTSResponse:
     size: int
     duration: Optional[float] = None
     metadata: Optional[Dict[str, Any]] = None
-    
+
     def __post_init__(self):
         """Calculate derived fields after initialization."""
         if self.size is None:
             self.size = len(self.audio_data)
-    
+
     def save_to_file(self, filename: str) -> str:
         """
         Save audio data to a file.
@@ -173,7 +178,8 @@ class TTSResponse:
             final_filename = f"{base_name}{expected_extension}"
 
         # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(final_filename) if os.path.dirname(final_filename) else ".", exist_ok=True)
+        os.makedirs(os.path.dirname(final_filename) if os.path.dirname(
+            final_filename) else ".", exist_ok=True)
 
         # Write audio data
         with open(final_filename, "wb") as f:
@@ -186,7 +192,7 @@ class TTSResponse:
 class TTSError:
     """
     Error information from TTS API.
-    
+
     Attributes:
         code: Error code
         message: Human-readable error message
@@ -199,7 +205,7 @@ class TTSError:
     type: Optional[str] = None
     details: Optional[Dict[str, Any]] = None
     timestamp: Optional[datetime] = None
-    
+
     def __post_init__(self):
         """Set timestamp if not provided."""
         if self.timestamp is None:

@@ -5,26 +5,40 @@ This module provides common utility functions used throughout the package,
 including HTTP helpers, validation utilities, and configuration management.
 """
 
-import os
-import re
-import time
-import random
 import logging
+import os
+import random
+import re
 from html import unescape
 from itertools import cycle
 from threading import Lock
-from typing import Dict, Any, Optional, Union, List
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urljoin, urlparse
-
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 DEFAULT_USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+    (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5_0) "
+        "AppleWebKit/605.1.15 (KHTML, like Gecko) "
+        "Version/16.5 Safari/605.1.15"
+    ),
+    (
+        "Mozilla/5.0 (X11; Linux x86_64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/123.0.0.0 Safari/537.36"
+    ),
+    (
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) "
+        "AppleWebKit/605.1.15 (KHTML, like Gecko) "
+        "Version/17.4 Mobile/15E148 Safari/604.1"
+    ),
 ]
 
 _HEADER_SEED = os.getenv("TTSFM_HEADER_SEED")
@@ -77,7 +91,8 @@ def get_user_agent() -> str:
     if override:
         return override.strip()
 
-    if _USE_FAKE_USERAGENT and UserAgent is not None:  # pragma: no cover - requires optional dependency
+    if _USE_FAKE_USERAGENT and UserAgent is not None:  # pragma: no cover
+        # Optional dependency required for dynamic user-agent generation
         try:
             ua = UserAgent(fallback=DEFAULT_USER_AGENTS[0])
             candidate = ua.random
@@ -88,7 +103,6 @@ def get_user_agent() -> str:
 
     with _USER_AGENT_LOCK:
         return next(_USER_AGENT_CYCLE)
-
 
 
 def _next_language() -> str:
@@ -282,7 +296,11 @@ def _split_long_segment(segment: str, max_length: int) -> List[str]:
     return parts
 
 
-def split_text_by_length(text: str, max_length: int = 4096, preserve_words: bool = True) -> List[str]:
+def split_text_by_length(
+    text: str,
+    max_length: int = 4096,
+    preserve_words: bool = True,
+) -> List[str]:
     """Split text into chunks no longer than ``max_length`` characters."""
     if not text:
         return []
@@ -334,9 +352,6 @@ def split_text_by_length(text: str, max_length: int = 4096, preserve_words: bool
     return [chunk for chunk in chunks if chunk.strip()]
 
 
-
-
-
 def sanitize_text(text: str) -> str:
     """Sanitize input text for TTS processing while keeping user content intact."""
     if not text:
@@ -359,10 +374,10 @@ def sanitize_text(text: str) -> str:
 def validate_url(url: str) -> bool:
     """
     Validate if a URL is properly formatted.
-    
+
     Args:
         url: URL to validate
-        
+
     Returns:
         bool: True if URL is valid, False otherwise
     """
@@ -376,33 +391,33 @@ def validate_url(url: str) -> bool:
 def build_url(base_url: str, path: str) -> str:
     """
     Build a complete URL from base URL and path.
-    
+
     Args:
         base_url: Base URL
         path: Path to append
-        
+
     Returns:
         str: Complete URL
     """
     # Ensure base_url ends with /
     if not base_url.endswith('/'):
         base_url += '/'
-    
+
     # Ensure path doesn't start with /
     if path.startswith('/'):
         path = path[1:]
-    
+
     return urljoin(base_url, path)
 
 
 def get_random_delay(min_delay: float = 1.0, max_delay: float = 5.0) -> float:
     """
     Get a random delay with jitter for rate limiting.
-    
+
     Args:
         min_delay: Minimum delay in seconds
         max_delay: Maximum delay in seconds
-        
+
     Returns:
         float: Random delay in seconds
     """
@@ -414,12 +429,12 @@ def get_random_delay(min_delay: float = 1.0, max_delay: float = 5.0) -> float:
 def exponential_backoff(attempt: int, base_delay: float = 1.0, max_delay: float = 60.0) -> float:
     """
     Calculate exponential backoff delay.
-    
+
     Args:
         attempt: Attempt number (0-based)
         base_delay: Base delay in seconds
         max_delay: Maximum delay in seconds
-        
+
     Returns:
         float: Delay in seconds
     """
@@ -431,19 +446,19 @@ def exponential_backoff(attempt: int, base_delay: float = 1.0, max_delay: float 
 def load_config_from_env(prefix: str = "TTSFM_") -> Dict[str, Any]:
     """
     Load configuration from environment variables.
-    
+
     Args:
         prefix: Prefix for environment variables
-        
+
     Returns:
         Dict[str, Any]: Configuration dictionary
     """
     config = {}
-    
+
     for key, value in os.environ.items():
         if key.startswith(prefix):
             config_key = key[len(prefix):].lower()
-            
+
             # Try to convert to appropriate type
             if value.lower() in ('true', 'false'):
                 config[config_key] = value.lower() == 'true'
@@ -453,21 +468,24 @@ def load_config_from_env(prefix: str = "TTSFM_") -> Dict[str, Any]:
                 config[config_key] = float(value)
             else:
                 config[config_key] = value
-    
+
     return config
 
 
-def setup_logging(level: Union[str, int] = logging.INFO, format_string: Optional[str] = None) -> None:
+def setup_logging(
+    level: Union[str, int] = logging.INFO,
+    format_string: Optional[str] = None,
+) -> None:
     """
     Setup logging configuration for the package.
-    
+
     Args:
         level: Logging level
         format_string: Custom format string
     """
     if format_string is None:
         format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    
+
     logging.basicConfig(
         level=level,
         format=format_string,
@@ -478,23 +496,23 @@ def setup_logging(level: Union[str, int] = logging.INFO, format_string: Optional
 def estimate_audio_duration(text: str, words_per_minute: float = 150.0) -> float:
     """
     Estimate audio duration based on text length.
-    
+
     Args:
         text: Input text
         words_per_minute: Average speaking rate
-        
+
     Returns:
         float: Estimated duration in seconds
     """
     if not text:
         return 0.0
-    
+
     # Count words (simple whitespace split)
     word_count = len(text.split())
-    
+
     # Calculate duration in seconds
     duration = (word_count / words_per_minute) * 60.0
-    
+
     # Add some buffer for pauses and processing
     return duration * 1.1
 
@@ -502,21 +520,21 @@ def estimate_audio_duration(text: str, words_per_minute: float = 150.0) -> float
 def format_file_size(size_bytes: int) -> str:
     """
     Format file size in human-readable format.
-    
+
     Args:
         size_bytes: Size in bytes
-        
+
     Returns:
         str: Formatted size string
     """
     if size_bytes == 0:
         return "0 B"
-    
+
     size_names = ["B", "KB", "MB", "GB"]
     i = 0
-    
+
     while size_bytes >= 1024 and i < len(size_names) - 1:
         size_bytes /= 1024.0
         i += 1
-    
+
     return f"{size_bytes:.1f} {size_names[i]}"
