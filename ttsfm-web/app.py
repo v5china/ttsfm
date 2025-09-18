@@ -965,8 +965,9 @@ def openai_speech():
             content_type = responses[0].content_type
 
             logger.info(
-                f"Successfully combined {
-                    len(responses)} chunks into single audio file")
+                "Successfully combined %s chunks into single audio file",
+                len(responses),
+            )
 
             headers = {
                 'Content-Type': content_type,
