@@ -531,8 +531,6 @@ def generate_speech():
             ), 400
 
         effective_format = get_supported_format(format_enum)
-        if len(input_text) > max_length and auto_combine and effective_format is AudioFormat.MP3:
-            effective_format = AudioFormat.WAV
         if len(text) > max_length and effective_format is AudioFormat.MP3:
             effective_format = AudioFormat.WAV
 
