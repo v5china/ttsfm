@@ -48,7 +48,7 @@ class TTSRequest:
         instructions: Optional instructions for voice modulation
         model: Model to use (for OpenAI compatibility, usually ignored)
         speed: Speech speed (for OpenAI compatibility, usually ignored)
-        max_length: Maximum allowed text length (default: 4096 characters)
+        max_length: Maximum allowed text length (default: 1000 characters)
         validate_length: Whether to validate text length (default: True)
     """
     input: str
@@ -57,11 +57,13 @@ class TTSRequest:
     instructions: Optional[str] = None
     model: Optional[str] = None
     speed: Optional[float] = None
-    max_length: int = 4096
+    max_length: int = 1000
     validate_length: bool = True
 
     def __post_init__(self):
         """Validate and normalize fields after initialization."""
+        if self.max_length > 1000:
+            self.max_length = 1000
         # Ensure voice is a valid Voice enum
         if isinstance(self.voice, str):
             try:

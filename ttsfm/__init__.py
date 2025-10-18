@@ -60,7 +60,7 @@ from .models import (
 )
 from .utils import split_text_by_length, validate_text_length
 
-__version__ = "3.3.0-beta1"
+__version__ = "3.3.1"
 __author__ = "dbcccc"
 __email__ = "120614547+dbccccccc@users.noreply.github.com"
 __description__ = "Text-to-Speech API Client with OpenAI compatibility"
@@ -134,7 +134,7 @@ def generate_speech_long_text(text: str, voice: str = "alloy", **kwargs):
     Automatically splits long text into chunks and generates speech for each chunk.
 
     Args:
-        text: Text to convert to speech (can be longer than 4096 characters)
+        text: Text to convert to speech (can be longer than 1000 characters)
         voice: Voice to use for generation
         **kwargs: Additional generation parameters (max_length, preserve_words, etc.)
 

@@ -446,7 +446,7 @@ def validate_text():
             return jsonify({"error": "No JSON data provided"}), 400
 
         text = data.get('text', '').strip()
-        max_length = data.get('max_length', 4096)
+        max_length = data.get('max_length', 1000)
 
         if not text:
             return jsonify({"error": "Text is required"}), 400
@@ -496,7 +496,7 @@ def generate_speech():
         voice = data.get('voice', Voice.ALLOY.value)
         response_format = data.get('format', AudioFormat.MP3.value)
         instructions = data.get('instructions', '').strip() or None
-        max_length = data.get('max_length', 4096)
+        max_length = data.get('max_length', 1000)
         validate_length = data.get('validate_length', True)
 
         # Validate required fields
@@ -603,7 +603,7 @@ def generate_speech_combined():
         voice = data.get('voice', Voice.ALLOY.value)
         response_format = data.get('format', AudioFormat.MP3.value)
         instructions = data.get('instructions', '').strip() or None
-        max_length = data.get('max_length', 4096)
+        max_length = data.get('max_length', 1000)
         preserve_words = data.get('preserve_words', True)
 
         if not text:
@@ -775,7 +775,7 @@ def get_status():
         return jsonify({
             "status": "online",
             "tts_service": "openai.fm (free)",
-            "package_version": "3.3.0-beta1",
+            "package_version": "3.3.1",
             "timestamp": datetime.now().isoformat()
         })
 
@@ -794,7 +794,7 @@ def health_check():
     """Simple health check endpoint."""
     return jsonify({
         "status": "healthy",
-        "package_version": "3.3.0-beta1",
+        "package_version": "3.3.1",
         "timestamp": datetime.now().isoformat()
     })
 
@@ -864,7 +864,7 @@ def openai_speech():
         # New parameter: auto-combine long text (default: True)
         auto_combine = data.get('auto_combine', True)
         # Custom parameter for chunk size
-        max_length = data.get('max_length', 4096)
+        max_length = data.get('max_length', 1000)
 
         # Validate required fields
         if not input_text:

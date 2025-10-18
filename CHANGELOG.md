@@ -5,11 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.3.0-beta1] - 2025-09-22
+## [3.3.1] - 2025-10-18
 
 ### Changed
-- Promoted the release to **beta1** now that HTTP endpoints are stable and long-text combining no longer depends on external ffmpeg tooling.
-- No additional functional changes beyond the alpha5 hotfixes; this is a stability re-tag for broader testing.
+- Enforced a 1000-character ceiling across the core clients, CLI, and web API, with sentence-aware splitting that falls back to word chunks when required.
+- Refreshed the README (EN/ZH), translations, and UI badges to document the new limit and updated release version.
+- Bundled `ffmpeg` inside the runtime Docker image so MP3 auto-combine succeeds out of the box without manual package installs.
+
+### Testing
+- `pytest`
+- Manual `/v1/audio/speech` request (≈1.6k chars) exercised Docker auto-combine; returned `X-Chunks-Combined: 2` and a playable MP3.
 
 ## [3.3.0-alpha5] - 2025-09-19
 
@@ -265,7 +270,7 @@ pip install ttsfm[web]
 pip install ttsfm[dev]
 
 # Docker
-docker run -p 8000:8000 ghcr.io/dbccccccc/ttsfm:latest
+docker run -p 8000:8000 dbcccc/ttsfm:latest
 ```
 
 ### 🚀 Quick Start
@@ -365,5 +370,3 @@ The following versions were service/API server releases only and were not availa
 
 ### [1.0.0] - 2025-03-26
 - First service release
-
-

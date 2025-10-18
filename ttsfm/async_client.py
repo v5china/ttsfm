@@ -140,7 +140,7 @@ class AsyncTTSClient:
         voice: Union[Voice, str] = Voice.ALLOY,
         response_format: Union[AudioFormat, str] = AudioFormat.MP3,
         instructions: Optional[str] = None,
-        max_length: int = 4096,
+        max_length: int = 1000,
         validate_length: bool = True,
         **kwargs
     ) -> TTSResponse:
@@ -152,7 +152,7 @@ class AsyncTTSClient:
             voice: Voice to use for generation
             response_format: Audio format for output
             instructions: Optional instructions for voice modulation
-            max_length: Maximum allowed text length in characters (default: 4096)
+            max_length: Maximum allowed text length in characters (default: 1000)
             validate_length: Whether to validate text length (default: True)
             **kwargs: Additional parameters
 
@@ -182,7 +182,7 @@ class AsyncTTSClient:
         voice: Union[Voice, str] = Voice.ALLOY,
         response_format: Union[AudioFormat, str] = AudioFormat.MP3,
         instructions: Optional[str] = None,
-        max_length: int = 4096,
+        max_length: int = 1000,
         preserve_words: bool = True,
         auto_combine: bool = False,
         **kwargs
@@ -198,7 +198,7 @@ class AsyncTTSClient:
             voice: Voice to use for generation
             response_format: Audio format for output
             instructions: Optional instructions for voice modulation
-            max_length: Maximum length per chunk (default: 4096)
+            max_length: Maximum length per chunk (default: 1000)
             preserve_words: Whether to avoid splitting words (default: True)
             **kwargs: Additional parameters
 
@@ -280,7 +280,7 @@ class AsyncTTSClient:
         voice: Union[Voice, str] = Voice.ALLOY,
         response_format: Union[AudioFormat, str] = AudioFormat.MP3,
         instructions: Optional[str] = None,
-        max_length: int = 4096,
+        max_length: int = 1000,
         preserve_words: bool = True,
         auto_combine: bool = False,
         **kwargs
@@ -295,7 +295,7 @@ class AsyncTTSClient:
             voice: Voice to use for generation
             response_format: Audio format for output
             instructions: Optional instructions for voice modulation
-            max_length: Maximum length per chunk (default: 4096)
+            max_length: Maximum length per chunk (default: 1000)
             preserve_words: Whether to avoid splitting words (default: True)
             **kwargs: Additional parameters
 

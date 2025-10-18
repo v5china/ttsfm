@@ -109,8 +109,8 @@ Examples:
     parser.add_argument(
         "--max-length",
         type=int,
-        default=4096,
-        help="Maximum text length in characters (default: 4096)"
+        default=1000,
+        help="Maximum text length in characters (default: 1000)"
     )
 
     parser.add_argument(

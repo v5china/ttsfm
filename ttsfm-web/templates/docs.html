@@ -82,6 +82,7 @@
                 <a href="#overview">{{ _('docs.overview') }}</a>
                 <a href="#authentication">{{ _('docs.authentication') }}</a>
                 <a href="#text-validation">{{ _('docs.text_validation') }}</a>
+                <a href="#operations">{{ _('docs.operations') }}</a>
                 <a href="#endpoints">{{ _('docs.endpoints') }}</a>
                 <a href="#voices">{{ _('docs.voices') }}</a>
                 <a href="#formats">{{ _('docs.formats') }}</a>
@@ -123,6 +124,17 @@
                     <i class="fas fa-star me-2"></i>
                     <strong>{{ _('docs.new_version') }}</strong> {{ _('docs.new_version_desc') }}
                 </div>
+            </section>
+            
+            <!-- Operational Notes -->
+            <section id="operations" class="mb-5">
+                <h2 class="fw-bold mb-3">{{ _('docs.operational_title') }}</h2>
+                <ul>
+                    <li>{{ _('docs.operational_limit') }}</li>
+                    <li>{{ _('docs.operational_fallback') }}</li>
+                    <li>{{ _('docs.operational_backend') }}</li>
+                    <li>{{ _('docs.operational_ffmpeg') }}</li>
+                </ul>
             </section>
             
             <!-- Authentication -->
@@ -272,7 +284,7 @@
                         <div class="code-block">
                             <pre><code>{
   "text": "Your text to validate",
-  "max_length": 4096
+  "max_length": 1000
 }</code></pre>
                         </div>
                         
@@ -280,7 +292,7 @@
                         <div class="response-example">
                             <pre><code>{
   "text_length": 5000,
-  "max_length": 4096,
+  "max_length": 1000,
   "is_valid": false,
   "needs_splitting": true,
   "suggested_chunks": 2,
@@ -309,7 +321,7 @@
   "voice": "alloy",
   "format": "mp3",
   "instructions": "Speak cheerfully",
-  "max_length": 4096,
+  "max_length": 1000,
   "validate_length": true
 }</code></pre>
                         </div>
@@ -350,7 +362,7 @@ client = TTSClient()
 
 # Generate speech from long text (automatically splits into separate files)
 responses = client.generate_speech_long_text(
-    text="Very long text that exceeds 4096 characters...",
+    text="Very long text that exceeds 1000 characters...",
     voice=Voice.ALLOY,
     response_format=AudioFormat.MP3,
     max_length=2000,
@@ -393,7 +405,7 @@ for i, response in enumerate(responses, 1):
   "voice": "alloy",
   "format": "mp3",
   "instructions": "Optional voice instructions",
-  "max_length": 4096,
+  "max_length": 1000,
   "preserve_words": true
 }</code></pre>
                         </div>
@@ -429,7 +441,7 @@ for i, response in enumerate(responses, 1):
   "instructions": "Optional voice instructions",
   "speed": 1.0,
   "auto_combine": true,
-  "max_length": 4096
+  "max_length": 1000
 }</code></pre>
                         </div>
 
@@ -441,7 +453,7 @@ for i, response in enumerate(responses, 1):
                                     <li><code>false</code>: {{ _('docs.auto_combine_false') }}</li>
                                 </ul>
                             </li>
-                            <li><strong>max_length</strong> (integer, default: 4096): {{ _('docs.max_length_chunk_param') }}</li>
+                            <li><strong>max_length</strong> (integer, default: 1000): {{ _('docs.max_length_chunk_param') }}</li>
                         </ul>
 
                         <h6>{{ _('docs.response_headers') }}</h6>

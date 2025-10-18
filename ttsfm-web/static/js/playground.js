@@ -258,7 +258,7 @@ function updateCharCount() {
     }
 
     const text = textInput.value;
-    const maxLength = parseInt(maxLengthInput.value) || 4096;
+    const maxLength = parseInt(maxLengthInput.value) || 1000;
     const charCount = text.length;
 
     charCountElement.textContent = charCount.toLocaleString();
@@ -285,7 +285,7 @@ function updateCharCount() {
 
 function updateGenerateButton() {
     const text = document.getElementById('text-input').value;
-    const maxLength = parseInt(document.getElementById('max-length-input').value) || 4096;
+    const maxLength = parseInt(document.getElementById('max-length-input').value) || 1000;
     const autoCombineCheck = document.getElementById('auto-combine-check');
     const autoCombine = autoCombineCheck ? autoCombineCheck.checked : false;
     const generateBtn = document.getElementById('generate-btn');
@@ -315,7 +315,7 @@ function updateGenerateButton() {
 
 async function validateText() {
     const text = document.getElementById('text-input').value.trim();
-    const maxLength = parseInt(document.getElementById('max-length-input').value) || 4096;
+    const maxLength = parseInt(document.getElementById('max-length-input').value) || 1000;
     
     if (!text) {
         console.log('Please enter some text to validate');
@@ -384,7 +384,7 @@ function updateAutoCombineStatus() {
     const autoCombineCheck = document.getElementById('auto-combine-check');
     const statusBadge = document.getElementById('auto-combine-status');
     const textInput = document.getElementById('text-input');
-    const maxLength = parseInt(document.getElementById('max-length-input').value) || 4096;
+    const maxLength = parseInt(document.getElementById('max-length-input').value) || 1000;
 
     if (!autoCombineCheck || !statusBadge) return;
 
@@ -455,7 +455,7 @@ function getFormData() {
         voice: document.getElementById('voice-select').value,
         format: 'mp3',
         instructions: document.getElementById('instructions-input').value.trim(),
-        maxLength: parseInt(document.getElementById('max-length-input').value) || 4096,
+        maxLength: parseInt(document.getElementById('max-length-input').value) || 1000,
         validateLength: document.getElementById('validate-length-check').checked,
         autoCombine: document.getElementById('auto-combine-check').checked,
         apiKey: document.getElementById('api-key-input').value.trim()
@@ -662,7 +662,7 @@ function resetForm() {
     document.getElementById('text-input').value = 'Welcome to TTSFM! Experience the future of text-to-speech technology with our premium AI voices. Generate natural, expressive speech for any application.';
     document.getElementById('voice-select').value = 'alloy';
     document.getElementById('instructions-input').value = '';
-    document.getElementById('max-length-input').value = '4096';
+    document.getElementById('max-length-input').value = '1000';
     document.getElementById('validate-length-check').checked = true;
     const autoCombineCheck = document.getElementById('auto-combine-check');
     if (autoCombineCheck) {

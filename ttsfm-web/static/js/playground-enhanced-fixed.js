@@ -642,7 +642,7 @@ const PlaygroundApp = (() => {
 
     function updateCharCount() {
         const current = els.textInput ? els.textInput.value.length : 0;
-        const max = els.maxLengthInput ? parseInt(els.maxLengthInput.value, 10) || 4096 : 4096;
+        const max = els.maxLengthInput ? parseInt(els.maxLengthInput.value, 10) || 1000 : 1000;
         if (els.charCount) {
             els.charCount.textContent = current;
             if (current > max) {
@@ -711,7 +711,7 @@ const PlaygroundApp = (() => {
             return;
         }
         const current = els.textInput ? els.textInput.value.length : 0;
-        const max = els.maxLengthInput ? parseInt(els.maxLengthInput.value, 10) || 4096 : 4096;
+        const max = els.maxLengthInput ? parseInt(els.maxLengthInput.value, 10) || 1000 : 1000;
         updateLengthStatus(current, max);
         if (current === 0) {
             els.lengthStatus.textContent = 'Add some text to generate speech.';

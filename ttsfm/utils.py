@@ -177,7 +177,7 @@ def get_realistic_headers(custom_headers: Optional[Dict[str, str]] = None) -> Di
     return headers
 
 
-def validate_text_length(text: str, max_length: int = 4096, raise_error: bool = True) -> bool:
+def validate_text_length(text: str, max_length: int = 1000, raise_error: bool = True) -> bool:
     """
     Validate text length against maximum allowed characters.
 
@@ -202,7 +202,7 @@ def validate_text_length(text: str, max_length: int = 4096, raise_error: bool = 
             raise ValueError(
                 f"Text is too long ({text_length} characters). "
                 f"Maximum allowed length is {max_length} characters. "
-                f"TTS models typically support up to 4096 characters per request."
+                "Requests above this threshold should be split and combined."
             )
         return False
 
@@ -243,6 +243,7 @@ def _split_into_sentences(text: str) -> List[str]:
 
 def _split_long_segment(segment: str, max_length: int) -> List[str]:
     """Fallback splitter for oversized segments."""
+    max_length = max(1, min(max_length, 1000))
     if len(segment) <= max_length:
         return [segment]
 
@@ -298,19 +299,20 @@ def _split_long_segment(segment: str, max_length: int) -> List[str]:
 
 def split_text_by_length(
     text: str,
-    max_length: int = 4096,
+    max_length: int = 1000,
     preserve_words: bool = True,
 ) -> List[str]:
     """Split text into chunks no longer than ``max_length`` characters."""
     if not text:
         return []
 
+    max_length = max(1, min(max_length, 1000))
+
     if len(text) <= max_length:
         return [text]
 
     chunks: List[str] = []
-    effective_max = max(1, max_length)
-    tolerance = min(32, max(8, effective_max // 10))
+    effective_max = max_length
 
     if preserve_words:
         sentences = _split_into_sentences(text)
@@ -332,7 +334,7 @@ def split_text_by_length(
             if current_segment:
                 chunks.append(' '.join(current_segment))
 
-            if len(sentence) > effective_max + tolerance:
+            if len(sentence) > max_length:
                 chunks.extend(_split_long_segment(sentence, max_length))
                 current_segment = []
                 current_length = 0
