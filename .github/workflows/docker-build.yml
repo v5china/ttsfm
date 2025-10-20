@@ -95,15 +95,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Decide latest tag
-        id: tag-policy
-        run: |
-          if [ "${{ github.event_name }}" = "release" ] && [ "${{ github.event.release.prerelease }}" = "true" ]; then
-            echo "extra_tags=" >> "$GITHUB_OUTPUT"
-          else
-            echo "extra_tags=type=raw,value=latest" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Extract metadata
         id: meta
         if: steps.build-config.outputs.push == 'true'
@@ -113,11 +104,8 @@ jobs:
             ${{ env.DOCKERHUB_NAMESPACE }}/ttsfm
             ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=tag
             type=semver,pattern=v{{version}}
-            type=semver,pattern=v{{major}}.{{minor}}
-            type=semver,pattern=v{{major}}
-            ${{ steps.tag-policy.outputs.extra_tags }}
+            type=raw,value=latest,enable=${{ github.event.release.prerelease == false }}
           labels: |
             org.opencontainers.image.source=${{ github.repositoryUrl }}
             org.opencontainers.image.description=Free TTS API server compatible with OpenAI's TTS API format using openai.fm
