@@ -70,8 +70,8 @@ class TTSClient:
         preferred_format: Optional[AudioFormat] = None,
         default_headers: Optional[Dict[str, str]] = None,
         use_default_prompt: bool = False,
-        **kwargs
-    ):
+        **kwargs  # type: ignore[no-untyped-def]
+    ) -> None:
         """
         Initialize the TTS client.
 
@@ -171,7 +171,7 @@ class TTSClient:
         instructions: Optional[str] = None,
         max_length: int = 1000,
         validate_length: bool = True,
-        **kwargs
+        **kwargs  # type: ignore[no-untyped-def]
     ) -> TTSResponse:
         """
         Generate speech from text.
@@ -225,7 +225,7 @@ class TTSClient:
         instructions: Optional[str] = None,
         max_length: int = 1000,
         preserve_words: bool = True,
-        **kwargs
+        **kwargs  # type: ignore[no-untyped-def]
     ) -> List[TTSResponse]:
         """
         Generate speech from long text by splitting it into chunks.
@@ -289,7 +289,7 @@ class TTSClient:
         max_length: int = 1000,
         preserve_words: bool = True,
         auto_combine: bool = False,
-        **kwargs
+        **kwargs  # type: ignore[no-untyped-def]
     ) -> Union[TTSResponse, List[TTSResponse]]:
         """
         Generate speech from long text by splitting it into chunks.
@@ -377,15 +377,18 @@ class TTSClient:
         url = build_url(self.base_url, "api/generate")
 
         # Prepare form data for openai.fm API
+        voice_value = request.voice.value if isinstance(request.voice, Voice) else str(request.voice)
+        format_value = (
+            request.response_format.value
+            if isinstance(request.response_format, AudioFormat)
+            else str(request.response_format)
+        )
+
         form_data = {
             'input': request.input,
-            'voice': request.voice.value,
+            'voice': voice_value,
             'generation': str(uuid.uuid4()),
-            'response_format': (
-                request.response_format.value
-                if hasattr(request.response_format, 'value')
-                else str(request.response_format)
-            )
+            'response_format': format_value
         }
 
         # Add prompt/instructions if provided
@@ -581,38 +584,39 @@ class TTSClient:
                 "status_code": response.status_code,
                 "url": str(response.url),
                 "service": "openai.fm",
-                "voice": request.voice.value,
+                "voice": voice_value,
                 "original_text": (
                     request.input[:100] + "..."
                     if len(request.input) > 100
                     else request.input
                 ),
-                "requested_format": requested_format.value,
+                "requested_format": requested_format.value if isinstance(requested_format, AudioFormat) else str(requested_format),
                 "effective_requested_format": get_supported_format(
                     requested_format
-                ).value,
-                "actual_format": actual_format.value
+                ).value if isinstance(get_supported_format(requested_format), AudioFormat) else str(get_supported_format(requested_format)),
+                "actual_format": actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
             }
         )
 
+        actual_format_str = actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
         logger.info(
             "Successfully generated %s of %s audio from openai.fm using voice %s",
             format_file_size(len(audio_data)),
-            actual_format.value.upper(),
-            request.voice.value,
+            actual_format_str.upper(),
+            voice_value,
         )
 
         return tts_response
 
-    def close(self):
+    def close(self) -> None:
         """Close the HTTP session."""
         if hasattr(self, 'session'):
             self.session.close()
 
-    def __enter__(self):
+    def __enter__(self):  # type: ignore[no-untyped-def]
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # type: ignore[no-untyped-def]
         """Context manager exit."""
         self.close()

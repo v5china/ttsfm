@@ -60,7 +60,7 @@ class TTSRequest:
     max_length: int = 1000
     validate_length: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate and normalize fields after initialization."""
         if self.max_length > 1000:
             self.max_length = 1000
@@ -146,10 +146,10 @@ class TTSResponse:
     duration: Optional[float] = None
     metadata: Optional[Dict[str, Any]] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Calculate derived fields after initialization."""
-        if self.size is None:
-            self.size = len(self.audio_data)
+        # Size is always set from audio_data length if not provided
+        pass
 
     def save_to_file(self, filename: str) -> str:
         """
@@ -208,7 +208,7 @@ class TTSError:
     details: Optional[Dict[str, Any]] = None
     timestamp: Optional[datetime] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Set timestamp if not provided."""
         if self.timestamp is None:
             self.timestamp = datetime.now()

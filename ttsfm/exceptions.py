@@ -50,8 +50,8 @@ class APIException(TTSException):
         message: str,
         status_code: Optional[int] = None,
         response_data: Optional[Dict[str, Any]] = None,
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> None:
         super().__init__(message, **kwargs)
         self.status_code = status_code
         self.response_data = response_data or {}
@@ -75,8 +75,8 @@ class NetworkException(TTSException):
         message: str,
         timeout: Optional[float] = None,
         retry_count: int = 0,
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> None:
         super().__init__(message, **kwargs)
         self.timeout = timeout
         self.retry_count = retry_count
@@ -95,8 +95,8 @@ class ValidationException(TTSException):
         message: str,
         field: Optional[str] = None,
         value: Optional[Any] = None,
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> None:
         super().__init__(message, **kwargs)
         self.field = field
         self.value = value
@@ -123,8 +123,8 @@ class RateLimitException(APIException):
         retry_after: Optional[int] = None,
         limit: Optional[int] = None,
         remaining: Optional[int] = None,
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> None:
         super().__init__(message, status_code=429, **kwargs)
         self.retry_after = retry_after
         self.limit = limit
@@ -148,8 +148,8 @@ class AuthenticationException(APIException):
     def __init__(
         self,
         message: str = "Authentication failed",
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> None:
         super().__init__(message, status_code=401, **kwargs)
 
 
@@ -165,8 +165,8 @@ class ServiceUnavailableException(APIException):
         self,
         message: str = "Service temporarily unavailable",
         retry_after: Optional[int] = None,
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> None:
         super().__init__(message, status_code=503, **kwargs)
         self.retry_after = retry_after
 
@@ -185,8 +185,8 @@ class QuotaExceededException(APIException):
         quota_type: Optional[str] = None,
         limit: Optional[int] = None,
         used: Optional[int] = None,
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> None:
         super().__init__(message, status_code=402, **kwargs)
         self.quota_type = quota_type
         self.limit = limit
@@ -205,8 +205,8 @@ class AudioProcessingException(TTSException):
         self,
         message: str,
         audio_format: Optional[str] = None,
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> None:
         super().__init__(message, **kwargs)
         self.audio_format = audio_format
 

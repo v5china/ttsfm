@@ -211,7 +211,7 @@ def get_format_enum(format_str: str) -> AudioFormat:
     return format_map[format_str.lower()]
 
 
-def handle_long_text(
+def handle_long_text(  # type: ignore[no-untyped-def]
     args,
     text: str,
     voice: Voice,

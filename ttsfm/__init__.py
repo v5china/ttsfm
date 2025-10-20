@@ -34,6 +34,8 @@ Example:
     >>> opus_response.save_to_file("compressed")  # Saves as compressed.wav
 """
 
+from typing import Optional
+
 from .async_client import AsyncTTSClient
 from .audio import combine_audio_chunks, combine_responses
 from .client import TTSClient
@@ -60,7 +62,7 @@ from .models import (
 )
 from .utils import split_text_by_length, validate_text_length
 
-__version__ = "3.3.1"
+__version__ = "3.3.3"
 __author__ = "dbcccc"
 __email__ = "120614547+dbccccccc@users.noreply.github.com"
 __description__ = "Text-to-Speech API Client with OpenAI compatibility"
@@ -70,7 +72,7 @@ __url__ = "https://github.com/dbccccccc/ttsfm"
 default_client = None
 
 
-def create_client(base_url: str = None, api_key: str = None, **kwargs) -> TTSClient:
+def create_client(base_url: Optional[str] = None, api_key: Optional[str] = None, **kwargs) -> TTSClient:  # type: ignore[misc]
     """
     Create a new TTS client instance.
 
@@ -85,7 +87,7 @@ def create_client(base_url: str = None, api_key: str = None, **kwargs) -> TTSCli
     return TTSClient(base_url=base_url, api_key=api_key, **kwargs)
 
 
-def create_async_client(base_url: str = None, api_key: str = None, **kwargs) -> AsyncTTSClient:
+def create_async_client(base_url: Optional[str] = None, api_key: Optional[str] = None, **kwargs) -> AsyncTTSClient:  # type: ignore[misc]
     """
     Create a new async TTS client instance.
 
@@ -106,7 +108,7 @@ def set_default_client(client: TTSClient) -> None:
     default_client = client
 
 
-def generate_speech(text: str, voice: str = "alloy", **kwargs) -> bytes:
+def generate_speech(text: str, voice: str = "alloy", **kwargs) -> TTSResponse:  # type: ignore[misc]
     """
     Convenience function to generate speech using the default client.
 
@@ -116,7 +118,7 @@ def generate_speech(text: str, voice: str = "alloy", **kwargs) -> bytes:
         **kwargs: Additional generation parameters
 
     Returns:
-        bytes: Generated audio data
+        TTSResponse: Generated audio response
 
     Raises:
         TTSException: If no default client is set or generation fails
@@ -127,7 +129,7 @@ def generate_speech(text: str, voice: str = "alloy", **kwargs) -> bytes:
     return default_client.generate_speech(text=text, voice=voice, **kwargs)
 
 
-def generate_speech_long_text(text: str, voice: str = "alloy", **kwargs):
+def generate_speech_long_text(text: str, voice: str = "alloy", **kwargs):  # type: ignore[no-untyped-def]
     """
     Convenience function to generate speech from long text using the default client.
 

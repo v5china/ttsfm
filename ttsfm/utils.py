@@ -65,12 +65,12 @@ _USER_AGENT_LOCK = Lock()
 
 try:  # Optional dependency – only used when explicitly enabled
     if _USE_FAKE_USERAGENT:
-        from fake_useragent import UserAgent  # type: ignore
+        from fake_useragent import UserAgent
     else:
-        UserAgent = None  # type: ignore
+        UserAgent = None
 except Exception as exc:  # pragma: no cover - defensive import guard
     logger.debug("fake-useragent unavailable: %s", exc)
-    UserAgent = None  # type: ignore
+    UserAgent = None
 
 QUOTE_CHAR_MAP = dict.fromkeys(
     [0x201C, 0x201D, 0x201E, 0x201F, 0x0060],
@@ -462,11 +462,11 @@ def load_config_from_env(prefix: str = "TTSFM_") -> Dict[str, Any]:
 
             # Try to convert to appropriate type
             if value.lower() in ('true', 'false'):
-                config[config_key] = value.lower() == 'true'
+                config[config_key] = (value.lower() == 'true')  # type: ignore[assignment]
             elif value.isdigit():
-                config[config_key] = int(value)
+                config[config_key] = int(value)  # type: ignore[assignment]
             elif '.' in value and value.replace('.', '').isdigit():
-                config[config_key] = float(value)
+                config[config_key] = float(value)  # type: ignore[assignment]
             else:
                 config[config_key] = value
 
@@ -533,9 +533,10 @@ def format_file_size(size_bytes: int) -> str:
 
     size_names = ["B", "KB", "MB", "GB"]
     i = 0
+    size_float = float(size_bytes)
 
-    while size_bytes >= 1024 and i < len(size_names) - 1:
-        size_bytes /= 1024.0
+    while size_float >= 1024 and i < len(size_names) - 1:
+        size_float /= 1024.0
         i += 1
 
-    return f"{size_bytes:.1f} {size_names[i]}"
+    return f"{size_float:.1f} {size_names[i]}"

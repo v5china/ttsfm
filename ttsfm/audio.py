@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 try:  # Optional dependency for non-WAV combining
-    from pydub import AudioSegment  # type: ignore
+    from pydub import AudioSegment
 except ImportError:  # pragma: no cover - optional dependency
-    AudioSegment = None  # type: ignore
+    AudioSegment = None
 
 
 SUPPORTED_EXPORT_FORMATS = {"mp3", "wav", "aac", "flac", "opus", "pcm"}

@@ -794,7 +794,7 @@ def health_check():
     """Simple health check endpoint."""
     return jsonify({
         "status": "healthy",
-        "package_version": "3.3.1",
+        "package_version": "3.3.3",
         "timestamp": datetime.now().isoformat()
     })
 

@@ -59,7 +59,7 @@ class AsyncTTSClient:
         max_concurrent: Maximum concurrent requests
     """
 
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         base_url: str = "https://www.openai.fm",
         api_key: Optional[str] = None,
@@ -102,16 +102,16 @@ class AsyncTTSClient:
 
         logger.info(f"Initialized async TTS client with base URL: {self.base_url}")
 
-    async def __aenter__(self):
+    async def __aenter__(self):  # type: ignore[no-untyped-def]
         """Async context manager entry."""
         await self._ensure_session()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:  # type: ignore[no-untyped-def]
         """Async context manager exit."""
         await self.close()
 
-    async def _ensure_session(self):
+    async def _ensure_session(self) -> None:
         """Ensure HTTP session is created."""
         if self._session is None or self._session.closed:
             # Setup headers
@@ -134,7 +134,7 @@ class AsyncTTSClient:
                 connector=connector
             )
 
-    async def generate_speech(
+    async def generate_speech(  # type: ignore[no-untyped-def]
         self,
         text: str,
         voice: Union[Voice, str] = Voice.ALLOY,
@@ -176,7 +176,7 @@ class AsyncTTSClient:
 
         return await self._make_request(request)
 
-    async def generate_speech_long_text(
+    async def generate_speech_long_text(  # type: ignore[no-untyped-def]
         self,
         text: str,
         voice: Union[Voice, str] = Voice.ALLOY,
@@ -274,7 +274,7 @@ class AsyncTTSClient:
 
         return response_format
 
-    async def generate_speech_from_long_text(
+    async def generate_speech_from_long_text(  # type: ignore[no-untyped-def]
         self,
         text: str,
         voice: Union[Voice, str] = Voice.ALLOY,
@@ -382,15 +382,18 @@ class AsyncTTSClient:
             url = build_url(self.base_url, "api/generate")
 
             # Prepare form data for openai.fm API
+            voice_value = request.voice.value if isinstance(request.voice, Voice) else str(request.voice)
+            format_value = (
+                request.response_format.value
+                if isinstance(request.response_format, AudioFormat)
+                else str(request.response_format)
+            )
+
             form_data = {
                 'input': request.input,
-                'voice': request.voice.value,
+                'voice': voice_value,
                 'generation': str(uuid.uuid4()),
-                'response_format': (
-                    request.response_format.value
-                    if hasattr(request.response_format, 'value')
-                    else str(request.response_format)
-                )
+                'response_format': format_value
             }
 
             # Add prompt/instructions if provided
@@ -438,14 +441,17 @@ class AsyncTTSClient:
 
                     target_format = get_supported_format(requested_format)
                     payload['response_format'] = target_format.value
-                    async with self._session.post(url, data=payload) as response:
-                        # Handle different response types
-                        if response.status == 200:
-                            return await self._process_openai_fm_response(response, request)
-                        else:
-                            # Try to parse error response
-                            try:
-                                error_data = await response.json()
+                    if self._session is None:
+                        await self._ensure_session()
+                    if self._session is not None:
+                        async with self._session.post(url, data=payload) as response:
+                            # Handle different response types
+                            if response.status == 200:
+                                return await self._process_openai_fm_response(response, request)
+                            else:
+                                # Try to parse error response
+                                try:
+                                    error_data = await response.json()
                             except (json.JSONDecodeError, ValueError):
                                 text = await response.text()
                                 error_data = {"error": {"message": text or "Unknown error"}}
@@ -569,30 +575,31 @@ class AsyncTTSClient:
                 "status_code": response.status,
                 "url": str(response.url),
                 "service": "openai.fm",
-                "voice": request.voice.value,
+                "voice": voice_value,
                 "original_text": (
                     request.input[:100] + "..."
                     if len(request.input) > 100
                     else request.input
                 ),
-                "requested_format": requested_format.value,
+                "requested_format": requested_format.value if isinstance(requested_format, AudioFormat) else str(requested_format),
                 "effective_requested_format": get_supported_format(
                     requested_format
-                ).value,
-                "actual_format": actual_format.value
+                ).value if isinstance(get_supported_format(requested_format), AudioFormat) else str(get_supported_format(requested_format)),
+                "actual_format": actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
             }
         )
 
+        actual_format_str = actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
         logger.info(
             "Successfully generated %s of %s audio from openai.fm using voice %s",
             format_file_size(len(audio_data)),
-            actual_format.value.upper(),
-            request.voice.value,
+            actual_format_str.upper(),
+            voice_value,
         )
 
         return tts_response
 
-    async def close(self):
+    async def close(self) -> None:
         """Close the HTTP session."""
         if self._session and not self._session.closed:
             await self._session.close()
