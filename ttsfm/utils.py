@@ -312,7 +312,6 @@ def split_text_by_length(
         return [text]
 
     chunks: List[str] = []
-    effective_max = max_length
 
     if preserve_words:
         sentences = _split_into_sentences(text)

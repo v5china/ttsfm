@@ -7,7 +7,7 @@ import eventlet
 
 eventlet.monkey_patch()
 
-from app import DEBUG, HOST, PORT, app, socketio
+from app import DEBUG, HOST, PORT, app, socketio  # noqa: E402
 
 if __name__ == '__main__':
     print(f"Starting TTSFM with WebSocket support on {HOST}:{PORT}")
