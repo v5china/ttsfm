@@ -160,3 +160,4 @@ local_config.py
 VERSION_BUMP_GUIDE.md
 scripts/test_audio_generation.py
 /artifacts
+test.py

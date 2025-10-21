@@ -452,9 +452,9 @@ class AsyncTTSClient:
                                 # Try to parse error response
                                 try:
                                     error_data = await response.json()
-                            except (json.JSONDecodeError, ValueError):
-                                text = await response.text()
-                                error_data = {"error": {"message": text or "Unknown error"}}
+                                except (json.JSONDecodeError, ValueError):
+                                    text = await response.text()
+                                    error_data = {"error": {"message": text or "Unknown error"}}
 
                             # Create appropriate exception
                             exception = create_exception_from_response(
