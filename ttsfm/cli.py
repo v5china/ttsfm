@@ -28,38 +28,37 @@ Examples:
   ttsfm "Hello, world!" --voice nova --format wav --output hello.wav
   ttsfm "Hello, world!" --url http://localhost:7000 --output hello.mp3
   ttsfm --text-file input.txt --output speech.mp3
-        """
+        """,
     )
 
     # Text input options (mutually exclusive)
     text_group = parser.add_mutually_exclusive_group(required=True)
-    text_group.add_argument(
-        "text",
-        nargs="?",
-        help="Text to convert to speech"
-    )
-    text_group.add_argument(
-        "--text-file", "-f",
-        type=str,
-        help="Read text from file"
-    )
+    text_group.add_argument("text", nargs="?", help="Text to convert to speech")
+    text_group.add_argument("--text-file", "-f", type=str, help="Read text from file")
 
     # Output options
-    parser.add_argument(
-        "--output", "-o",
-        type=str,
-        required=True,
-        help="Output file path"
-    )
+    parser.add_argument("--output", "-o", type=str, required=True, help="Output file path")
 
     # TTS options
     parser.add_argument(
-        "--voice", "-v",
+        "--voice",
+        "-v",
         type=str,
         default="alloy",
-        choices=["alloy", "ash", "ballad", "coral", "echo",
-                 "fable", "nova", "onyx", "sage", "shimmer", "verse"],
-        help="Voice to use for speech generation (default: alloy)"
+        choices=[
+            "alloy",
+            "ash",
+            "ballad",
+            "coral",
+            "echo",
+            "fable",
+            "nova",
+            "onyx",
+            "sage",
+            "shimmer",
+            "verse",
+        ],
+        help="Voice to use for speech generation (default: alloy)",
     )
 
     parser.add_argument(
@@ -67,42 +66,30 @@ Examples:
         type=str,
         default="mp3",
         choices=["mp3", "opus", "aac", "flac", "wav", "pcm"],
-        help="Audio format (default: mp3)"
+        help="Audio format (default: mp3)",
     )
 
     parser.add_argument(
-        "--speed",
-        type=float,
-        default=1.0,
-        help="Speech speed (0.25 to 4.0, default: 1.0)"
+        "--speed", type=float, default=1.0, help="Speech speed (0.25 to 4.0, default: 1.0)"
     )
 
     # Client options
     parser.add_argument(
-        "--url", "-u",
+        "--url",
+        "-u",
         type=str,
         default="http://localhost:7000",
-        help="TTS service URL (default: http://localhost:7000)"
+        help="TTS service URL (default: http://localhost:7000)",
+    )
+
+    parser.add_argument("--api-key", "-k", type=str, help="API key for authentication")
+
+    parser.add_argument(
+        "--timeout", type=float, default=30.0, help="Request timeout in seconds (default: 30.0)"
     )
 
     parser.add_argument(
-        "--api-key", "-k",
-        type=str,
-        help="API key for authentication"
-    )
-
-    parser.add_argument(
-        "--timeout",
-        type=float,
-        default=30.0,
-        help="Request timeout in seconds (default: 30.0)"
-    )
-
-    parser.add_argument(
-        "--retries",
-        type=int,
-        default=3,
-        help="Maximum number of retries (default: 3)"
+        "--retries", type=int, default=3, help="Maximum number of retries (default: 3)"
     )
 
     # Text length validation options
@@ -110,19 +97,15 @@ Examples:
         "--max-length",
         type=int,
         default=1000,
-        help="Maximum text length in characters (default: 1000)"
+        help="Maximum text length in characters (default: 1000)",
     )
 
     parser.add_argument(
-        "--no-length-validation",
-        action="store_true",
-        help="Disable text length validation"
+        "--no-length-validation", action="store_true", help="Disable text length validation"
     )
 
     parser.add_argument(
-        "--split-long-text",
-        action="store_true",
-        help="Automatically split long text into chunks"
+        "--split-long-text", action="store_true", help="Automatically split long text into chunks"
     )
 
     parser.add_argument(
@@ -131,21 +114,13 @@ Examples:
         help=(
             "Combine long-text chunks into a single audio file "
             "(requires pydub for non-WAV formats)"
-        )
+        ),
     )
 
     # Other options
-    parser.add_argument(
-        "--verbose", "-V",
-        action="store_true",
-        help="Enable verbose output"
-    )
+    parser.add_argument("--verbose", "-V", action="store_true", help="Enable verbose output")
 
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=f"%(prog)s {get_version()}"
-    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {get_version()}")
 
     return parser
 
@@ -154,6 +129,7 @@ def get_version() -> str:
     """Get the package version."""
     try:
         from . import __version__
+
         return __version__
     except ImportError:
         return "unknown"
@@ -162,7 +138,7 @@ def get_version() -> str:
 def read_text_file(file_path: str) -> str:
     """Read text from a file."""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return f.read().strip()
     except FileNotFoundError:
         print(f"Error: File '{file_path}' not found.", file=sys.stderr)
@@ -222,10 +198,7 @@ def handle_long_text(  # type: ignore[no-untyped-def]
     # Create client
     try:
         client = TTSClient(
-            base_url=args.url,
-            api_key=args.api_key,
-            timeout=args.timeout,
-            max_retries=args.retries
+            base_url=args.url, api_key=args.api_key, timeout=args.timeout, max_retries=args.retries
         )
 
         # Use the new long text method
@@ -236,7 +209,7 @@ def handle_long_text(  # type: ignore[no-untyped-def]
             speed=speed,
             max_length=args.max_length,
             preserve_words=True,
-            auto_combine=args.auto_combine
+            auto_combine=args.auto_combine,
         )
 
         if not responses:
@@ -261,7 +234,7 @@ def handle_long_text(  # type: ignore[no-untyped-def]
             else:
                 output_file = f"{base_name}_part{i:03d}{ext}"
 
-            with open(output_file, 'wb') as f:
+            with open(output_file, "wb") as f:
                 f.write(response.audio_data)
 
             print(f"Generated: {output_file}")
@@ -274,6 +247,7 @@ def handle_long_text(  # type: ignore[no-untyped-def]
         print(f"Error processing long text: {e}", file=sys.stderr)
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         sys.exit(1)
 
@@ -324,19 +298,22 @@ def main() -> None:
             print(f"Text is {text_length} characters, splitting into chunks...")
             return handle_long_text(args, text, voice, audio_format, speed)
         elif validate_length:
-            print(f"Error: Text is too long ({text_length} characters). "
-                  f"Maximum allowed is {args.max_length} characters.", file=sys.stderr)
-            print("Use --split-long-text to automatically split the text, "
-                  "or --no-length-validation to disable this check.", file=sys.stderr)
+            print(
+                f"Error: Text is too long ({text_length} characters). "
+                f"Maximum allowed is {args.max_length} characters.",
+                file=sys.stderr,
+            )
+            print(
+                "Use --split-long-text to automatically split the text, "
+                "or --no-length-validation to disable this check.",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
     # Create client
     try:
         client = TTSClient(
-            base_url=args.url,
-            api_key=args.api_key,
-            timeout=args.timeout,
-            max_retries=args.retries
+            base_url=args.url, api_key=args.api_key, timeout=args.timeout, max_retries=args.retries
         )
 
         if args.verbose:
@@ -349,11 +326,11 @@ def main() -> None:
             response_format=audio_format,
             speed=speed,
             max_length=args.max_length,
-            validate_length=validate_length
+            validate_length=validate_length,
         )
 
         # Save to file
-        with open(args.output, 'wb') as f:
+        with open(args.output, "wb") as f:
             f.write(response.audio_data)
 
         print(f"Speech generated successfully: {args.output}")
@@ -371,6 +348,7 @@ def main() -> None:
         print(f"Unexpected error: {e}", file=sys.stderr)
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         sys.exit(1)
 

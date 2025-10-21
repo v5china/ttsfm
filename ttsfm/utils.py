@@ -72,16 +72,15 @@ except Exception as exc:  # pragma: no cover - defensive import guard
     logger.debug("fake-useragent unavailable: %s", exc)
     UserAgent = None
 
-QUOTE_CHAR_MAP = dict.fromkeys(
-    [0x201C, 0x201D, 0x201E, 0x201F, 0x0060],
-    '"'
+QUOTE_CHAR_MAP = dict.fromkeys([0x201C, 0x201D, 0x201E, 0x201F, 0x0060], '"')
+QUOTE_CHAR_MAP.update(
+    {
+        0x2019: "'",
+        0x2018: "'",
+        0x201A: "'",
+        0x00B4: "'",
+    }
 )
-QUOTE_CHAR_MAP.update({
-    0x2019: "'",
-    0x2018: "'",
-    0x201A: "'",
-    0x00B4: "'",
-})
 QUOTE_TRANSLATION = str.maketrans(QUOTE_CHAR_MAP)
 
 
@@ -138,16 +137,16 @@ def get_realistic_headers(custom_headers: Optional[Dict[str, str]] = None) -> Di
     }
 
     if any(browser in user_agent.lower() for browser in ["chrome", "edge", "chromium"]):
-        version_match = re.search(r'(?:Chrome|Edge|Chromium)/(\d+)', user_agent)
+        version_match = re.search(r"(?:Chrome|Edge|Chromium)/(\d+)", user_agent)
         major_version = version_match.group(1) if version_match else "121"
 
-        if 'google chrome' in user_agent.lower():
+        if "google chrome" in user_agent.lower():
             brands = [
                 f'"Google Chrome";v="{major_version}"',
                 f'"Chromium";v="{major_version}"',
                 '"Not A(Brand";v="99"',
             ]
-        elif 'microsoft edge' in user_agent.lower():
+        elif "microsoft edge" in user_agent.lower():
             brands = [
                 f'"Microsoft Edge";v="{major_version}"',
                 f'"Chromium";v="{major_version}"',
@@ -159,14 +158,16 @@ def get_realistic_headers(custom_headers: Optional[Dict[str, str]] = None) -> Di
                 '"Not A(Brand";v="8"',
             ]
 
-        headers.update({
-            "Sec-Ch-Ua": ", ".join(brands),
-            "Sec-Ch-Ua-Mobile": "?0",
-            "Sec-Ch-Ua-Platform": _next_platform(),
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
-        })
+        headers.update(
+            {
+                "Sec-Ch-Ua": ", ".join(brands),
+                "Sec-Ch-Ua-Mobile": "?0",
+                "Sec-Ch-Ua-Platform": _next_platform(),
+                "Sec-Fetch-Dest": "empty",
+                "Sec-Fetch-Mode": "cors",
+                "Sec-Fetch-Site": "same-origin",
+            }
+        )
 
     if _upgrade_insecure_requests():
         headers["Upgrade-Insecure-Requests"] = "1"
@@ -227,14 +228,14 @@ def _split_into_sentences(text: str) -> List[str]:
             while j < length and text[j] in _SENTENCE_TERMINATORS:
                 buffer.append(text[j])
                 j += 1
-            sentence = ''.join(buffer).strip()
+            sentence = "".join(buffer).strip()
             if sentence:
                 sentences.append(sentence)
             buffer = []
             i = j - 1
         i += 1
 
-    remainder = ''.join(buffer).strip()
+    remainder = "".join(buffer).strip()
     if remainder:
         sentences.append(remainder)
 
@@ -252,7 +253,7 @@ def _split_long_segment(segment: str, max_length: int) -> List[str]:
 
     if not words:
         for i in range(0, len(segment), max_length):
-            chunk = segment[i:i + max_length]
+            chunk = segment[i : i + max_length]
             if chunk.strip():
                 parts.append(chunk)
         return parts
@@ -265,12 +266,12 @@ def _split_long_segment(segment: str, max_length: int) -> List[str]:
 
         if word_len > max_length:
             if current_words:
-                parts.append(' '.join(current_words))
+                parts.append(" ".join(current_words))
                 current_words = []
                 current_len = 0
 
             for i in range(0, word_len, max_length):
-                chunk = word[i:i + max_length]
+                chunk = word[i : i + max_length]
                 if chunk.strip():
                     parts.append(chunk)
             continue
@@ -286,13 +287,13 @@ def _split_long_segment(segment: str, max_length: int) -> List[str]:
             continue
 
         if current_words:
-            parts.append(' '.join(current_words))
+            parts.append(" ".join(current_words))
 
         current_words = [word]
         current_len = word_len
 
     if current_words:
-        parts.append(' '.join(current_words))
+        parts.append(" ".join(current_words))
 
     return parts
 
@@ -322,7 +323,7 @@ def split_text_by_length(
             if not sentence:
                 continue
 
-            separator = ' ' if current_segment else ''
+            separator = " " if current_segment else ""
             candidate_length = current_length + len(separator) + len(sentence)
 
             if candidate_length <= max_length:
@@ -331,7 +332,7 @@ def split_text_by_length(
                 continue
 
             if current_segment:
-                chunks.append(' '.join(current_segment))
+                chunks.append(" ".join(current_segment))
 
             if len(sentence) > max_length:
                 chunks.extend(_split_long_segment(sentence, max_length))
@@ -343,10 +344,10 @@ def split_text_by_length(
             current_length = len(sentence)
 
         if current_segment:
-            chunks.append(' '.join(current_segment))
+            chunks.append(" ".join(current_segment))
     else:
         for i in range(0, len(text), max_length):
-            chunk = text[i:i + max_length]
+            chunk = text[i : i + max_length]
             if chunk.strip():
                 chunks.append(chunk)
 
@@ -363,11 +364,11 @@ def sanitize_text(text: str) -> str:
 
     normalized = unescape(text)
     normalized = normalized.translate(QUOTE_TRANSLATION)
-    normalized = normalized.replace(' ', ' ')
+    normalized = normalized.replace(" ", " ")
 
-    without_tags = re.sub(r'<[^>]+>', ' ', normalized)
-    cleaned = without_tags.replace('<', ' ').replace('>', ' ')
-    cleaned = re.sub(r'\s+', ' ', cleaned)
+    without_tags = re.sub(r"<[^>]+>", " ", normalized)
+    cleaned = without_tags.replace("<", " ").replace(">", " ")
+    cleaned = re.sub(r"\s+", " ", cleaned)
 
     return cleaned.strip()
 
@@ -401,11 +402,11 @@ def build_url(base_url: str, path: str) -> str:
         str: Complete URL
     """
     # Ensure base_url ends with /
-    if not base_url.endswith('/'):
-        base_url += '/'
+    if not base_url.endswith("/"):
+        base_url += "/"
 
     # Ensure path doesn't start with /
-    if path.startswith('/'):
+    if path.startswith("/"):
         path = path[1:]
 
     return urljoin(base_url, path)
@@ -439,7 +440,7 @@ def exponential_backoff(attempt: int, base_delay: float = 1.0, max_delay: float 
     Returns:
         float: Delay in seconds
     """
-    delay = base_delay * (2 ** attempt)
+    delay = base_delay * (2**attempt)
     jitter = random.uniform(0.1, 0.3) * delay
     return min(delay + jitter, max_delay)
 
@@ -454,19 +455,19 @@ def load_config_from_env(prefix: str = "TTSFM_") -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: Configuration dictionary
     """
-    config = {}
+    config: Dict[str, Any] = {}
 
     for key, value in os.environ.items():
         if key.startswith(prefix):
-            config_key = key[len(prefix):].lower()
+            config_key = key[len(prefix) :].lower()
 
             # Try to convert to appropriate type
-            if value.lower() in ('true', 'false'):
-                config[config_key] = (value.lower() == 'true')  # type: ignore[assignment]
+            if value.lower() in ("true", "false"):
+                config[config_key] = value.lower() == "true"
             elif value.isdigit():
-                config[config_key] = int(value)  # type: ignore[assignment]
-            elif '.' in value and value.replace('.', '').isdigit():
-                config[config_key] = float(value)  # type: ignore[assignment]
+                config[config_key] = int(value)
+            elif "." in value and value.replace(".", "").isdigit():
+                config[config_key] = float(value)
             else:
                 config[config_key] = value
 
@@ -485,13 +486,9 @@ def setup_logging(
         format_string: Custom format string
     """
     if format_string is None:
-        format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format_string = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-    logging.basicConfig(
-        level=level,
-        format=format_string,
-        handlers=[logging.StreamHandler()]
-    )
+    logging.basicConfig(level=level, format=format_string, handlers=[logging.StreamHandler()])
 
 
 def estimate_audio_duration(text: str, words_per_minute: float = 150.0) -> float:

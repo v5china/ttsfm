@@ -113,10 +113,12 @@ def combine_responses(responses: Sequence["TTSResponse"]) -> "TTSResponse":
         total_duration = sum(filter(None, (resp.duration for resp in responses)))
 
     metadata = dict(first.metadata or {})
-    metadata.update({
-        "chunks_combined": len(responses),
-        "auto_combined": True,
-    })
+    metadata.update(
+        {
+            "chunks_combined": len(responses),
+            "auto_combined": True,
+        }
+    )
 
     return TTSResponse(
         audio_data=audio_bytes,

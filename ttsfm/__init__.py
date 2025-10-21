@@ -84,7 +84,12 @@ def create_client(base_url: Optional[str] = None, api_key: Optional[str] = None,
     Returns:
         TTSClient: Configured client instance
     """
-    return TTSClient(base_url=base_url, api_key=api_key, **kwargs)
+    client_kwargs = kwargs.copy()
+    if base_url is not None:
+        client_kwargs["base_url"] = base_url
+    if api_key is not None:
+        client_kwargs["api_key"] = api_key
+    return TTSClient(**client_kwargs)
 
 
 def create_async_client(base_url: Optional[str] = None, api_key: Optional[str] = None, **kwargs) -> AsyncTTSClient:  # type: ignore[misc]
@@ -99,7 +104,12 @@ def create_async_client(base_url: Optional[str] = None, api_key: Optional[str] =
     Returns:
         AsyncTTSClient: Configured async client instance
     """
-    return AsyncTTSClient(base_url=base_url, api_key=api_key, **kwargs)
+    client_kwargs = kwargs.copy()
+    if base_url is not None:
+        client_kwargs["base_url"] = base_url
+    if api_key is not None:
+        client_kwargs["api_key"] = api_key
+    return AsyncTTSClient(**client_kwargs)
 
 
 def set_default_client(client: TTSClient) -> None:
@@ -157,7 +167,6 @@ __all__ = [
     # Main classes
     "TTSClient",
     "AsyncTTSClient",
-
     # Models
     "TTSRequest",
     "TTSResponse",
@@ -167,7 +176,6 @@ __all__ = [
     "APIError",
     "NetworkError",
     "ValidationError",
-
     # Exceptions
     "TTSException",
     "APIException",
@@ -178,24 +186,21 @@ __all__ = [
     "ServiceUnavailableException",
     "QuotaExceededException",
     "AudioProcessingException",
-
     # Factory functions
     "create_client",
     "create_async_client",
     "set_default_client",
     "generate_speech",
     "generate_speech_long_text",
-
     # Utility functions
     "validate_text_length",
     "split_text_by_length",
     "combine_audio_chunks",
     "combine_responses",
-
     # Package metadata
     "__version__",
     "__author__",
     "__email__",
     "__description__",
-    "__url__"
+    "__url__",
 ]

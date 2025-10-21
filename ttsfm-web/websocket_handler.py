@@ -40,20 +40,20 @@ class WebSocketTTSHandler:
     def _register_events(self):
         """Register all WebSocket event handlers."""
 
-        @self.socketio.on('connect')
+        @self.socketio.on("connect")
         def handle_connect():
             """Handle new WebSocket connection."""
             session_id = request.sid
             self.active_sessions[session_id] = {
-                'connected_at': datetime.now(),
-                'request_count': 0,
-                'last_request': None
+                "connected_at": datetime.now(),
+                "request_count": 0,
+                "last_request": None,
             }
             self._tasks[session_id] = {}
             logger.info(f"WebSocket client connected: {session_id}")
-            emit('connected', {'session_id': session_id, 'status': 'ready'})
+            emit("connected", {"session_id": session_id, "status": "ready"})
 
-        @self.socketio.on('disconnect')
+        @self.socketio.on("disconnect")
         def handle_disconnect():
             """Handle WebSocket disconnection."""
             session_id = request.sid
@@ -62,7 +62,7 @@ class WebSocketTTSHandler:
             self._cancel_all_tasks(session_id)
             logger.info(f"WebSocket client disconnected: {session_id}")
 
-        @self.socketio.on('generate_stream')
+        @self.socketio.on("generate_stream")
         def handle_generate_stream(data):
             """
             Handle streaming TTS generation request.
@@ -77,32 +77,26 @@ class WebSocketTTSHandler:
             }
             """
             session_id = request.sid
-            request_id = data.get('request_id', str(uuid.uuid4()))
+            request_id = data.get("request_id", str(uuid.uuid4()))
 
             # Update session info
             if session_id in self.active_sessions:
-                self.active_sessions[session_id]['request_count'] += 1
-                self.active_sessions[session_id]['last_request'] = datetime.now()
+                self.active_sessions[session_id]["request_count"] += 1
+                self.active_sessions[session_id]["last_request"] = datetime.now()
 
             # Emit acknowledgment
-            emit('stream_started', {
-                'request_id': request_id,
-                'timestamp': time.time()
-            })
+            emit("stream_started", {"request_id": request_id, "timestamp": time.time()})
 
             # Start async generation
             task = self.socketio.start_background_task(
-                self._generate_stream,
-                session_id,
-                request_id,
-                data
+                self._generate_stream, session_id, request_id, data
             )
             self._store_task(session_id, request_id, task)
 
-        @self.socketio.on('cancel_stream')
+        @self.socketio.on("cancel_stream")
         def handle_cancel_stream(data):
             """Handle stream cancellation request."""
-            request_id = data.get('request_id')
+            request_id = data.get("request_id")
             session_id = request.sid
 
             if not request_id:
@@ -114,7 +108,7 @@ class WebSocketTTSHandler:
             else:
                 logger.info(f"Stream cancellation requested for unknown request: {request_id}")
 
-            emit('stream_cancelled', {'request_id': request_id, 'cancelled': cancelled})
+            emit("stream_cancelled", {"request_id": request_id, "cancelled": cancelled})
 
     def _generate_stream(self, session_id: str, request_id: str, data: Dict[str, Any]):
         """
@@ -127,11 +121,11 @@ class WebSocketTTSHandler:
 
         try:
             # Extract parameters
-            text = data.get('text', '')
-            voice = data.get('voice', 'alloy')
-            format_str = data.get('format', 'mp3')
-            chunk_size = data.get('chunk_size', 1024)
-            instructions = data.get('instructions', None)  # Voice instructions support!
+            text = data.get("text", "")
+            voice = data.get("voice", "alloy")
+            format_str = data.get("format", "mp3")
+            chunk_size = data.get("chunk_size", 1024)
+            instructions = data.get("instructions", None)  # Voice instructions support!
 
             if not text:
                 self._emit_error(session_id, request_id, "No text provided")
@@ -152,12 +146,16 @@ class WebSocketTTSHandler:
             logger.info(f"Starting stream generation: {request_id} with {total_chunks} chunks")
 
             # Emit initial progress
-            self.socketio.emit('stream_progress', {
-                'request_id': request_id,
-                'progress': 0,
-                'total_chunks': total_chunks,
-                'status': 'processing'
-            }, room=session_id)
+            self.socketio.emit(
+                "stream_progress",
+                {
+                    "request_id": request_id,
+                    "progress": 0,
+                    "total_chunks": total_chunks,
+                    "status": "processing",
+                },
+                room=session_id,
+            )
 
             # Process each chunk
             for i, chunk in enumerate(chunks):
@@ -178,37 +176,41 @@ class WebSocketTTSHandler:
                         voice=voice_enum,
                         response_format=format_enum,
                         instructions=instructions,  # Pass voice instructions!
-                        validate_length=False  # We already chunked it
+                        validate_length=False,  # We already chunked it
                     )
                     generation_time = time.time() - start_time
 
                     # Emit chunk data
-                    encoded_audio = base64.b64encode(response.audio_data).decode('ascii')
+                    encoded_audio = base64.b64encode(response.audio_data).decode("ascii")
                     chunk_data = {
-                        'request_id': request_id,
-                        'chunk_index': i,
-                        'total_chunks': total_chunks,
-                        'audio_data': encoded_audio,
-                        'encoding': 'base64',
-                        'byte_length': len(response.audio_data),
-                        'format': response.format.value,
-                        'requested_format': format_enum.value,
-                        'duration': response.duration,
-                        'generation_time': generation_time,
-                        'chunk_text': chunk[:50] + '...' if len(chunk) > 50 else chunk
+                        "request_id": request_id,
+                        "chunk_index": i,
+                        "total_chunks": total_chunks,
+                        "audio_data": encoded_audio,
+                        "encoding": "base64",
+                        "byte_length": len(response.audio_data),
+                        "format": response.format.value,
+                        "requested_format": format_enum.value,
+                        "duration": response.duration,
+                        "generation_time": generation_time,
+                        "chunk_text": chunk[:50] + "..." if len(chunk) > 50 else chunk,
                     }
 
-                    self.socketio.emit('audio_chunk', chunk_data, room=session_id)
+                    self.socketio.emit("audio_chunk", chunk_data, room=session_id)
 
                     # Emit progress update
                     progress = int(((i + 1) / total_chunks) * 100)
-                    self.socketio.emit('stream_progress', {
-                        'request_id': request_id,
-                        'progress': progress,
-                        'total_chunks': total_chunks,
-                        'chunks_completed': i + 1,
-                        'status': 'processing'
-                    }, room=session_id)
+                    self.socketio.emit(
+                        "stream_progress",
+                        {
+                            "request_id": request_id,
+                            "progress": progress,
+                            "total_chunks": total_chunks,
+                            "chunks_completed": i + 1,
+                            "status": "processing",
+                        },
+                        room=session_id,
+                    )
 
                     # Small delay to prevent overwhelming the client
                     # (and to make it feel more "real-time")
@@ -216,18 +218,23 @@ class WebSocketTTSHandler:
 
                 except Exception as e:
                     logger.error(f"Error generating chunk {i}: {str(e)}")
-                    self._emit_error(session_id, request_id,
-                                     f"Chunk {i} generation failed: {str(e)}")
+                    self._emit_error(
+                        session_id, request_id, f"Chunk {i} generation failed: {str(e)}"
+                    )
                     # Continue with next chunk instead of failing completely
                     continue
 
             # Emit completion
-            self.socketio.emit('stream_complete', {
-                'request_id': request_id,
-                'total_chunks': total_chunks,
-                'status': 'completed',
-                'timestamp': time.time()
-            }, room=session_id)
+            self.socketio.emit(
+                "stream_complete",
+                {
+                    "request_id": request_id,
+                    "total_chunks": total_chunks,
+                    "status": "completed",
+                    "timestamp": time.time(),
+                },
+                room=session_id,
+            )
 
             logger.info(f"Stream generation completed: {request_id}")
 
@@ -243,11 +250,11 @@ class WebSocketTTSHandler:
 
     def _emit_error(self, session_id: str, request_id: str, error_message: str):
         """Emit error to specific session."""
-        self.socketio.emit('stream_error', {
-            'request_id': request_id,
-            'error': error_message,
-            'timestamp': time.time()
-        }, room=session_id)
+        self.socketio.emit(
+            "stream_error",
+            {"request_id": request_id, "error": error_message, "timestamp": time.time()},
+            room=session_id,
+        )
 
     def _store_task(self, session_id: str, request_id: str, task: Any) -> None:
         self._tasks.setdefault(session_id, {})[request_id] = task
@@ -282,12 +289,12 @@ class WebSocketTTSHandler:
 
     def _invoke_task_cancel(self, task: Any) -> None:
         try:
-            cancel = getattr(task, 'cancel', None)
+            cancel = getattr(task, "cancel", None)
             if callable(cancel):
                 cancel()
                 return
 
-            kill = getattr(task, 'kill', None)
+            kill = getattr(task, "kill", None)
             if callable(kill):  # pragma: no cover - eventlet specific
                 kill()
         except Exception as exc:  # pragma: no cover - defensive logging

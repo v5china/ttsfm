@@ -70,7 +70,7 @@ class TTSClient:
         preferred_format: Optional[AudioFormat] = None,
         default_headers: Optional[Dict[str, str]] = None,
         use_default_prompt: bool = False,
-        **kwargs  # type: ignore[no-untyped-def]
+        **kwargs,  # type: ignore[no-untyped-def]
     ) -> None:
         """
         Initialize the TTS client.
@@ -84,7 +84,7 @@ class TTSClient:
             preferred_format: Preferred audio format (affects header selection)
             **kwargs: Additional configuration options
         """
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
         self.max_retries = max_retries
@@ -106,14 +106,10 @@ class TTSClient:
             total=max_retries,
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["HEAD", "GET", "POST"],  # Updated parameter name
-            backoff_factor=1
+            backoff_factor=1,
         )
 
-        adapter = HTTPAdapter(
-            max_retries=retry_strategy,
-            pool_connections=10,
-            pool_maxsize=10
-        )
+        adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=10, pool_maxsize=10)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
@@ -148,19 +144,17 @@ class TTSClient:
         if target_format == AudioFormat.MP3:
             # Use minimal headers to reliably get MP3 response
             # Testing shows that no headers or very basic headers work best for MP3
-            return {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+            return {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         else:
             # Use more complex headers to get WAV response
             # This works for WAV, OPUS, AAC, FLAC, PCM formats
             return {
-                'User-Agent': (
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                    'AppleWebKit/537.36 (KHTML, like Gecko) '
-                    'Chrome/121.0.0.0 Safari/537.36'
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/121.0.0.0 Safari/537.36"
                 ),
-                'Accept': 'audio/*,*/*;q=0.9'
+                "Accept": "audio/*,*/*;q=0.9",
             }
 
     def generate_speech(
@@ -171,7 +165,7 @@ class TTSClient:
         instructions: Optional[str] = None,
         max_length: int = 1000,
         validate_length: bool = True,
-        **kwargs  # type: ignore[no-untyped-def]
+        **kwargs,  # type: ignore[no-untyped-def]
     ) -> TTSResponse:
         """
         Generate speech from text.
@@ -200,7 +194,7 @@ class TTSClient:
             instructions=instructions,
             max_length=max_length,
             validate_length=validate_length,
-            **kwargs
+            **kwargs,
         )
 
         return self._make_request(request)
@@ -225,7 +219,7 @@ class TTSClient:
         instructions: Optional[str] = None,
         max_length: int = 1000,
         preserve_words: bool = True,
-        **kwargs  # type: ignore[no-untyped-def]
+        **kwargs,  # type: ignore[no-untyped-def]
     ) -> List[TTSResponse]:
         """
         Generate speech from long text by splitting it into chunks.
@@ -272,7 +266,7 @@ class TTSClient:
                 instructions=instructions,
                 max_length=max_length,
                 validate_length=False,  # We already split the text
-                **kwargs
+                **kwargs,
             )
 
             response = self._make_request(request)
@@ -289,7 +283,7 @@ class TTSClient:
         max_length: int = 1000,
         preserve_words: bool = True,
         auto_combine: bool = False,
-        **kwargs  # type: ignore[no-untyped-def]
+        **kwargs,  # type: ignore[no-untyped-def]
     ) -> Union[TTSResponse, List[TTSResponse]]:
         """
         Generate speech from long text by splitting it into chunks.
@@ -321,7 +315,7 @@ class TTSClient:
             instructions=instructions,
             max_length=max_length,
             preserve_words=preserve_words,
-            **kwargs
+            **kwargs,
         )
 
         if auto_combine:
@@ -377,7 +371,9 @@ class TTSClient:
         url = build_url(self.base_url, "api/generate")
 
         # Prepare form data for openai.fm API
-        voice_value = request.voice.value if isinstance(request.voice, Voice) else str(request.voice)
+        voice_value = (
+            request.voice.value if isinstance(request.voice, Voice) else str(request.voice)
+        )
         format_value = (
             request.response_format.value
             if isinstance(request.response_format, AudioFormat)
@@ -385,18 +381,18 @@ class TTSClient:
         )
 
         form_data = {
-            'input': request.input,
-            'voice': voice_value,
-            'generation': str(uuid.uuid4()),
-            'response_format': format_value
+            "input": request.input,
+            "voice": voice_value,
+            "generation": str(uuid.uuid4()),
+            "response_format": format_value,
         }
 
         # Add prompt/instructions if provided
         if request.instructions:
-            form_data['prompt'] = request.instructions
+            form_data["prompt"] = request.instructions
         elif self.use_default_prompt:
             # Default prompt for better quality
-            form_data['prompt'] = (
+            form_data["prompt"] = (
                 "Affect/personality: Natural and clear\n\n"
                 "Tone: Friendly and professional, creating a pleasant "
                 "listening experience.\n\n"
@@ -418,12 +414,13 @@ class TTSClient:
 
         # Map to supported format for outbound request payloads
         target_format = get_supported_format(requested_format)
-        form_data['response_format'] = target_format.value
+        form_data["response_format"] = target_format.value
 
         format_headers = self._get_headers_for_format(requested_format)
 
         logger.info(
-            f"Generating speech for text: '{request.input[:50]}...' with voice: {request.voice}")
+            f"Generating speech for text: '{request.input[:50]}...' with voice: {request.voice}"
+        )
         logger.debug(f"Using headers optimized for {requested_format.value} format")
 
         # Make request with retries
@@ -443,7 +440,7 @@ class TTSClient:
                         data=payload,
                         headers=format_headers,
                         timeout=self.timeout,
-                        verify=self.verify_ssl
+                        verify=self.verify_ssl,
                     )
 
                 # Handle different response types
@@ -460,7 +457,7 @@ class TTSClient:
                     exception = create_exception_from_response(
                         response.status_code,
                         error_data,
-                        f"TTS request failed with status {response.status_code}"
+                        f"TTS request failed with status {response.status_code}",
                     )
 
                     # Don't retry for certain errors
@@ -472,7 +469,8 @@ class TTSClient:
                         raise exception
 
                     logger.warning(
-                        f"Request failed with status {response.status_code}, retrying...")
+                        f"Request failed with status {response.status_code}, retrying..."
+                    )
                     continue
 
             except requests.exceptions.Timeout:
@@ -480,26 +478,20 @@ class TTSClient:
                     raise NetworkException(
                         f"Request timed out after {self.timeout}s",
                         timeout=self.timeout,
-                        retry_count=attempt
+                        retry_count=attempt,
                     )
                 logger.warning("Request timed out, retrying...")
                 continue
 
             except requests.exceptions.ConnectionError as e:
                 if attempt == self.max_retries:
-                    raise NetworkException(
-                        f"Connection error: {str(e)}",
-                        retry_count=attempt
-                    )
+                    raise NetworkException(f"Connection error: {str(e)}", retry_count=attempt)
                 logger.warning("Connection error, retrying...")
                 continue
 
             except requests.exceptions.RequestException as e:
                 if attempt == self.max_retries:
-                    raise NetworkException(
-                        f"Request error: {str(e)}",
-                        retry_count=attempt
-                    )
+                    raise NetworkException(f"Request error: {str(e)}", retry_count=attempt)
                 logger.warning("Request error, retrying...")
                 continue
 
@@ -562,9 +554,7 @@ class TTSClient:
         # Check if format differs from request
         if actual_format != requested_format:
             if maps_to_wav(requested_format.value) and actual_format.value == "wav":
-                logger.debug(
-                    f"Format '{requested_format.value}' requested, returning WAV format."
-                )
+                logger.debug(f"Format '{requested_format.value}' requested, returning WAV format.")
             else:
                 logger.warning(
                     "Requested format '%s' but received '%s' from service.",
@@ -573,7 +563,7 @@ class TTSClient:
                 )
 
         # Get voice value for logging
-        voice_value = request.voice.value if hasattr(request.voice, 'value') else str(request.voice)
+        voice_value = request.voice.value if hasattr(request.voice, "value") else str(request.voice)
 
         # Create response object
         tts_response = TTSResponse(
@@ -589,19 +579,29 @@ class TTSClient:
                 "service": "openai.fm",
                 "voice": voice_value,
                 "original_text": (
-                    request.input[:100] + "..."
-                    if len(request.input) > 100
-                    else request.input
+                    request.input[:100] + "..." if len(request.input) > 100 else request.input
                 ),
-                "requested_format": requested_format.value if isinstance(requested_format, AudioFormat) else str(requested_format),
-                "effective_requested_format": get_supported_format(
-                    requested_format
-                ).value if isinstance(get_supported_format(requested_format), AudioFormat) else str(get_supported_format(requested_format)),
-                "actual_format": actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
-            }
+                "requested_format": (
+                    requested_format.value
+                    if isinstance(requested_format, AudioFormat)
+                    else str(requested_format)
+                ),
+                "effective_requested_format": (
+                    get_supported_format(requested_format).value
+                    if isinstance(get_supported_format(requested_format), AudioFormat)
+                    else str(get_supported_format(requested_format))
+                ),
+                "actual_format": (
+                    actual_format.value
+                    if isinstance(actual_format, AudioFormat)
+                    else str(actual_format)
+                ),
+            },
         )
 
-        actual_format_str = actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
+        actual_format_str = (
+            actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
+        )
         logger.info(
             "Successfully generated %s of %s audio from openai.fm using voice %s",
             format_file_size(len(audio_data)),
@@ -613,7 +613,7 @@ class TTSClient:
 
     def close(self) -> None:
         """Close the HTTP session."""
-        if hasattr(self, 'session'):
+        if hasattr(self, "session"):
             self.session.close()
 
     def __enter__(self):  # type: ignore[no-untyped-def]

@@ -69,7 +69,7 @@ class AsyncTTSClient:
         max_concurrent: int = 10,
         default_headers: Optional[Dict[str, str]] = None,
         use_default_prompt: bool = False,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize the async TTS client.
@@ -83,7 +83,7 @@ class AsyncTTSClient:
             max_concurrent: Maximum concurrent requests
             **kwargs: Additional configuration options
         """
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
         self.max_retries = max_retries
@@ -124,15 +124,10 @@ class AsyncTTSClient:
 
             # Create session
             connector = aiohttp.TCPConnector(
-                verify_ssl=self.verify_ssl,
-                limit=self.max_concurrent * 2
+                verify_ssl=self.verify_ssl, limit=self.max_concurrent * 2
             )
 
-            self._session = ClientSession(
-                headers=headers,
-                timeout=timeout,
-                connector=connector
-            )
+            self._session = ClientSession(headers=headers, timeout=timeout, connector=connector)
 
     async def generate_speech(  # type: ignore[no-untyped-def]
         self,
@@ -142,7 +137,7 @@ class AsyncTTSClient:
         instructions: Optional[str] = None,
         max_length: int = 1000,
         validate_length: bool = True,
-        **kwargs
+        **kwargs,
     ) -> TTSResponse:
         """
         Generate speech from text asynchronously.
@@ -171,7 +166,7 @@ class AsyncTTSClient:
             instructions=instructions,
             max_length=max_length,
             validate_length=validate_length,
-            **kwargs
+            **kwargs,
         )
 
         return await self._make_request(request)
@@ -185,7 +180,7 @@ class AsyncTTSClient:
         max_length: int = 1000,
         preserve_words: bool = True,
         auto_combine: bool = False,
-        **kwargs
+        **kwargs,
     ) -> Union[TTSResponse, List[TTSResponse]]:
         """
         Generate speech from long text by splitting it into chunks asynchronously.
@@ -230,7 +225,7 @@ class AsyncTTSClient:
                 instructions=instructions,
                 max_length=max_length,
                 validate_length=False,  # We already split the text
-                **kwargs
+                **kwargs,
             )
             requests.append(request)
 
@@ -283,7 +278,7 @@ class AsyncTTSClient:
         max_length: int = 1000,
         preserve_words: bool = True,
         auto_combine: bool = False,
-        **kwargs
+        **kwargs,
     ) -> Union[TTSResponse, List[TTSResponse]]:
         """
         Generate speech from long text by splitting it into chunks asynchronously.
@@ -314,13 +309,10 @@ class AsyncTTSClient:
             max_length=max_length,
             preserve_words=preserve_words,
             auto_combine=auto_combine,
-            **kwargs
+            **kwargs,
         )
 
-    async def generate_speech_batch(
-        self,
-        requests: List[TTSRequest]
-    ) -> List[TTSResponse]:
+    async def generate_speech_batch(self, requests: List[TTSRequest]) -> List[TTSResponse]:
         """
         Generate speech for multiple requests concurrently.
 
@@ -341,12 +333,14 @@ class AsyncTTSClient:
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Check for exceptions and convert them
-        results = []
+        results: List[TTSResponse] = []
         for i, response in enumerate(responses):
             if isinstance(response, Exception):
                 if isinstance(response, TTSException):
                     raise response
                 raise TTSException(f"Request {i} failed") from response
+            # At this point, response is guaranteed to be TTSResponse
+            assert isinstance(response, TTSResponse)
             results.append(response)
 
         return results
@@ -382,7 +376,9 @@ class AsyncTTSClient:
             url = build_url(self.base_url, "api/generate")
 
             # Prepare form data for openai.fm API
-            voice_value = request.voice.value if isinstance(request.voice, Voice) else str(request.voice)
+            voice_value = (
+                request.voice.value if isinstance(request.voice, Voice) else str(request.voice)
+            )
             format_value = (
                 request.response_format.value
                 if isinstance(request.response_format, AudioFormat)
@@ -390,18 +386,18 @@ class AsyncTTSClient:
             )
 
             form_data = {
-                'input': request.input,
-                'voice': voice_value,
-                'generation': str(uuid.uuid4()),
-                'response_format': format_value
+                "input": request.input,
+                "voice": voice_value,
+                "generation": str(uuid.uuid4()),
+                "response_format": format_value,
             }
 
             # Add prompt/instructions if provided
             if request.instructions:
-                form_data['prompt'] = request.instructions
+                form_data["prompt"] = request.instructions
             elif self.use_default_prompt:
                 # Default prompt for better quality
-                form_data['prompt'] = (
+                form_data["prompt"] = (
                     "Affect/personality: Natural and clear\n\n"
                     "Tone: Friendly and professional, creating a pleasant "
                     "listening experience.\n\n"
@@ -440,7 +436,7 @@ class AsyncTTSClient:
                             requested_format = AudioFormat.WAV
 
                     target_format = get_supported_format(requested_format)
-                    payload['response_format'] = target_format.value
+                    payload["response_format"] = target_format.value
                     if self._session is None:
                         await self._ensure_session()
                     if self._session is not None:
@@ -460,7 +456,7 @@ class AsyncTTSClient:
                             exception = create_exception_from_response(
                                 response.status,
                                 error_data,
-                                f"TTS request failed with status {response.status}"
+                                f"TTS request failed with status {response.status}",
                             )
 
                             # Don't retry for certain errors
@@ -472,7 +468,8 @@ class AsyncTTSClient:
                                 raise exception
 
                             logger.warning(
-                                f"Request failed with status {response.status}, retrying...")
+                                f"Request failed with status {response.status}, retrying..."
+                            )
                             continue
 
                 except asyncio.TimeoutError:
@@ -480,17 +477,14 @@ class AsyncTTSClient:
                         raise NetworkException(
                             f"Request timed out after {self.timeout}s",
                             timeout=self.timeout,
-                            retry_count=attempt
+                            retry_count=attempt,
                         )
                     logger.warning("Request timed out, retrying...")
                     continue
 
                 except aiohttp.ClientError as e:
                     if attempt == self.max_retries:
-                        raise NetworkException(
-                            f"Client error: {str(e)}",
-                            retry_count=attempt
-                        )
+                        raise NetworkException(f"Client error: {str(e)}", retry_count=attempt)
                     logger.warning("Client error, retrying...")
                     continue
 
@@ -498,9 +492,7 @@ class AsyncTTSClient:
             raise TTSException("Maximum retries exceeded")
 
     async def _process_openai_fm_response(
-        self,
-        response: aiohttp.ClientResponse,
-        request: TTSRequest
+        self, response: aiohttp.ClientResponse, request: TTSRequest
     ) -> TTSResponse:
         """
         Process a successful response from the openai.fm TTS service.
@@ -553,9 +545,7 @@ class AsyncTTSClient:
         # Check if format differs from request
         if actual_format != requested_format:
             if maps_to_wav(requested_format.value) and actual_format.value == "wav":
-                logger.debug(
-                    f"Format '{requested_format.value}' requested, returning WAV format."
-                )
+                logger.debug(f"Format '{requested_format.value}' requested, returning WAV format.")
             else:
                 logger.warning(
                     "Requested format '%s' but received '%s' from service.",
@@ -564,7 +554,7 @@ class AsyncTTSClient:
                 )
 
         # Get voice value for logging
-        voice_value = request.voice.value if hasattr(request.voice, 'value') else str(request.voice)
+        voice_value = request.voice.value if hasattr(request.voice, "value") else str(request.voice)
 
         # Create response object
         tts_response = TTSResponse(
@@ -580,19 +570,29 @@ class AsyncTTSClient:
                 "service": "openai.fm",
                 "voice": voice_value,
                 "original_text": (
-                    request.input[:100] + "..."
-                    if len(request.input) > 100
-                    else request.input
+                    request.input[:100] + "..." if len(request.input) > 100 else request.input
                 ),
-                "requested_format": requested_format.value if isinstance(requested_format, AudioFormat) else str(requested_format),
-                "effective_requested_format": get_supported_format(
-                    requested_format
-                ).value if isinstance(get_supported_format(requested_format), AudioFormat) else str(get_supported_format(requested_format)),
-                "actual_format": actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
-            }
+                "requested_format": (
+                    requested_format.value
+                    if isinstance(requested_format, AudioFormat)
+                    else str(requested_format)
+                ),
+                "effective_requested_format": (
+                    get_supported_format(requested_format).value
+                    if isinstance(get_supported_format(requested_format), AudioFormat)
+                    else str(get_supported_format(requested_format))
+                ),
+                "actual_format": (
+                    actual_format.value
+                    if isinstance(actual_format, AudioFormat)
+                    else str(actual_format)
+                ),
+            },
         )
 
-        actual_format_str = actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
+        actual_format_str = (
+            actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
+        )
         logger.info(
             "Successfully generated %s of %s audio from openai.fm using voice %s",
             format_file_size(len(audio_data)),

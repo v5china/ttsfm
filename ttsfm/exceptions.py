@@ -19,10 +19,7 @@ class TTSException(Exception):
     """
 
     def __init__(
-        self,
-        message: str,
-        code: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None
+        self, message: str, code: Optional[str] = None, details: Optional[Dict[str, Any]] = None
     ):
         super().__init__(message)
         self.message = message
@@ -50,7 +47,7 @@ class APIException(TTSException):
         message: str,
         status_code: Optional[int] = None,
         response_data: Optional[Dict[str, Any]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
         self.status_code = status_code
@@ -71,11 +68,7 @@ class NetworkException(TTSException):
     """
 
     def __init__(
-        self,
-        message: str,
-        timeout: Optional[float] = None,
-        retry_count: int = 0,
-        **kwargs: Any
+        self, message: str, timeout: Optional[float] = None, retry_count: int = 0, **kwargs: Any
     ) -> None:
         super().__init__(message, **kwargs)
         self.timeout = timeout
@@ -91,11 +84,7 @@ class ValidationException(TTSException):
     """
 
     def __init__(
-        self,
-        message: str,
-        field: Optional[str] = None,
-        value: Optional[Any] = None,
-        **kwargs: Any
+        self, message: str, field: Optional[str] = None, value: Optional[Any] = None, **kwargs: Any
     ) -> None:
         super().__init__(message, **kwargs)
         self.field = field
@@ -123,7 +112,7 @@ class RateLimitException(APIException):
         retry_after: Optional[int] = None,
         limit: Optional[int] = None,
         remaining: Optional[int] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, status_code=429, **kwargs)
         self.retry_after = retry_after
@@ -145,11 +134,7 @@ class AuthenticationException(APIException):
     permissions.
     """
 
-    def __init__(
-        self,
-        message: str = "Authentication failed",
-        **kwargs: Any
-    ) -> None:
+    def __init__(self, message: str = "Authentication failed", **kwargs: Any) -> None:
         super().__init__(message, status_code=401, **kwargs)
 
 
@@ -165,7 +150,7 @@ class ServiceUnavailableException(APIException):
         self,
         message: str = "Service temporarily unavailable",
         retry_after: Optional[int] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, status_code=503, **kwargs)
         self.retry_after = retry_after
@@ -185,7 +170,7 @@ class QuotaExceededException(APIException):
         quota_type: Optional[str] = None,
         limit: Optional[int] = None,
         used: Optional[int] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, status_code=402, **kwargs)
         self.quota_type = quota_type
@@ -201,20 +186,13 @@ class AudioProcessingException(TTSException):
     and output processing problems.
     """
 
-    def __init__(
-        self,
-        message: str,
-        audio_format: Optional[str] = None,
-        **kwargs: Any
-    ) -> None:
+    def __init__(self, message: str, audio_format: Optional[str] = None, **kwargs: Any) -> None:
         super().__init__(message, **kwargs)
         self.audio_format = audio_format
 
 
 def create_exception_from_response(
-    status_code: int,
-    response_data: Dict[str, Any],
-    default_message: str = "API request failed"
+    status_code: int, response_data: Dict[str, Any], default_message: str = "API request failed"
 ) -> APIException:
     """
     Create appropriate exception from API response.

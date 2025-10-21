@@ -25,34 +25,31 @@ class LanguageManager:
         """
         self.translations_dir = translations_dir
         self.translations: Dict[str, Dict[str, Any]] = {}
-        self.supported_languages = ['en', 'zh']
-        self.default_language = 'en'
+        self.supported_languages = ["en", "zh"]
+        self.default_language = "en"
 
         if app is not None:
             self.init_app(app)
 
     def init_app(self, app):
         """Initialize the Flask application with i18n support."""
-        app.config.setdefault('LANGUAGES', self.supported_languages)
-        app.config.setdefault('DEFAULT_LANGUAGE', self.default_language)
+        app.config.setdefault("LANGUAGES", self.supported_languages)
+        app.config.setdefault("DEFAULT_LANGUAGE", self.default_language)
 
         # Load translations
         self.load_translations()
 
         # Register template functions
-        app.jinja_env.globals['_'] = self.translate
-        app.jinja_env.globals['get_locale'] = self.get_locale
-        app.jinja_env.globals['get_supported_languages'] = self.get_supported_languages
+        app.jinja_env.globals["_"] = self.translate
+        app.jinja_env.globals["get_locale"] = self.get_locale
+        app.jinja_env.globals["get_supported_languages"] = self.get_supported_languages
 
         # Store reference to this instance
         app.language_manager = self
 
     def load_translations(self):
         """Load all translation files from the translations directory."""
-        translations_path = os.path.join(
-            os.path.dirname(__file__),
-            self.translations_dir
-        )
+        translations_path = os.path.join(os.path.dirname(__file__), self.translations_dir)
 
         if not os.path.exists(translations_path):
             print(f"Warning: Translations directory not found: {translations_path}")
@@ -63,7 +60,7 @@ class LanguageManager:
 
             if os.path.exists(file_path):
                 try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
+                    with open(file_path, "r", encoding="utf-8") as f:
                         self.translations[lang_code] = json.load(f)
                     print(f"Info: Loaded translations for language: {lang_code}")
                 except Exception as e:
@@ -79,26 +76,26 @@ class LanguageManager:
             Language code (e.g., 'en', 'zh')
         """
         # 1. Check URL parameter (for language switching)
-        if 'lang' in request.args:
-            lang = request.args.get('lang')
+        if "lang" in request.args:
+            lang = request.args.get("lang")
             if lang in self.supported_languages:
-                session['language'] = lang
+                session["language"] = lang
                 return lang
 
         # 2. Check session (user's previous choice)
-        if 'language' in session:
-            lang = session['language']
+        if "language" in session:
+            lang = session["language"]
             if lang in self.supported_languages:
                 return lang
 
         # 3. Check browser's Accept-Language header
-        if request.headers.get('Accept-Language'):
-            browser_langs = request.headers.get('Accept-Language').split(',')
+        if request.headers.get("Accept-Language"):
+            browser_langs = request.headers.get("Accept-Language").split(",")
             for browser_lang in browser_langs:
                 # Extract language code (e.g., 'zh-CN' -> 'zh')
-                lang_code = browser_lang.split(';')[0].split('-')[0].strip().lower()
+                lang_code = browser_lang.split(";")[0].split("-")[0].strip().lower()
                 if lang_code in self.supported_languages:
-                    session['language'] = lang_code
+                    session["language"] = lang_code
                     return lang_code
 
         # 4. Fall back to default language
@@ -115,7 +112,7 @@ class LanguageManager:
             True if successful, False if language not supported
         """
         if lang_code in self.supported_languages:
-            session['language'] = lang_code
+            session["language"] = lang_code
             return True
         return False
 
@@ -133,16 +130,12 @@ class LanguageManager:
         locale = self.get_locale()
 
         # Get translation for current locale
-        translation = self._get_nested_value(
-            self.translations.get(locale, {}),
-            key
-        )
+        translation = self._get_nested_value(self.translations.get(locale, {}), key)
 
         # Fall back to default language if not found
         if translation is None and locale != self.default_language:
             translation = self._get_nested_value(
-                self.translations.get(self.default_language, {}),
-                key
+                self.translations.get(self.default_language, {}), key
             )
 
         # Fall back to key if still not found
@@ -169,7 +162,7 @@ class LanguageManager:
         Returns:
             Value if found, None otherwise
         """
-        keys = key.split('.')
+        keys = key.split(".")
         current = data
 
         for k in keys:
@@ -187,10 +180,7 @@ class LanguageManager:
         Returns:
             Dictionary mapping language codes to display names
         """
-        return {
-            'en': 'English',
-            'zh': '中文'
-        }
+        return {"en": "English", "zh": "中文"}
 
     def get_language_info(self, lang_code: str) -> Dict[str, str]:
         """
@@ -203,14 +193,13 @@ class LanguageManager:
             Dictionary with language information
         """
         language_names = {
-            'en': {'name': 'English', 'native': 'English'},
-            'zh': {'name': 'Chinese', 'native': '中文'}
+            "en": {"name": "English", "native": "English"},
+            "zh": {"name": "Chinese", "native": "中文"},
         }
 
-        return language_names.get(lang_code, {
-            'name': lang_code.upper(),
-            'native': lang_code.upper()
-        })
+        return language_names.get(
+            lang_code, {"name": lang_code.upper(), "native": lang_code.upper()}
+        )
 
 
 # Global instance

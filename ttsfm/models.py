@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional, Union
 
 class Voice(str, Enum):
     """Available voice options for TTS generation."""
+
     ALLOY = "alloy"
     ASH = "ash"
     BALLAD = "ballad"
@@ -28,6 +29,7 @@ class Voice(str, Enum):
 
 class AudioFormat(str, Enum):
     """Supported audio output formats."""
+
     MP3 = "mp3"
     WAV = "wav"
     OPUS = "opus"
@@ -51,6 +53,7 @@ class TTSRequest:
         max_length: Maximum allowed text length (default: 1000 characters)
         validate_length: Whether to validate text length (default: True)
     """
+
     input: str
     voice: Union[Voice, str] = Voice.ALLOY
     response_format: Union[AudioFormat, str] = AudioFormat.MP3
@@ -77,7 +80,8 @@ class TTSRequest:
                 self.response_format = AudioFormat(self.response_format.lower())
             except ValueError:
                 raise ValueError(
-                    f"Invalid format: {self.response_format}. Must be one of {list(AudioFormat)}")
+                    f"Invalid format: {self.response_format}. Must be one of {list(AudioFormat)}"
+                )
 
         # Validate input text
         if not self.input or not self.input.strip():
@@ -104,14 +108,14 @@ class TTSRequest:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert request to dictionary for API calls."""
-        data = {
+        data: Dict[str, Any] = {
             "input": self.input,
             "voice": self.voice.value if isinstance(self.voice, Voice) else self.voice,
             "response_format": (
                 self.response_format.value
                 if isinstance(self.response_format, AudioFormat)
                 else self.response_format
-            )
+            ),
         }
 
         if self.instructions:
@@ -139,6 +143,7 @@ class TTSResponse:
         duration: Estimated duration in seconds (if available)
         metadata: Additional response metadata
     """
+
     audio_data: bytes
     content_type: str
     format: AudioFormat
@@ -173,15 +178,17 @@ class TTSResponse:
             # Remove any existing extension and add the correct one
             base_name = filename
             # Remove common audio extensions if present
-            for ext in ['.mp3', '.wav', '.opus', '.aac', '.flac', '.pcm']:
+            for ext in [".mp3", ".wav", ".opus", ".aac", ".flac", ".pcm"]:
                 if base_name.endswith(ext):
-                    base_name = base_name[:-len(ext)]
+                    base_name = base_name[: -len(ext)]
                     break
             final_filename = f"{base_name}{expected_extension}"
 
         # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(final_filename) if os.path.dirname(
-            final_filename) else ".", exist_ok=True)
+        os.makedirs(
+            os.path.dirname(final_filename) if os.path.dirname(final_filename) else ".",
+            exist_ok=True,
+        )
 
         # Write audio data
         with open(final_filename, "wb") as f:
@@ -202,6 +209,7 @@ class TTSError:
         details: Additional error details
         timestamp: When the error occurred
     """
+
     code: str
     message: str
     type: Optional[str] = None
@@ -217,6 +225,7 @@ class TTSError:
 @dataclass
 class APIError(TTSError):
     """API-specific error information."""
+
     status_code: int = 500
     headers: Optional[Dict[str, str]] = None
 
@@ -224,6 +233,7 @@ class APIError(TTSError):
 @dataclass
 class NetworkError(TTSError):
     """Network-related error information."""
+
     timeout: Optional[float] = None
     retry_count: int = 0
 
@@ -231,6 +241,7 @@ class NetworkError(TTSError):
 @dataclass
 class ValidationError(TTSError):
     """Validation error information."""
+
     field: Optional[str] = None
     value: Optional[Any] = None
 
@@ -242,7 +253,7 @@ CONTENT_TYPE_MAP = {
     AudioFormat.AAC: "audio/aac",
     AudioFormat.FLAC: "audio/flac",
     AudioFormat.WAV: "audio/wav",
-    AudioFormat.PCM: "audio/pcm"
+    AudioFormat.PCM: "audio/pcm",
 }
 
 # Reverse mapping for content type to format
@@ -288,4 +299,4 @@ def maps_to_wav(format_value: str) -> bool:
     Returns:
         bool: True if the format maps to WAV
     """
-    return format_value.lower() in ['wav', 'opus', 'aac', 'flac', 'pcm']
+    return format_value.lower() in ["wav", "opus", "aac", "flac", "pcm"]

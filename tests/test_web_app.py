@@ -37,16 +37,16 @@ def load_web_app(monkeypatch, **env):
 
 
 def test_voices_endpoint_returns_data(monkeypatch):
-    module = load_web_app(monkeypatch, REQUIRE_API_KEY='false', TTSFM_API_KEY=None)
+    module = load_web_app(monkeypatch, REQUIRE_API_KEY="false", TTSFM_API_KEY=None)
     client = module.app.test_client()
-    response = client.get('/api/voices')
+    response = client.get("/api/voices")
     assert response.status_code == 200
     payload = response.get_json()
-    assert payload['count'] == len(payload['voices'])
+    assert payload["count"] == len(payload["voices"])
 
 
 def test_combine_audio_chunks_uses_format_hint(monkeypatch):
-    load_web_app(monkeypatch, REQUIRE_API_KEY='false', TTSFM_API_KEY=None)
+    load_web_app(monkeypatch, REQUIRE_API_KEY="false", TTSFM_API_KEY=None)
 
     from ttsfm import audio as audio_module
 
@@ -82,17 +82,20 @@ def test_combine_audio_chunks_uses_format_hint(monkeypatch):
     assert DummyAudioSegment.formats == ["wav", "wav"]
 
 
-@pytest.mark.parametrize('header_name, header_value', [
-    ('Authorization', 'Bearer super-secret'),
-    ('X-API-Key', 'super-secret'),
-])
+@pytest.mark.parametrize(
+    "header_name, header_value",
+    [
+        ("Authorization", "Bearer super-secret"),
+        ("X-API-Key", "super-secret"),
+    ],
+)
 def test_api_key_hash_verification(monkeypatch, header_name, header_value):
-    module = load_web_app(monkeypatch, REQUIRE_API_KEY='true', TTSFM_API_KEY='super-secret')
+    module = load_web_app(monkeypatch, REQUIRE_API_KEY="true", TTSFM_API_KEY="super-secret")
     client = module.app.test_client()
 
-    denied = client.post('/api/validate-text', json={'text': 'hello'})
+    denied = client.post("/api/validate-text", json={"text": "hello"})
     assert denied.status_code == 401
 
     headers = {header_name: header_value}
-    response = client.post('/api/validate-text', json={'text': 'hello'}, headers=headers)
+    response = client.post("/api/validate-text", json={"text": "hello"}, headers=headers)
     assert response.status_code == 200
