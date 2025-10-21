@@ -152,7 +152,7 @@
     "feature_auto_combine": "Auto-combine feature - Automatically handles long text (>1000 chars) by splitting and combining audio",
     "feature_validation": "Text length validation - Smart validation with configurable limits",
     "feature_monitoring": "Real-time monitoring - Status endpoints and health checks",
-    "new_version": "New in v3.3.1:",
+    "new_version": "New in v3.3.4:",
     "new_version_desc": "Runtime images now ship with ffmpeg so MP3 auto-combine succeeds immediately, and the default long-text limit is trimmed to 1000 characters for predictable playback.",
     "authentication_title": "Authentication",
     "authentication_desc": "Currently, the API supports optional API key authentication. If configured, include your API key in the request headers.",
