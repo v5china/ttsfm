@@ -295,9 +295,14 @@ def _is_safe_url(target: Optional[str]) -> bool:
     if not target:
         return False
 
+    # Replace backslashes to prevent bypass (browsers accept \ as /)
+    target = target.replace("\\", "")
+
     parsed = urlparse(target)
+    # Reject if scheme or netloc is present, or if it starts with //
     if parsed.scheme or parsed.netloc or target.startswith("//"):
         return False
+    # Only allow paths starting with /
     if not parsed.path.startswith("/"):
         return False
     joined = urljoin(request.host_url, target)
@@ -763,7 +768,7 @@ def get_status():
             {
                 "status": "online",
                 "tts_service": "openai.fm (free)",
-                "package_version": "3.3.1",
+                "package_version": "3.3.7",
                 "timestamp": datetime.now().isoformat(),
             }
         )
@@ -787,7 +792,7 @@ def get_status():
 def health_check():
     """Simple health check endpoint."""
     return jsonify(
-        {"status": "healthy", "package_version": "3.3.4", "timestamp": datetime.now().isoformat()}
+        {"status": "healthy", "package_version": "3.3.7", "timestamp": datetime.now().isoformat()}
     )
 
 
