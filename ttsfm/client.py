@@ -572,6 +572,9 @@ class TTSClient:
                     actual_format.value,
                 )
 
+        # Get voice value for logging
+        voice_value = request.voice.value if hasattr(request.voice, 'value') else str(request.voice)
+
         # Create response object
         tts_response = TTSResponse(
             audio_data=audio_data,
