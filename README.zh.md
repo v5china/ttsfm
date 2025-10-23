@@ -26,9 +26,29 @@ pip install ttsfm[web]   # 客户端 + Flask Web 应用
 
 ### Docker 镜像
 
+TTSFM 提供两种 Docker 镜像变体以满足不同需求：
+
+#### 完整版（推荐）
 ```bash
 docker run -p 8000:8000 dbcccc/ttsfm:latest
 ```
+
+包含 ffmpeg，支持高级功能：
+- ✅ 长文本 MP3 自动合并
+- ✅ 语速调节（0.25x - 4.0x）
+- ✅ 额外音频格式（AAC、FLAC、OPUS）
+
+#### 精简版
+```bash
+docker run -p 8000:8000 dbcccc/ttsfm:v3.4.0-alpha1-slim
+```
+
+不含 ffmpeg 的最小化镜像：
+- ✅ 基础 TTS（MP3/WAV）
+- ✅ WAV 自动合并（简单拼接）
+- ❌ 不支持 MP3 自动合并
+- ❌ 不支持语速调节
+- ❌ 不支持格式转换
 
 容器默认开放网页 Playground（`http://localhost:8000`）以及兼容 OpenAI 的 `/v1/audio/speech` 接口。
 
@@ -40,12 +60,23 @@ docker run -p 8000:8000 dbcccc/ttsfm:latest
 from ttsfm import TTSClient, AudioFormat, Voice
 
 client = TTSClient()
+
+# 基础用法
 response = client.generate_speech(
     text="来自 TTSFM 的问候！",
     voice=Voice.ALLOY,
     response_format=AudioFormat.MP3,
 )
 response.save_to_file("hello")  # -> hello.mp3
+
+# 使用语速调节（需要 ffmpeg）
+response = client.generate_speech(
+    text="这段语音会更快！",
+    voice=Voice.NOVA,
+    response_format=AudioFormat.MP3,
+    speed=1.5,  # 1.5 倍速（范围：0.25 - 4.0）
+)
+response.save_to_file("fast")  # -> fast.mp3
 ```
 
 ### 命令行

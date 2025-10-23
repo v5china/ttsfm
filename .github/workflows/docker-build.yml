@@ -95,8 +95,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
+      - name: Extract metadata (full variant)
+        id: meta-full
         if: steps.build-config.outputs.push == 'true'
         uses: docker/metadata-action@v5
         with:
@@ -108,39 +108,82 @@ jobs:
             type=raw,value=latest,enable=${{ github.event.release.prerelease == false }}
           labels: |
             org.opencontainers.image.source=${{ github.repositoryUrl }}
-            org.opencontainers.image.description=Free TTS API server compatible with OpenAI's TTS API format using openai.fm
+            org.opencontainers.image.description=Free TTS API server compatible with OpenAI's TTS API format using openai.fm (full variant with ffmpeg)
             org.opencontainers.image.licenses=MIT
-            org.opencontainers.image.title=TTSFM - Free TTS API Server
+            org.opencontainers.image.title=TTSFM - Free TTS API Server (Full)
+            org.opencontainers.image.vendor=dbcccc
+          flavor: |
+            latest=auto
+
+      - name: Extract metadata (slim variant)
+        id: meta-slim
+        if: steps.build-config.outputs.push == 'true'
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKERHUB_NAMESPACE }}/ttsfm
+            ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern=v{{version}},suffix=-slim
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.description=Free TTS API server compatible with OpenAI's TTS API format using openai.fm (slim variant without ffmpeg)
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.title=TTSFM - Free TTS API Server (Slim)
             org.opencontainers.image.vendor=dbcccc
 
-      - name: Set local image metadata
-        id: meta-local
+      - name: Set local image metadata (full variant)
+        id: meta-local-full
         if: steps.build-config.outputs.push != 'true'
         run: |
-          echo "tags=${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:ci-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
+          echo "tags=${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:ci-${GITHUB_RUN_ID}-full" >> "$GITHUB_OUTPUT"
           echo "labels=org.opencontainers.image.source=${{ github.repositoryUrl }}" >> "$GITHUB_OUTPUT"
 
-      - name: Build image
-        id: build-and-push
+      - name: Set local image metadata (slim variant)
+        id: meta-local-slim
+        if: steps.build-config.outputs.push != 'true'
+        run: |
+          echo "tags=${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:ci-${GITHUB_RUN_ID}-slim" >> "$GITHUB_OUTPUT"
+          echo "labels=org.opencontainers.image.source=${{ github.repositoryUrl }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push full image
+        id: build-and-push-full
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: ${{ steps.build-config.outputs.platforms }}
           push: ${{ steps.build-config.outputs.push == 'true' }}
           load: ${{ steps.build-config.outputs.load == 'true' }}
-          tags: ${{ steps.meta.outputs.tags || steps.meta-local.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels || steps.meta-local.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ steps.meta-full.outputs.tags || steps.meta-local-full.outputs.tags }}
+          labels: ${{ steps.meta-full.outputs.labels || steps.meta-local-full.outputs.labels }}
+          cache-from: type=gha,scope=full
+          cache-to: type=gha,mode=max,scope=full
           build-args: |
             VERSION=${{ steps.version.outputs.version }}
+            VARIANT=full
 
-      - name: Smoke test local image
+      - name: Build and push slim image
+        id: build-and-push-slim
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: ${{ steps.build-config.outputs.platforms }}
+          push: ${{ steps.build-config.outputs.push == 'true' }}
+          load: false
+          tags: ${{ steps.meta-slim.outputs.tags || steps.meta-local-slim.outputs.tags }}
+          labels: ${{ steps.meta-slim.outputs.labels || steps.meta-local-slim.outputs.labels }}
+          cache-from: type=gha,scope=slim
+          cache-to: type=gha,mode=max,scope=slim
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            VARIANT=slim
+
+      - name: Smoke test full image
         if: steps.build-config.outputs.load == 'true'
         run: |
           set -euo pipefail
-          IMAGE="${{ steps.meta-local.outputs.tags }}"
-          echo "Running smoke test for $IMAGE"
+          IMAGE="${{ steps.meta-local-full.outputs.tags }}"
+          echo "Running smoke test for full image: $IMAGE"
           docker rm -f ttsfm-smoke >/dev/null 2>&1 || true
           docker run -d --name ttsfm-smoke -p 127.0.0.1:8000:8000 "$IMAGE"
           success=""
@@ -161,5 +204,7 @@ jobs:
 
       - name: Show image info
         run: |
-          echo "Pushed tags: ${{ steps.meta.outputs.tags || steps.meta-local.outputs.tags }}"
-          echo "Image digest: ${{ steps.build-and-push.outputs.digest }}"
+          echo "Full image tags: ${{ steps.meta-full.outputs.tags || steps.meta-local-full.outputs.tags }}"
+          echo "Full image digest: ${{ steps.build-and-push-full.outputs.digest }}"
+          echo "Slim image tags: ${{ steps.meta-slim.outputs.tags || steps.meta-local-slim.outputs.tags }}"
+          echo "Slim image digest: ${{ steps.build-and-push-slim.outputs.digest }}"

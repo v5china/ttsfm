@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import logging
+import shutil
 from typing import Iterable, List, Sequence
 
 from .models import TTSResponse
@@ -16,6 +17,9 @@ try:  # Optional dependency for non-WAV combining
 except ImportError:  # pragma: no cover - optional dependency
     AudioSegment = None
 
+
+# Detect ffmpeg availability at runtime
+FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None
 
 SUPPORTED_EXPORT_FORMATS = {"mp3", "wav", "aac", "flac", "opus", "pcm"}
 
@@ -31,7 +35,7 @@ def combine_audio_chunks(audio_chunks: Iterable[bytes], format_type: str = "mp3"
         Combined audio data as bytes
 
     Raises:
-        RuntimeError: If non-WAV combining is requested without pydub available
+        RuntimeError: If non-WAV combining is requested without pydub/ffmpeg available
     """
 
     chunks_list = list(audio_chunks)
@@ -40,10 +44,23 @@ def combine_audio_chunks(audio_chunks: Iterable[bytes], format_type: str = "mp3"
 
     fmt = format_type.lower()
 
+    # Check for pydub availability (which requires ffmpeg for MP3)
     if AudioSegment is None:
         if fmt == "mp3":
-            raise RuntimeError("Combining MP3 audio requires pydub. Install ttsfm[web].")
+            raise RuntimeError(
+                "Combining MP3 audio requires pydub and ffmpeg. "
+                "Install ttsfm[web] and use the full Docker image (dbcccc/ttsfm:latest) "
+                "instead of the slim variant."
+            )
         return _simple_wav_concatenation(chunks_list)
+
+    # Check for ffmpeg availability when using pydub
+    if not FFMPEG_AVAILABLE and fmt == "mp3":
+        raise RuntimeError(
+            "MP3 auto-combine requires ffmpeg. "
+            "Use the full Docker image (dbcccc/ttsfm:latest) instead of the slim variant, "
+            "or disable auto_combine and handle chunks separately."
+        )
 
     audio_segments = []
     for chunk in chunks_list:

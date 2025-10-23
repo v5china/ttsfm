@@ -1,3 +1,6 @@
+# Build argument to control image variant (full or slim)
+ARG VARIANT=full
+
 FROM python:3.11-slim AS builder
 
 WORKDIR /app
@@ -28,14 +31,23 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 FROM python:3.11-slim
 
+# Re-declare ARG after FROM to make it available in this stage
+ARG VARIANT=full
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8000
+    PORT=8000 \
+    TTSFM_VARIANT=${VARIANT}
 
 WORKDIR /app
 
+# Conditional ffmpeg installation based on variant
+# Full variant: includes ffmpeg for MP3 combining, speed adjustment, and format conversion
+# Slim variant: minimal image without ffmpeg (WAV-only auto-combine, no speed adjustment)
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
+    && if [ "$VARIANT" = "full" ]; then \
+         apt-get install -y --no-install-recommends ffmpeg; \
+       fi \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --shell /usr/sbin/nologin ttsfm
 

@@ -531,6 +531,34 @@ class AsyncTTSClient:
         # Estimate duration based on text length
         estimated_duration = estimate_audio_duration(request.input)
 
+        # Apply speed adjustment if requested (requires ffmpeg)
+        speed_applied = False
+        if request.speed is not None and request.speed != 1.0:
+            try:
+                from .audio_processing import adjust_audio_speed
+
+                logger.info(f"Applying speed adjustment: {request.speed}x")
+                # Run CPU-intensive ffmpeg processing in thread pool
+                loop = asyncio.get_event_loop()
+                audio_data = await loop.run_in_executor(
+                    None,
+                    adjust_audio_speed,
+                    audio_data,
+                    request.speed,
+                    actual_format.value,
+                    actual_format.value,
+                )
+                speed_applied = True
+                # Adjust estimated duration based on speed
+                if estimated_duration:
+                    estimated_duration = estimated_duration / request.speed
+            except RuntimeError as e:
+                logger.warning(f"Speed adjustment failed: {e}")
+                # Continue without speed adjustment
+            except Exception as e:
+                logger.error(f"Unexpected error during speed adjustment: {e}")
+                # Continue without speed adjustment
+
         # Check if returned format differs from requested format
         requested_format = request.response_format
         if isinstance(requested_format, str):
@@ -557,37 +585,42 @@ class AsyncTTSClient:
         voice_value = request.voice.value if hasattr(request.voice, "value") else str(request.voice)
 
         # Create response object
+        metadata = {
+            "response_headers": dict(response.headers),
+            "status_code": response.status,
+            "url": str(response.url),
+            "service": "openai.fm",
+            "voice": voice_value,
+            "original_text": (
+                request.input[:100] + "..." if len(request.input) > 100 else request.input
+            ),
+            "requested_format": (
+                requested_format.value
+                if isinstance(requested_format, AudioFormat)
+                else str(requested_format)
+            ),
+            "effective_requested_format": (
+                get_supported_format(requested_format).value
+                if isinstance(get_supported_format(requested_format), AudioFormat)
+                else str(get_supported_format(requested_format))
+            ),
+            "actual_format": (
+                actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
+            ),
+        }
+
+        # Add speed metadata if speed was requested
+        if request.speed is not None:
+            metadata["requested_speed"] = request.speed
+            metadata["speed_applied"] = speed_applied
+
         tts_response = TTSResponse(
             audio_data=audio_data,
             content_type=content_type,
             format=actual_format,
             size=len(audio_data),
             duration=estimated_duration,
-            metadata={
-                "response_headers": dict(response.headers),
-                "status_code": response.status,
-                "url": str(response.url),
-                "service": "openai.fm",
-                "voice": voice_value,
-                "original_text": (
-                    request.input[:100] + "..." if len(request.input) > 100 else request.input
-                ),
-                "requested_format": (
-                    requested_format.value
-                    if isinstance(requested_format, AudioFormat)
-                    else str(requested_format)
-                ),
-                "effective_requested_format": (
-                    get_supported_format(requested_format).value
-                    if isinstance(get_supported_format(requested_format), AudioFormat)
-                    else str(get_supported_format(requested_format))
-                ),
-                "actual_format": (
-                    actual_format.value
-                    if isinstance(actual_format, AudioFormat)
-                    else str(actual_format)
-                ),
-            },
+            metadata=metadata,
         )
 
         actual_format_str = (

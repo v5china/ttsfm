@@ -26,9 +26,29 @@ pip install ttsfm[web]   # client + Flask web app
 
 ### Docker image
 
+TTSFM offers two Docker image variants to suit different needs:
+
+#### Full variant (recommended)
 ```bash
 docker run -p 8000:8000 dbcccc/ttsfm:latest
 ```
+
+Includes ffmpeg for advanced features:
+- ✅ MP3 auto-combine for long text
+- ✅ Speed adjustment (0.25x - 4.0x)
+- ✅ Additional audio formats (AAC, FLAC, OPUS)
+
+#### Slim variant
+```bash
+docker run -p 8000:8000 dbcccc/ttsfm:v3.4.0-alpha1-slim
+```
+
+Minimal image without ffmpeg:
+- ✅ Basic TTS (MP3/WAV)
+- ✅ WAV auto-combine (simple concatenation)
+- ❌ No MP3 auto-combine
+- ❌ No speed adjustment
+- ❌ No format conversion
 
 The container exposes the web playground at `http://localhost:8000` and an OpenAI-style endpoint at `/v1/audio/speech`.
 
@@ -40,12 +60,23 @@ The container exposes the web playground at `http://localhost:8000` and an OpenA
 from ttsfm import TTSClient, AudioFormat, Voice
 
 client = TTSClient()
+
+# Basic usage
 response = client.generate_speech(
     text="Hello from TTSFM!",
     voice=Voice.ALLOY,
     response_format=AudioFormat.MP3,
 )
 response.save_to_file("hello")  # -> hello.mp3
+
+# With speed adjustment (requires ffmpeg)
+response = client.generate_speech(
+    text="This will be faster!",
+    voice=Voice.NOVA,
+    response_format=AudioFormat.MP3,
+    speed=1.5,  # 1.5x speed (0.25 - 4.0)
+)
+response.save_to_file("fast")  # -> fast.mp3
 ```
 
 ### CLI

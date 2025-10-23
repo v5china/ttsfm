@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0-alpha1] - 2025-10-23
+
+### Added
+- **Dual Docker image variants**: Full image with ffmpeg and slim image without ffmpeg
+  - Full variant: `dbcccc/ttsfm:latest`, `dbcccc/ttsfm:v3.4.0-alpha1`
+  - Slim variant: `dbcccc/ttsfm:v3.4.0-alpha1-slim`
+- **Speed adjustment feature**: Adjust audio playback speed from 0.25x to 4.0x (requires ffmpeg)
+  - Implemented using ffmpeg's `atempo` filter with automatic filter chaining for extreme speeds
+  - Supported in both sync (`TTSClient`) and async (`AsyncTTSClient`) clients
+  - Integrated into `/v1/audio/speech` API endpoint
+  - Response metadata includes `speed_applied` and `requested_speed` fields
+- **Runtime ffmpeg detection**: Graceful degradation with helpful error messages when ffmpeg is unavailable
+- **New audio processing module**: `ttsfm/audio_processing.py` with `adjust_audio_speed()` and `convert_audio_format()` functions
+
+### Changed
+- Dockerfile now uses `VARIANT` build argument to conditionally install ffmpeg
+- GitHub Actions workflow builds both full and slim variants with separate cache scopes
+- Updated README (EN/ZH) with image variant comparison table and speed adjustment examples
+- Enhanced error messages to guide users to full image when ffmpeg features are needed
+
+### Documentation
+- Added comprehensive `docs/v3.4-dual-image-implementation.md` with feature matrix and migration guide
+- Updated README examples to demonstrate speed adjustment usage
+- Added test suite for audio processing functionality
+
+### Technical
+- Speed adjustment runs in thread pool for async client to avoid blocking
+- Duration estimation automatically adjusted based on speed multiplier
+- Separate Docker cache scopes for efficient multi-variant builds
+
 ## [3.3.2-3.3.7] - 2025-10-21
 
 fixes and improvements since 3.3.1
