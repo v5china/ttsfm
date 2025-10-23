@@ -1,0 +1,171 @@
+name: Docker Build and Push (Full)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [published]
+
+env:
+  REGISTRY_DOCKERHUB: docker.io
+  REGISTRY_GHCR: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_USERNAME || github.repository_owner }}
+
+jobs:
+  build-and-push-full:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine build settings
+        id: build-config
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+        run: |
+          if [ "$EVENT_NAME" = "release" ] && [ "$EVENT_ACTION" = "published" ]; then
+            echo "push=true" >> "$GITHUB_OUTPUT"
+            echo "platforms=linux/amd64,linux/arm64" >> "$GITHUB_OUTPUT"
+            echo "load=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "push=false" >> "$GITHUB_OUTPUT"
+            echo "platforms=linux/amd64" >> "$GITHUB_OUTPUT"
+            echo "load=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Derive image version
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+          REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          version=""
+          if [ "$EVENT_NAME" = "release" ] && [ -n "$TAG_NAME" ]; then
+            version="$TAG_NAME"
+          elif [ -n "$REF_NAME" ]; then
+            version="$REF_NAME"
+          fi
+          version="${version##*/}"
+          if [ "${version#v}" != "$version" ]; then
+            version="${version#v}"
+          fi
+          if [ -z "$version" ]; then
+            version="${GITHUB_SHA:0:12}"
+          fi
+          if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            safe_branch=$(printf %s "$version" | tr -c 'A-Za-z0-9' '-')
+            safe_branch=${safe_branch%-}
+            if [ -z "$safe_branch" ]; then
+              safe_branch="sha-${GITHUB_SHA:0:12}"
+            fi
+            version="0.0.0+${safe_branch}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        if: steps.build-config.outputs.platforms == 'linux/amd64,linux/arm64'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+
+      - name: Login to Docker Hub
+        if: steps.build-config.outputs.push == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        if: steps.build-config.outputs.push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        if: steps.build-config.outputs.push == 'true'
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKERHUB_NAMESPACE }}/ttsfm
+            ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern=v{{version}}
+            type=raw,value=latest,enable=${{ github.event.release.prerelease == false }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.description=Free TTS API server compatible with OpenAI's TTS API format using openai.fm (full variant with ffmpeg)
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.title=TTSFM - Free TTS API Server (Full)
+            org.opencontainers.image.vendor=dbcccc
+          flavor: |
+            latest=auto
+
+      - name: Set local image metadata
+        id: meta-local
+        if: steps.build-config.outputs.push != 'true'
+        run: |
+          echo "tags=${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:ci-${GITHUB_RUN_ID}-full" >> "$GITHUB_OUTPUT"
+          echo "labels=org.opencontainers.image.source=${{ github.repositoryUrl }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        id: build-and-push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: ${{ steps.build-config.outputs.platforms }}
+          push: ${{ steps.build-config.outputs.push == 'true' }}
+          load: ${{ steps.build-config.outputs.load == 'true' }}
+          tags: ${{ steps.meta.outputs.tags || steps.meta-local.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels || steps.meta-local.outputs.labels }}
+          cache-from: type=gha,scope=full
+          cache-to: type=gha,mode=max,scope=full
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            VARIANT=full
+
+      - name: Smoke test image
+        if: steps.build-config.outputs.load == 'true'
+        run: |
+          set -euo pipefail
+          IMAGE="${{ steps.meta-local.outputs.tags }}"
+          echo "Running smoke test for full image: $IMAGE"
+          docker rm -f ttsfm-smoke >/dev/null 2>&1 || true
+          docker run -d --name ttsfm-smoke -p 127.0.0.1:8000:8000 "$IMAGE"
+          success=""
+          for attempt in $(seq 1 10); do
+            if curl --fail --silent --max-time 5 http://127.0.0.1:8000/api/health > /tmp/ttsfm-health.json; then
+              success="yes"
+              cat /tmp/ttsfm-health.json
+              break
+            fi
+            sleep 3
+          done
+          docker logs ttsfm-smoke || true
+          docker rm -f ttsfm-smoke >/dev/null 2>&1 || true
+          if [ -z "$success" ]; then
+            echo "Container health check failed" >&2
+            exit 1
+          fi
+
+      - name: Show image info
+        run: |
+          echo "Variant: full"
+          echo "Push enabled: ${{ steps.build-config.outputs.push }}"
+          echo "Image tags: ${{ steps.meta.outputs.tags || steps.meta-local.outputs.tags }}"
+          echo "Image digest: ${{ steps.build-and-push.outputs.digest }}"
+
