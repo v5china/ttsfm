@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0-alpha3] - 2025-10-26
+
+### Fixed
+- **Critical bug fix**: Speed parameter was not being extracted from API requests in web app
+  - Web API endpoint `/v1/audio/speech` now correctly extracts and passes `speed` parameter to TTSFM client
+  - Added proper validation for speed parameter (must be between 0.25 and 4.0)
+  - Speed adjustment now works correctly for both single-chunk and long-text generation
+
+### Changed
+- **Separated Docker build workflows**: Split monolithic workflow into two independent files
+  - `.github/workflows/docker-build-full.yml` - Builds full variant with ffmpeg
+  - `.github/workflows/docker-build-slim.yml` - Builds slim variant without ffmpeg
+  - Improved clarity, debugging, and parallel execution
+  - Independent cache scopes for each variant
+
+### Added
+- Speed metadata headers in API responses:
+  - `X-Requested-Speed`: The speed value requested by the client
+  - `X-Speed-Applied`: Whether speed adjustment was actually applied (true/false)
+
+## [3.4.0-alpha2] - 2025-10-25
+
+### Changed
+- Improved Docker workflow configuration for dual image variants
+- Enhanced documentation for Docker image variants
+
 ## [3.4.0-alpha1] - 2025-10-23
 
 ### Added

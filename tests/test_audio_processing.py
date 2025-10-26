@@ -94,9 +94,10 @@ class TestAudioCombineWithFFmpeg:
         monkeypatch.setattr(ttsfm.audio, "FFMPEG_AVAILABLE", False)
 
         from ttsfm.audio import combine_audio_chunks
+        from ttsfm.exceptions import AudioProcessingException
 
         chunks = [b"chunk1", b"chunk2"]
-        with pytest.raises(RuntimeError, match="MP3 audio requires pydub and ffmpeg"):
+        with pytest.raises(AudioProcessingException, match="MP3 audio requires pydub and ffmpeg"):
             combine_audio_chunks(chunks, format_type="mp3")
 
     def test_combine_wav_without_ffmpeg(self, monkeypatch):

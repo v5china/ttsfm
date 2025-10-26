@@ -44,7 +44,12 @@ from i18n import init_i18n, set_locale
 try:
     from ttsfm import AudioFormat, TTSClient, TTSException, Voice
     from ttsfm.audio import combine_audio_chunks
-    from ttsfm.exceptions import APIException, NetworkException, ValidationException
+    from ttsfm.exceptions import (
+        APIException,
+        AudioProcessingException,
+        NetworkException,
+        ValidationException,
+    )
     from ttsfm.models import get_supported_format
     from ttsfm.utils import split_text_by_length
 except ImportError:
@@ -768,7 +773,7 @@ def get_status():
             {
                 "status": "online",
                 "tts_service": "openai.fm (free)",
-                "package_version": "3.3.7",
+                "package_version": "3.4.0a3",
                 "timestamp": datetime.now().isoformat(),
             }
         )
@@ -792,7 +797,7 @@ def get_status():
 def health_check():
     """Simple health check endpoint."""
     return jsonify(
-        {"status": "healthy", "package_version": "3.3.7", "timestamp": datetime.now().isoformat()}
+        {"status": "healthy", "package_version": "3.4.0a3", "timestamp": datetime.now().isoformat()}
     )
 
 
@@ -866,6 +871,7 @@ def openai_speech():
         voice = data.get("voice", "alloy")
         response_format = data.get("response_format", "mp3")
         instructions = data.get("instructions", "").strip() or None
+        speed = data.get("speed")  # Optional: 0.25 to 4.0
 
         # TTSFM-specific parameters
         # New parameter: auto-combine long text (default: True)
@@ -927,16 +933,48 @@ def openai_speech():
                 400,
             )
 
+        # Validate speed parameter if provided
+        if speed is not None:
+            try:
+                speed = float(speed)
+                if not 0.25 <= speed <= 4.0:
+                    return (
+                        jsonify(
+                            {
+                                "error": {
+                                    "message": "Speed must be between 0.25 and 4.0",
+                                    "type": "invalid_request_error",
+                                    "code": "invalid_speed",
+                                }
+                            }
+                        ),
+                        400,
+                    )
+            except (ValueError, TypeError):
+                return (
+                    jsonify(
+                        {
+                            "error": {
+                                "message": "Speed must be a number",
+                                "type": "invalid_request_error",
+                                "code": "invalid_speed",
+                            }
+                        }
+                    ),
+                    400,
+                )
+
         effective_format = get_supported_format(format_enum)
 
         logger.info(
             "OpenAI API: Generating speech: text='%s...', voice=%s, "
-            "requested_format=%s (effective=%s), auto_combine=%s",
+            "requested_format=%s (effective=%s), auto_combine=%s, speed=%s",
             input_text[:50],
             voice,
             response_format,
             effective_format.value,
             auto_combine,
+            speed,
         )
 
         client = create_tts_client()
@@ -958,6 +996,7 @@ def openai_speech():
                 instructions=instructions,
                 max_length=max_length,
                 preserve_words=True,
+                speed=speed,
             )
 
             if not responses:
@@ -1012,6 +1051,11 @@ def openai_speech():
                 "X-Effective-Format": effective_format.value,
             }
 
+            # Add speed metadata if available (from first response)
+            if responses and responses[0].metadata and "requested_speed" in responses[0].metadata:
+                headers["X-Requested-Speed"] = str(responses[0].metadata["requested_speed"])
+                headers["X-Speed-Applied"] = str(responses[0].metadata.get("speed_applied", False)).lower()
+
             return Response(
                 stream_with_context(_chunk_bytes(combined_audio)),
                 mimetype=content_type,
@@ -1049,6 +1093,7 @@ def openai_speech():
                 instructions=instructions,
                 max_length=max_length,
                 validate_length=True,
+                speed=speed,
             )
 
             headers = {
@@ -1061,6 +1106,11 @@ def openai_speech():
                 "X-Requested-Format": format_enum.value,
                 "X-Effective-Format": effective_format.value,
             }
+
+            # Add speed metadata if available
+            if response.metadata and "requested_speed" in response.metadata:
+                headers["X-Requested-Speed"] = str(response.metadata["requested_speed"])
+                headers["X-Speed-Applied"] = str(response.metadata.get("speed_applied", False)).lower()
 
             return Response(
                 stream_with_context(_chunk_bytes(response.audio_data)),
@@ -1109,6 +1159,21 @@ def openai_speech():
                 }
             ),
             503,
+        )
+
+    except AudioProcessingException as e:
+        logger.error(f"OpenAI API audio processing error: {e}")
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "message": str(e.message),
+                        "type": "audio_processing_error",
+                        "code": "audio_processing_error",
+                    }
+                }
+            ),
+            400,
         )
 
     except Exception as e:

@@ -7,6 +7,7 @@ import logging
 import shutil
 from typing import Iterable, List, Sequence
 
+from .exceptions import AudioProcessingException
 from .models import TTSResponse
 
 logger = logging.getLogger(__name__)
@@ -47,19 +48,21 @@ def combine_audio_chunks(audio_chunks: Iterable[bytes], format_type: str = "mp3"
     # Check for pydub availability (which requires ffmpeg for MP3)
     if AudioSegment is None:
         if fmt == "mp3":
-            raise RuntimeError(
+            raise AudioProcessingException(
                 "Combining MP3 audio requires pydub and ffmpeg. "
                 "Install ttsfm[web] and use the full Docker image (dbcccc/ttsfm:latest) "
-                "instead of the slim variant."
+                "instead of the slim variant.",
+                audio_format="mp3"
             )
         return _simple_wav_concatenation(chunks_list)
 
     # Check for ffmpeg availability when using pydub
     if not FFMPEG_AVAILABLE and fmt == "mp3":
-        raise RuntimeError(
+        raise AudioProcessingException(
             "MP3 auto-combine requires ffmpeg. "
             "Use the full Docker image (dbcccc/ttsfm:latest) instead of the slim variant, "
-            "or disable auto_combine and handle chunks separately."
+            "or disable auto_combine and handle chunks separately.",
+            audio_format="mp3"
         )
 
     audio_segments = []

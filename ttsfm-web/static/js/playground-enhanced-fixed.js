@@ -65,6 +65,8 @@ const PlaygroundApp = (() => {
         els.validateLengthCheck = document.getElementById('validate-length-check');
         els.autoCombineCheck = document.getElementById('auto-combine-check');
         els.autoCombineStatus = document.getElementById('auto-combine-status');
+        els.speedInput = document.getElementById('speed-input');
+        els.speedValueDisplay = document.getElementById('speed-value-display');
         els.charCount = document.getElementById('char-count');
         els.lengthStatus = document.getElementById('length-status');
         els.generateBtn = document.getElementById('generate-btn');
@@ -82,6 +84,8 @@ const PlaygroundApp = (() => {
         els.audioSize = document.getElementById('audio-size');
         els.audioVoice = document.getElementById('audio-voice');
         els.audioFormat = document.getElementById('audio-format');
+        els.audioSpeed = document.getElementById('audio-speed');
+        els.audioChunks = document.getElementById('audio-chunks');
         els.apiKeyToggle = document.getElementById('toggle-api-key-visibility');
     }
 
@@ -106,6 +110,9 @@ const PlaygroundApp = (() => {
         }
         if (els.formatSelect) {
             els.formatSelect.addEventListener('change', () => updateAudioSummary());
+        }
+        if (els.speedInput) {
+            els.speedInput.addEventListener('input', updateSpeedDisplay);
         }
     }
     function attachUtilityEvents() {
@@ -307,6 +314,7 @@ const PlaygroundApp = (() => {
         const format = els.formatSelect?.value || state.format;
         const instructions = (els.instructionsInput?.value || '').trim();
         const apiKey = (els.apiKeyInput?.value || '').trim();
+        const speed = els.speedInput?.value ? parseFloat(els.speedInput.value) : 1.0;
 
         if (!text) {
             showError('Please enter some text to convert.');
@@ -326,6 +334,9 @@ const PlaygroundApp = (() => {
             const body = { text, voice, format };
             if (instructions) {
                 body.instructions = instructions;
+            }
+            if (speed !== 1.0) {
+                body.speed = speed;
             }
 
             const response = await fetch('/api/generate', {
@@ -359,7 +370,9 @@ const PlaygroundApp = (() => {
                 textLength: text.length,
                 instructions,
                 streaming: false,
-                sizeBytes: blob.size
+                sizeBytes: blob.size,
+                speed: speed !== 1.0 ? speed : null,
+                chunks: response.headers.get('X-Chunks-Combined') || null
             });
 
             showResults(blob, meta);
@@ -402,6 +415,7 @@ const PlaygroundApp = (() => {
         const voice = els.voiceSelect?.value || 'alloy';
         const format = els.formatSelect?.value || state.format;
         const instructions = (els.instructionsInput?.value || '').trim();
+        const speed = els.speedInput?.value ? parseFloat(els.speedInput.value) : 1.0;
 
         if (!text) {
             showError('Please enter some text to convert.');
@@ -421,10 +435,16 @@ const PlaygroundApp = (() => {
 
         const startTime = performance.now();
         try {
-            await state.wsClient.generateSpeech(text, {
+            const options = {
                 voice,
                 format,
                 chunkSize: 512,
+            };
+            if (speed !== 1.0) {
+                options.speed = speed;
+            }
+            await state.wsClient.generateSpeech(text, {
+                ...options,
                 onStart: (data) => {
                     state.activeStreamId = data.request_id;
                 },
@@ -464,7 +484,8 @@ const PlaygroundApp = (() => {
                         streaming: true,
                         sizeBytes: result.audioData.byteLength,
                         chunks: result.chunks.length,
-                        elapsedMs: performance.now() - startTime
+                        elapsedMs: performance.now() - startTime,
+                        speed: speed !== 1.0 ? speed : null
                     });
 
                     showResults(blob, meta);
@@ -656,6 +677,14 @@ const PlaygroundApp = (() => {
         updateLengthStatus(current, max);
     }
 
+    function updateSpeedDisplay() {
+        if (!els.speedInput || !els.speedValueDisplay) {
+            return;
+        }
+        const speed = parseFloat(els.speedInput.value);
+        els.speedValueDisplay.textContent = `${speed.toFixed(2)}x`;
+    }
+
     function updateLengthStatus(current, max) {
         if (!els.lengthStatus) {
             return;
@@ -845,6 +874,12 @@ const PlaygroundApp = (() => {
             if (els.audioFormat) {
                 els.audioFormat.textContent = '--';
             }
+            if (els.audioSpeed) {
+                els.audioSpeed.textContent = '--';
+            }
+            if (els.audioChunks) {
+                els.audioChunks.textContent = '--';
+            }
             return;
         }
 
@@ -860,6 +895,12 @@ const PlaygroundApp = (() => {
         if (els.audioFormat) {
             const label = meta.formatLabel || meta.format || state.format;
             els.audioFormat.textContent = label ? label.toString().toUpperCase() : '--';
+        }
+        if (els.audioSpeed) {
+            els.audioSpeed.textContent = meta.speed ? `${meta.speed}x` : '1.0x';
+        }
+        if (els.audioChunks) {
+            els.audioChunks.textContent = meta.chunks || '1';
         }
         if (els.audioInfo) {
             const parts = [];
