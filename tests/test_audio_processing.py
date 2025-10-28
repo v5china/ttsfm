@@ -48,10 +48,7 @@ class TestAudioProcessing:
         result = adjust_audio_speed(dummy_audio, speed=1.0)
         assert result == dummy_audio
 
-    @pytest.mark.skipif(
-        not shutil.which("ffmpeg"),
-        reason="ffmpeg not available"
-    )
+    @pytest.mark.skipif(not shutil.which("ffmpeg"), reason="ffmpeg not available")
     def test_adjust_audio_speed_requires_ffmpeg(self):
         """Test that speed adjustment requires ffmpeg."""
         # This test only runs if ffmpeg is available
@@ -90,6 +87,7 @@ class TestAudioCombineWithFFmpeg:
         """Test that MP3 combining fails gracefully without ffmpeg."""
         # Mock both pydub and ffmpeg as unavailable
         import ttsfm.audio
+
         monkeypatch.setattr(ttsfm.audio, "AudioSegment", None)
         monkeypatch.setattr(ttsfm.audio, "FFMPEG_AVAILABLE", False)
 
@@ -104,6 +102,7 @@ class TestAudioCombineWithFFmpeg:
         """Test that WAV combining works without ffmpeg."""
         # Mock pydub as unavailable but allow WAV concatenation
         import ttsfm.audio
+
         monkeypatch.setattr(ttsfm.audio, "AudioSegment", None)
 
         from ttsfm.audio import combine_audio_chunks
@@ -115,4 +114,3 @@ class TestAudioCombineWithFFmpeg:
         # Should not raise error for WAV
         result = combine_audio_chunks(chunks, format_type="wav")
         assert isinstance(result, bytes)
-

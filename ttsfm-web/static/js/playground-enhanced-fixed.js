@@ -652,10 +652,17 @@ const PlaygroundApp = (() => {
 
     async function loadFormats({ refresh = false } = {}) {
         try {
-            const data = await fetchFormats({ refresh });
             if (!els.formatSelect) {
                 return;
             }
+
+            // If format select already has options (from HTML), don't reload
+            if (els.formatSelect.options.length > 1 && !refresh) {
+                updateAudioSummary();
+                return;
+            }
+
+            const data = await fetchFormats({ refresh });
             els.formatSelect.innerHTML = '';
             data.formats.forEach((format) => {
                 const option = document.createElement('option');

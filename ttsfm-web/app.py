@@ -42,7 +42,7 @@ from i18n import init_i18n, set_locale
 
 # Import the TTSFM package
 try:
-    from ttsfm import AudioFormat, TTSClient, TTSException, Voice
+    from ttsfm import AudioFormat, TTSClient, Voice
     from ttsfm.audio import combine_audio_chunks
     from ttsfm.exceptions import (
         APIException,
@@ -50,17 +50,15 @@ try:
         NetworkException,
         ValidationException,
     )
-    from ttsfm.models import get_supported_format
     from ttsfm.utils import split_text_by_length
 except ImportError:
     # Fallback for development when package is not installed
     import sys
 
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-    from ttsfm import AudioFormat, TTSClient, TTSException, Voice
+    from ttsfm import AudioFormat, TTSClient, Voice
     from ttsfm.audio import combine_audio_chunks
     from ttsfm.exceptions import APIException, NetworkException, ValidationException
-    from ttsfm.models import get_supported_format
     from ttsfm.utils import split_text_by_length
 
 # Load environment variables
@@ -486,10 +484,6 @@ def validate_text():
         return jsonify({"error": "Text validation failed"}), 500
 
 
-
-
-
-
 @app.route("/api/status", methods=["GET"])
 def get_status():
     """Get service status."""
@@ -503,7 +497,7 @@ def get_status():
             {
                 "status": "online",
                 "tts_service": "openai.fm (free)",
-                "package_version": "3.4.0a3",
+                "package_version": "3.4.0a4",
                 "timestamp": datetime.now().isoformat(),
             }
         )
@@ -527,7 +521,7 @@ def get_status():
 def health_check():
     """Simple health check endpoint."""
     return jsonify(
-        {"status": "healthy", "package_version": "3.4.0a3", "timestamp": datetime.now().isoformat()}
+        {"status": "healthy", "package_version": "3.4.0a4", "timestamp": datetime.now().isoformat()}
     )
 
 
@@ -694,15 +688,12 @@ def openai_speech():
                     400,
                 )
 
-        effective_format = get_supported_format(format_enum)
-
         logger.info(
             "OpenAI API: Generating speech: text='%s...', voice=%s, "
-            "requested_format=%s (effective=%s), auto_combine=%s, speed=%s",
+            "requested_format=%s, auto_combine=%s, speed=%s",
             input_text[:50],
             voice,
             response_format,
-            effective_format.value,
             auto_combine,
             speed,
         )
@@ -715,14 +706,14 @@ def openai_speech():
             logger.info(
                 "Long text detected (%s chars); auto-combining with format %s",
                 len(input_text),
-                effective_format.value,
+                format_enum.value,
             )
 
             # Generate speech chunks
             responses = client.generate_speech_long_text(
                 text=input_text,
                 voice=voice_enum,
-                response_format=effective_format,
+                response_format=format_enum,
                 instructions=instructions,
                 max_length=max_length,
                 preserve_words=True,
@@ -778,13 +769,14 @@ def openai_speech():
                 "X-Auto-Combine": "true",
                 "X-Powered-By": "TTSFM-OpenAI-Compatible",
                 "X-Requested-Format": format_enum.value,
-                "X-Effective-Format": effective_format.value,
             }
 
             # Add speed metadata if available (from first response)
             if responses and responses[0].metadata and "requested_speed" in responses[0].metadata:
                 headers["X-Requested-Speed"] = str(responses[0].metadata["requested_speed"])
-                headers["X-Speed-Applied"] = str(responses[0].metadata.get("speed_applied", False)).lower()
+                headers["X-Speed-Applied"] = str(
+                    responses[0].metadata.get("speed_applied", False)
+                ).lower()
 
             return Response(
                 stream_with_context(_chunk_bytes(combined_audio)),
@@ -834,13 +826,14 @@ def openai_speech():
                 "X-Auto-Combine": str(auto_combine).lower(),
                 "X-Powered-By": "TTSFM-OpenAI-Compatible",
                 "X-Requested-Format": format_enum.value,
-                "X-Effective-Format": effective_format.value,
             }
 
             # Add speed metadata if available
             if response.metadata and "requested_speed" in response.metadata:
                 headers["X-Requested-Speed"] = str(response.metadata["requested_speed"])
-                headers["X-Speed-Applied"] = str(response.metadata.get("speed_applied", False)).lower()
+                headers["X-Speed-Applied"] = str(
+                    response.metadata.get("speed_applied", False)
+                ).lower()
 
             return Response(
                 stream_with_context(_chunk_bytes(response.audio_data)),

@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0-alpha4] - 2025-10-28
+
+### Added
+- **Format conversion with ffmpeg**: All 6 audio formats now properly converted using ffmpeg
+  - MP3, WAV: Direct from openai.fm (no conversion needed)
+  - OPUS, AAC, FLAC, PCM: Converted from WAV using ffmpeg
+  - Proper MIME type headers for each format (audio/opus, audio/aac, audio/flac, audio/pcm)
+  - Downloads now have correct file extensions (.opus, .aac, .flac, .pcm)
+- **Format selector in playground**: Added dropdown to select audio format in web UI
+  - Clean display showing only format names (mp3, wav, opus, aac, flac, pcm)
+  - Integrated with existing playground functionality
+
+### Fixed
+- **Content-Type headers after format conversion**: Fixed issue where converted formats returned wrong content-type
+  - Added `_get_content_type_for_format()` helper method to both sync and async clients
+  - Content-type now properly updated after ffmpeg conversion
+  - Downloads now use correct file extensions based on actual format
+- **Speed display in playground**: Fixed bug where speed always showed "1.0x" regardless of actual speed
+  - Updated `buildGenerationMeta()` to include speed and speedApplied fields
+  - Speed now correctly displayed in audio stats (0.25x, 0.5x, 1.0x, 1.5x, 2.0x, 4.0x)
+
+### Changed
+- **Removed legacy format mapping**: Eliminated header-based format "faking" in favor of real conversion
+  - Removed `get_supported_format()` and `maps_to_wav()` functions from `ttsfm/models.py`
+  - Simplified client code by ~30 lines
+  - All formats now return actual requested format, not approximations
+- **Migrated playground to OpenAI API**: Removed old `/api/generate` endpoints
+  - Playground now uses `/v1/audio/speech` endpoint exclusively
+  - Consistent API format across all interfaces
+  - Speed parameter now works correctly in playground
+
+### Technical
+- Format conversion uses `convert_audio_format()` from `audio_processing.py`
+- Async client runs ffmpeg conversion in thread pool to avoid blocking
+- Graceful fallback to original format if ffmpeg unavailable
+- All 25 tests passing with new format conversion logic
+
 ## [3.4.0-alpha3] - 2025-10-26
 
 ### Fixed

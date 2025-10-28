@@ -270,33 +270,3 @@ def get_content_type(format: Union[AudioFormat, str]) -> str:
 def get_format_from_content_type(content_type: str) -> AudioFormat:
     """Get audio format from MIME content type."""
     return FORMAT_FROM_CONTENT_TYPE.get(content_type, AudioFormat.MP3)
-
-
-def get_supported_format(requested_format: AudioFormat) -> AudioFormat:
-    """
-    Map requested format to supported format.
-
-    Args:
-        requested_format: The requested audio format
-
-    Returns:
-        AudioFormat: MP3 or WAV (the supported formats)
-    """
-    if requested_format == AudioFormat.MP3:
-        return AudioFormat.MP3
-    else:
-        # All other formats (WAV, OPUS, AAC, FLAC, PCM) return WAV
-        return AudioFormat.WAV
-
-
-def maps_to_wav(format_value: str) -> bool:
-    """
-    Check if a format maps to WAV.
-
-    Args:
-        format_value: Format string to check
-
-    Returns:
-        bool: True if the format maps to WAV
-    """
-    return format_value.lower() in ["wav", "opus", "aac", "flac", "pcm"]

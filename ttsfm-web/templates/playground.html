@@ -95,7 +95,7 @@
 
                         <div class="row">
                             <!-- Enhanced Voice Selection -->
-                            <div class="col-md-12 mb-4">
+                            <div class="col-md-6 mb-4">
                                 <label for="voice-select" class="form-label fw-bold d-flex align-items-center">
                                     <i class="fas fa-microphone me-2 text-primary"></i>
                                     {{ _('playground.voice_label') }}
@@ -105,6 +105,26 @@
                                 </select>
                                 <div class="form-text">
                                     <span>{{ _('common.choose_voice') }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Format Selection -->
+                            <div class="col-md-6 mb-4">
+                                <label for="format-select" class="form-label fw-bold d-flex align-items-center">
+                                    <i class="fas fa-file-audio me-2 text-primary"></i>
+                                    {{ _('playground.format_label') if _('playground.format_label') != 'playground.format_label' else 'Audio Format' }}
+                                </label>
+                                <select class="form-select shadow-sm" id="format-select" required>
+                                    <option value="mp3" selected>mp3</option>
+                                    <option value="wav">wav</option>
+                                    <option value="opus">opus</option>
+                                    <option value="aac">aac</option>
+                                    <option value="flac">flac</option>
+                                    <option value="pcm">pcm</option>
+                                </select>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    {{ _('playground.format_description') if _('playground.format_description') != 'playground.format_description' else 'Choose audio output format. Converted formats require ffmpeg.' }}
                                 </div>
                             </div>
                         </div>

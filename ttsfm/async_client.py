@@ -27,7 +27,6 @@ from .models import (
     TTSRequest,
     TTSResponse,
     Voice,
-    get_supported_format,
 )
 from .utils import (
     build_url,
@@ -128,6 +127,26 @@ class AsyncTTSClient:
             )
 
             self._session = ClientSession(headers=headers, timeout=timeout, connector=connector)
+
+    def _get_content_type_for_format(self, audio_format: AudioFormat) -> str:
+        """
+        Get the appropriate MIME type for an audio format.
+
+        Args:
+            audio_format: The audio format
+
+        Returns:
+            str: The MIME type for the format
+        """
+        format_to_mime = {
+            AudioFormat.MP3: "audio/mpeg",
+            AudioFormat.WAV: "audio/wav",
+            AudioFormat.OPUS: "audio/opus",
+            AudioFormat.AAC: "audio/aac",
+            AudioFormat.FLAC: "audio/flac",
+            AudioFormat.PCM: "audio/pcm",
+        }
+        return format_to_mime.get(audio_format, "audio/mpeg")
 
     async def generate_speech(  # type: ignore[no-untyped-def]
         self,
@@ -427,16 +446,26 @@ class AsyncTTSClient:
 
                     # Use form data as required by openai.fm
                     payload = dict(form_data)
-                    # Normalize requested format to supported value before sending
+                    # Normalize requested format
                     requested_format = request.response_format
                     if isinstance(requested_format, str):
                         try:
                             requested_format = AudioFormat(requested_format.lower())
                         except ValueError:
-                            requested_format = AudioFormat.WAV
+                            requested_format = AudioFormat.MP3
 
-                    target_format = get_supported_format(requested_format)
-                    payload["response_format"] = target_format.value
+                    # Determine base format to request from openai.fm
+                    # We request MP3 or WAV, then convert to other formats using ffmpeg
+                    if requested_format == AudioFormat.MP3:
+                        base_format = AudioFormat.MP3
+                    else:
+                        # For all other formats (WAV, OPUS, AAC, FLAC, PCM), request WAV
+                        base_format = AudioFormat.WAV
+
+                    payload["response_format"] = base_format.value
+                    logger.debug(
+                        f"Requesting {base_format.value} from openai.fm (target format: {requested_format.value})"
+                    )
                     if self._session is None:
                         await self._ensure_session()
                     if self._session is not None:
@@ -531,6 +560,14 @@ class AsyncTTSClient:
         # Estimate duration based on text length
         estimated_duration = estimate_audio_duration(request.input)
 
+        # Normalize requested format
+        requested_format = request.response_format
+        if isinstance(requested_format, str):
+            try:
+                requested_format = AudioFormat(requested_format.lower())
+            except ValueError:
+                requested_format = AudioFormat.MP3  # Default fallback
+
         # Apply speed adjustment if requested (requires ffmpeg)
         speed_applied = False
         if request.speed is not None and request.speed != 1.0:
@@ -559,27 +596,65 @@ class AsyncTTSClient:
                 logger.error(f"Unexpected error during speed adjustment: {e}")
                 # Continue without speed adjustment
 
-        # Check if returned format differs from requested format
-        requested_format = request.response_format
-        if isinstance(requested_format, str):
-            try:
-                requested_format = AudioFormat(requested_format.lower())
-            except ValueError:
-                requested_format = AudioFormat.MP3  # Default fallback
-
-        # Import here to avoid circular imports
-        from .models import get_supported_format, maps_to_wav
-
-        # Check if format differs from request
+        # Convert format if needed (requires ffmpeg for non-MP3/WAV formats)
         if actual_format != requested_format:
-            if maps_to_wav(requested_format.value) and actual_format.value == "wav":
-                logger.debug(f"Format '{requested_format.value}' requested, returning WAV format.")
-            else:
-                logger.warning(
-                    "Requested format '%s' but received '%s' from service.",
-                    requested_format.value,
-                    actual_format.value,
-                )
+            # Check if conversion is needed
+            if requested_format in [
+                AudioFormat.OPUS,
+                AudioFormat.AAC,
+                AudioFormat.FLAC,
+                AudioFormat.PCM,
+            ]:
+                try:
+                    from .audio_processing import convert_audio_format
+
+                    logger.info(
+                        f"Converting audio from {actual_format.value} to {requested_format.value}"
+                    )
+                    # Run CPU-intensive ffmpeg processing in thread pool
+                    loop = asyncio.get_event_loop()
+                    audio_data = await loop.run_in_executor(
+                        None,
+                        convert_audio_format,
+                        audio_data,
+                        actual_format.value,
+                        requested_format.value,
+                    )
+                    actual_format = requested_format
+                    # Update content type after conversion
+                    content_type = self._get_content_type_for_format(requested_format)
+                    logger.info(f"Successfully converted to {requested_format.value}")
+                except RuntimeError as e:
+                    logger.warning(
+                        f"Format conversion failed: {e}. Returning {actual_format.value} format."
+                    )
+                    # Continue with original format
+                except Exception as e:
+                    logger.error(f"Unexpected error during format conversion: {e}")
+                    # Continue with original format
+            elif requested_format == AudioFormat.WAV and actual_format == AudioFormat.MP3:
+                # Convert MP3 to WAV if requested
+                try:
+                    from .audio_processing import convert_audio_format
+
+                    logger.info("Converting audio from MP3 to WAV")
+                    # Run CPU-intensive ffmpeg processing in thread pool
+                    loop = asyncio.get_event_loop()
+                    audio_data = await loop.run_in_executor(
+                        None,
+                        convert_audio_format,
+                        audio_data,
+                        "mp3",
+                        "wav",
+                    )
+                    actual_format = AudioFormat.WAV
+                    # Update content type after conversion
+                    content_type = self._get_content_type_for_format(AudioFormat.WAV)
+                    logger.info("Successfully converted to WAV")
+                except RuntimeError as e:
+                    logger.warning(f"Format conversion failed: {e}. Returning MP3 format.")
+                except Exception as e:
+                    logger.error(f"Unexpected error during format conversion: {e}")
 
         # Get voice value for logging
         voice_value = request.voice.value if hasattr(request.voice, "value") else str(request.voice)
@@ -599,13 +674,10 @@ class AsyncTTSClient:
                 if isinstance(requested_format, AudioFormat)
                 else str(requested_format)
             ),
-            "effective_requested_format": (
-                get_supported_format(requested_format).value
-                if isinstance(get_supported_format(requested_format), AudioFormat)
-                else str(get_supported_format(requested_format))
-            ),
             "actual_format": (
-                actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
+                actual_format.value
+                if isinstance(actual_format, AudioFormat)
+                else str(actual_format)
             ),
         }
 

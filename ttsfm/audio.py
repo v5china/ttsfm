@@ -52,7 +52,7 @@ def combine_audio_chunks(audio_chunks: Iterable[bytes], format_type: str = "mp3"
                 "Combining MP3 audio requires pydub and ffmpeg. "
                 "Install ttsfm[web] and use the full Docker image (dbcccc/ttsfm:latest) "
                 "instead of the slim variant.",
-                audio_format="mp3"
+                audio_format="mp3",
             )
         return _simple_wav_concatenation(chunks_list)
 
@@ -62,7 +62,7 @@ def combine_audio_chunks(audio_chunks: Iterable[bytes], format_type: str = "mp3"
             "MP3 auto-combine requires ffmpeg. "
             "Use the full Docker image (dbcccc/ttsfm:latest) instead of the slim variant, "
             "or disable auto_combine and handle chunks separately.",
-            audio_format="mp3"
+            audio_format="mp3",
         )
 
     audio_segments = []

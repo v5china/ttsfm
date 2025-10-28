@@ -29,7 +29,6 @@ from .models import (
     TTSRequest,
     TTSResponse,
     Voice,
-    get_supported_format,
 )
 from .utils import (
     build_url,
@@ -124,38 +123,54 @@ class TTSClient:
 
     def _get_headers_for_format(self, requested_format: AudioFormat) -> Dict[str, str]:
         """
-        Get appropriate headers to get the desired format from openai.fm.
+        Get appropriate headers to get the desired base format from openai.fm.
 
         Based on testing, openai.fm returns:
-        - MP3: When using no headers or very minimal headers
+        - MP3: When using minimal headers
         - WAV: When using more complex headers with specific Accept values
+
+        We request MP3 or WAV from openai.fm, then convert to other formats using ffmpeg.
 
         Args:
             requested_format: The desired audio format
 
         Returns:
-            Dict[str, str]: HTTP headers optimized for the requested format
+            Dict[str, str]: HTTP headers optimized for the base format
         """
-        from .models import get_supported_format
-
-        # Map requested format to supported format
-        target_format = get_supported_format(requested_format)
-
-        if target_format == AudioFormat.MP3:
-            # Use minimal headers to reliably get MP3 response
-            # Testing shows that no headers or very basic headers work best for MP3
+        # For MP3, use minimal headers
+        if requested_format == AudioFormat.MP3:
             return {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        else:
-            # Use more complex headers to get WAV response
-            # This works for WAV, OPUS, AAC, FLAC, PCM formats
-            return {
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/121.0.0.0 Safari/537.36"
-                ),
-                "Accept": "audio/*,*/*;q=0.9",
-            }
+
+        # For all other formats, request WAV from openai.fm (we'll convert later if needed)
+        # Use more complex headers to get WAV response
+        return {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/121.0.0.0 Safari/537.36"
+            ),
+            "Accept": "audio/*,*/*;q=0.9",
+        }
+
+    def _get_content_type_for_format(self, audio_format: AudioFormat) -> str:
+        """
+        Get the appropriate MIME type for an audio format.
+
+        Args:
+            audio_format: The audio format
+
+        Returns:
+            str: The MIME type for the format
+        """
+        format_to_mime = {
+            AudioFormat.MP3: "audio/mpeg",
+            AudioFormat.WAV: "audio/wav",
+            AudioFormat.OPUS: "audio/opus",
+            AudioFormat.AAC: "audio/aac",
+            AudioFormat.FLAC: "audio/flac",
+            AudioFormat.PCM: "audio/pcm",
+        }
+        return format_to_mime.get(audio_format, "audio/mpeg")
 
     def generate_speech(
         self,
@@ -410,18 +425,25 @@ class TTSClient:
             try:
                 requested_format = AudioFormat(requested_format.lower())
             except ValueError:
-                requested_format = AudioFormat.WAV  # Default to WAV for unknown formats
+                requested_format = AudioFormat.MP3  # Default to MP3 for unknown formats
 
-        # Map to supported format for outbound request payloads
-        target_format = get_supported_format(requested_format)
-        form_data["response_format"] = target_format.value
+        # Determine base format to request from openai.fm
+        # We request MP3 or WAV, then convert to other formats using ffmpeg
+        if requested_format == AudioFormat.MP3:
+            base_format = AudioFormat.MP3
+        else:
+            # For all other formats (WAV, OPUS, AAC, FLAC, PCM), request WAV
+            base_format = AudioFormat.WAV
 
+        form_data["response_format"] = base_format.value
         format_headers = self._get_headers_for_format(requested_format)
 
         logger.info(
             f"Generating speech for text: '{request.input[:50]}...' with voice: {request.voice}"
         )
-        logger.debug(f"Using headers optimized for {requested_format.value} format")
+        logger.debug(
+            f"Requesting {base_format.value} from openai.fm (target format: {requested_format.value})"
+        )
 
         # Make request with retries
         for attempt in range(self.max_retries + 1):
@@ -540,6 +562,14 @@ class TTSClient:
         # Estimate duration based on text length (rough approximation)
         estimated_duration = estimate_audio_duration(request.input)
 
+        # Normalize requested format
+        requested_format = request.response_format
+        if isinstance(requested_format, str):
+            try:
+                requested_format = AudioFormat(requested_format.lower())
+            except ValueError:
+                requested_format = AudioFormat.MP3  # Default fallback
+
         # Apply speed adjustment if requested (requires ffmpeg)
         speed_applied = False
         if request.speed is not None and request.speed != 1.0:
@@ -564,27 +594,57 @@ class TTSClient:
                 logger.error(f"Unexpected error during speed adjustment: {e}")
                 # Continue without speed adjustment
 
-        # Check if returned format differs from requested format
-        requested_format = request.response_format
-        if isinstance(requested_format, str):
-            try:
-                requested_format = AudioFormat(requested_format.lower())
-            except ValueError:
-                requested_format = AudioFormat.WAV  # Default fallback
-
-        # Import here to avoid circular imports
-        from .models import get_supported_format, maps_to_wav
-
-        # Check if format differs from request
+        # Convert format if needed (requires ffmpeg for non-MP3/WAV formats)
         if actual_format != requested_format:
-            if maps_to_wav(requested_format.value) and actual_format.value == "wav":
-                logger.debug(f"Format '{requested_format.value}' requested, returning WAV format.")
-            else:
-                logger.warning(
-                    "Requested format '%s' but received '%s' from service.",
-                    requested_format.value,
-                    actual_format.value,
-                )
+            # Check if conversion is needed
+            if requested_format in [
+                AudioFormat.OPUS,
+                AudioFormat.AAC,
+                AudioFormat.FLAC,
+                AudioFormat.PCM,
+            ]:
+                try:
+                    from .audio_processing import convert_audio_format
+
+                    logger.info(
+                        f"Converting audio from {actual_format.value} to {requested_format.value}"
+                    )
+                    audio_data = convert_audio_format(
+                        audio_data,
+                        input_format=actual_format.value,
+                        output_format=requested_format.value,
+                    )
+                    actual_format = requested_format
+                    # Update content type after conversion
+                    content_type = self._get_content_type_for_format(requested_format)
+                    logger.info(f"Successfully converted to {requested_format.value}")
+                except RuntimeError as e:
+                    logger.warning(
+                        f"Format conversion failed: {e}. Returning {actual_format.value} format."
+                    )
+                    # Continue with original format
+                except Exception as e:
+                    logger.error(f"Unexpected error during format conversion: {e}")
+                    # Continue with original format
+            elif requested_format == AudioFormat.WAV and actual_format == AudioFormat.MP3:
+                # Convert MP3 to WAV if requested
+                try:
+                    from .audio_processing import convert_audio_format
+
+                    logger.info("Converting audio from MP3 to WAV")
+                    audio_data = convert_audio_format(
+                        audio_data,
+                        input_format="mp3",
+                        output_format="wav",
+                    )
+                    actual_format = AudioFormat.WAV
+                    # Update content type after conversion
+                    content_type = self._get_content_type_for_format(AudioFormat.WAV)
+                    logger.info("Successfully converted to WAV")
+                except RuntimeError as e:
+                    logger.warning(f"Format conversion failed: {e}. Returning MP3 format.")
+                except Exception as e:
+                    logger.error(f"Unexpected error during format conversion: {e}")
 
         # Get voice value for logging
         voice_value = request.voice.value if hasattr(request.voice, "value") else str(request.voice)
@@ -604,13 +664,10 @@ class TTSClient:
                 if isinstance(requested_format, AudioFormat)
                 else str(requested_format)
             ),
-            "effective_requested_format": (
-                get_supported_format(requested_format).value
-                if isinstance(get_supported_format(requested_format), AudioFormat)
-                else str(get_supported_format(requested_format))
-            ),
             "actual_format": (
-                actual_format.value if isinstance(actual_format, AudioFormat) else str(actual_format)
+                actual_format.value
+                if isinstance(actual_format, AudioFormat)
+                else str(actual_format)
             ),
         }
 
