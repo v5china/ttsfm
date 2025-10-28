@@ -13,7 +13,29 @@
 
 ## Overview
 
-TTSFM is a free, OpenAI-compatible text-to-speech stack powered by the openai.fm backend. It ships with Python clients, a REST API, and a web playground.
+TTSFM is a free, OpenAI-compatible text-to-speech API service that provides a complete solution for converting text to natural-sounding speech based on OpenAI's GPT-4o mini TTS. Built on top of the openai.fm backend, it offers a powerful Python SDK, RESTful API endpoints, and an intuitive web playground for easy testing and integration.
+
+**What TTSFM Can Do:**
+- 🎤 **Multiple Voices**: Choose from 6 high-quality voices (alloy, echo, fable, onyx, nova, shimmer)
+- 🎵 **Flexible Audio Formats**: Support for 6 audio formats (MP3, WAV, OPUS, AAC, FLAC, PCM)
+- ⚡ **Speed Control**: Adjust playback speed from 0.25x to 4.0x for different use cases
+- 📝 **Long Text Support**: Automatic text splitting and audio combining for content of any length
+- 🔄 **Real-time Streaming**: WebSocket support for streaming audio generation
+- 🐍 **Python SDK**: Easy-to-use synchronous and asynchronous clients
+- 🌐 **Web Playground**: Interactive web interface for testing and experimentation
+- 🐳 **Docker Ready**: Pre-built Docker images for instant deployment
+- 🔍 **Smart Detection**: Automatic capability detection and helpful error messages
+- 🤖 **OpenAI Compatible**: Drop-in replacement for OpenAI's TTS API
+
+**Key Features in v3.4.0:**
+- 🎯 Image variant detection (full vs slim Docker images)
+- 🔍 Runtime capabilities API for feature availability checking
+- ⚡ Speed adjustment with ffmpeg-based audio processing
+- 🎵 Real format conversion for all 6 audio formats
+- 📊 Enhanced error handling with clear, actionable messages
+- 🐳 Dual Docker images optimized for different use cases
+
+> **⚠️ Disclaimer**: This project is intended for **educational and research purposes only**. It is a reverse-engineered implementation of the openai.fm service and should not be used for commercial purposes or in production environments. Users are responsible for ensuring compliance with applicable laws and terms of service.
 
 ## Installation
 
@@ -33,24 +55,32 @@ TTSFM offers two Docker image variants to suit different needs:
 docker run -p 8000:8000 dbcccc/ttsfm:latest
 ```
 
-Includes ffmpeg for advanced features:
-- ✅ MP3 auto-combine for long text
+**Includes ffmpeg for advanced features:**
+- ✅ All 6 audio formats (MP3, WAV, OPUS, AAC, FLAC, PCM)
 - ✅ Speed adjustment (0.25x - 4.0x)
-- ✅ Additional audio formats (AAC, FLAC, OPUS)
+- ✅ Format conversion with ffmpeg
+- ✅ MP3 auto-combine for long text
+- ✅ WAV auto-combine for long text
 
-#### Slim variant
+#### Slim variant - ~100MB
 ```bash
-docker run -p 8000:8000 dbcccc/ttsfm:v3.4.0-alpha1-slim
+docker run -p 8000:8000 dbcccc/ttsfm:slim
 ```
 
-Minimal image without ffmpeg:
-- ✅ Basic TTS (MP3/WAV)
-- ✅ WAV auto-combine (simple concatenation)
-- ❌ No MP3 auto-combine
+**Minimal image without ffmpeg:**
+- ✅ Basic TTS functionality
+- ✅ 2 audio formats (MP3, WAV only)
+- ✅ WAV auto-combine for long text
 - ❌ No speed adjustment
 - ❌ No format conversion
+- ❌ No MP3 auto-combine
 
-The container exposes the web playground at `http://localhost:8000` and an OpenAI-style endpoint at `/v1/audio/speech`.
+The container exposes the web playground at `http://localhost:8000` and an OpenAI-compatible endpoint at `/v1/audio/speech`.
+
+**Check available features:**
+```bash
+curl http://localhost:8000/api/capabilities
+```
 
 ## Quick start
 
@@ -85,11 +115,34 @@ response.save_to_file("fast")  # -> fast.mp3
 ttsfm "Hello, world" --voice nova --format mp3 --output hello.mp3
 ```
 
-### REST API
+### REST API (OpenAI-compatible)
 
 ```bash
-curl -X POST http://localhost:8000/v1/audio/speech   -H "Content-Type: application/json"   -d '{"model":"gpt-4o-mini-tts","input":"Hello world!","voice":"alloy"}'   --output speech.mp3
+# Basic request
+curl -X POST http://localhost:8000/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "tts-1",
+    "input": "Hello world!",
+    "voice": "alloy",
+    "response_format": "mp3"
+  }' --output speech.mp3
+
+# With speed adjustment (requires full image)
+curl -X POST http://localhost:8000/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "tts-1",
+    "input": "Hello world!",
+    "voice": "alloy",
+    "response_format": "mp3",
+    "speed": 1.5
+  }' --output speech_fast.mp3
 ```
+
+**Available voices:** alloy, echo, fable, onyx, nova, shimmer
+**Available formats:** mp3, wav (always) + opus, aac, flac, pcm (full image only)
+**Speed range:** 0.25 - 4.0 (requires full image)
 
 ## Learn more
 

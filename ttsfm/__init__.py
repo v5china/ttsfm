@@ -62,7 +62,7 @@ from .models import (
 )
 from .utils import split_text_by_length, validate_text_length
 
-__version__ = "3.4.0-beta1"
+__version__ = "3.4.0"
 __author__ = "dbcccc"
 __email__ = "120614547+dbccccccc@users.noreply.github.com"
 __description__ = "Text-to-Speech API Client with OpenAI compatibility"

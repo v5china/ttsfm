@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2025-10-28
+
+### Added
+- **Image variant detection system**: Automatic detection of full vs slim Docker images
+  - New `ttsfm/capabilities.py` module with `SystemCapabilities` class
+  - Runtime detection of ffmpeg availability
+  - Global singleton instance for efficient capability checking
+- **New API endpoints**:
+  - `/api/capabilities` - Complete system capabilities report
+  - Enhanced `/api/health` endpoint with image variant information
+- **Comprehensive format support**: 6 audio formats with real ffmpeg-based conversion
+  - Always available: MP3, WAV
+  - Full image only: OPUS, AAC, FLAC, PCM
+- **Speed adjustment**: 0.25x to 4.0x playback speed (requires ffmpeg)
+- **Enhanced error handling**: Clear error messages with helpful hints
+- **Improved web documentation**: Complete rewrite with v3.4.0 features
+  - Docker image variants section
+  - OpenAI-compatible API documentation
+  - System capabilities documentation
+  - Speed adjustment guide
+  - Format conversion details
+  - Long text handling
+  - Python package examples
+  - WebSocket streaming
+  - Error handling reference
+
+### Fixed
+- Slim image error handling: Proper error reporting instead of silent failures
+- RuntimeError exception handling in web API
+- Footer removed from all web pages for cleaner interface
+
+### Changed
+- Improved error response format with structured messages
+- Updated README.md with v3.4.0 features and examples
+- Playground UI enhancements for feature detection
+- Documentation reorganized for better clarity
+
+### Technical
+- Capabilities detection uses singleton pattern
+- Early validation prevents expensive operations
+- All tests passing (25 unit tests + integration tests)
+
 ## [3.4.0-beta1] - 2025-10-28
 
 ### Added

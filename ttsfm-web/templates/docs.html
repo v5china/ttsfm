@@ -49,50 +49,44 @@
         color: #6c757d;
         text-decoration: none;
         display: block;
-        padding: 0.25rem 0;
-        border-left: 2px solid transparent;
-        padding-left: 1rem;
+        padding: 0.5rem 1rem;
+        border-left: 3px solid transparent;
+        transition: all 0.2s;
     }
     
-    .toc a:hover, .toc a.active {
+    .toc a:hover {
+        color: #007bff;
+        background-color: #f8f9fa;
+        border-left-color: #007bff;
+    }
+    
+    .toc a.active {
         color: #007bff;
         border-left-color: #007bff;
+        background-color: #e7f3ff;
+        font-weight: 500;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-12 text-center mb-5">
-            <h1 class="display-4 fw-bold">
-                <i class="fas fa-book me-3 text-primary"></i>{{ _('docs.title') }}
-            </h1>
-            <p class="lead text-muted">
-                {{ _('docs.subtitle') }}
-            </p>
-        </div>
-    </div>
-    
+<div class="container-fluid py-5">
     <div class="row">
         <!-- Table of Contents -->
         <div class="col-lg-3">
             <div class="toc">
-                <h5 class="fw-bold mb-3">{{ _('docs.contents') }}</h5>
+                <h5 class="mb-3">{{ _('docs.table_of_contents') }}</h5>
                 <a href="#overview">{{ _('docs.overview') }}</a>
+                <a href="#docker-variants">Docker Image Variants</a>
                 <a href="#authentication">{{ _('docs.authentication') }}</a>
-                <a href="#text-validation">{{ _('docs.text_validation') }}</a>
-                <a href="#operations">{{ _('docs.operations') }}</a>
-                <a href="#endpoints">{{ _('docs.endpoints') }}</a>
-                <a href="#voices">{{ _('docs.voices') }}</a>
-                <a href="#formats">{{ _('docs.formats') }}</a>
-                <a href="#generate">{{ _('docs.generate') }}</a>
-                <a href="#combined">{{ _('docs.combined') }}</a>
-                <a href="#status">{{ _('docs.status') }}</a>
-                <a href="#errors">{{ _('docs.errors') }}</a>
-                <a href="#examples">{{ _('docs.examples') }}</a>
+                <a href="#openai-api">OpenAI-Compatible API</a>
+                <a href="#capabilities">System Capabilities</a>
+                <a href="#speed-adjustment">Speed Adjustment</a>
+                <a href="#format-conversion">Format Conversion</a>
+                <a href="#text-validation">Long Text Handling</a>
                 <a href="#python-package">{{ _('docs.python_package') }}</a>
                 <a href="#websocket">WebSocket Streaming</a>
+                <a href="#errors">{{ _('docs.errors') }}</a>
             </div>
         </div>
         
@@ -102,557 +96,503 @@
             <section id="overview" class="mb-5">
                 <h2 class="fw-bold mb-3">{{ _('docs.overview_title') }}</h2>
                 <p>
-                    {{ _('docs.overview_desc') }}
+                    TTSFM is a free Text-to-Speech API service that provides OpenAI-compatible endpoints using the openai.fm service.
+                    It supports multiple voices, audio formats, speed adjustment, and automatic text splitting for long content.
                 </p>
 
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>{{ _('docs.base_url') }}</strong> <code>{{ request.url_root }}api/</code>
+                    <strong>Base URL:</strong> <code>{{ request.url_root }}</code>
                 </div>
 
-                <h4>{{ _('docs.key_features') }}</h4>
+                <h4>Key Features</h4>
                 <ul>
-                    <li><strong>🎤 {{ _('docs.feature_voices') }}</strong></li>
-                    <li><strong>🎵 {{ _('docs.feature_formats') }}</strong></li>
-                    <li><strong>🤖 {{ _('docs.feature_openai') }}</strong></li>
-                    <li><strong>✨ {{ _('docs.feature_auto_combine') }}</strong></li>
-                    <li><strong>📊 {{ _('docs.feature_validation') }}</strong></li>
-                    <li><strong>📈 {{ _('docs.feature_monitoring') }}</strong></li>
+                    <li><strong>🎤 Multiple Voices:</strong> 6 voices (alloy, echo, fable, onyx, nova, shimmer)</li>
+                    <li><strong>🎵 Audio Formats:</strong> MP3, WAV (always available) + OPUS, AAC, FLAC, PCM (requires ffmpeg)</li>
+                    <li><strong>🤖 OpenAI-Compatible API:</strong> Drop-in replacement for OpenAI's TTS API</li>
+                    <li><strong>⚡ Speed Adjustment:</strong> 0.25x to 4.0x playback speed (requires ffmpeg)</li>
+                    <li><strong>🔄 Format Conversion:</strong> Real ffmpeg-based audio format conversion</li>
+                    <li><strong>✨ Auto-Combine:</strong> Automatic splitting and combining for long text</li>
+                    <li><strong>🐳 Docker Images:</strong> Full (with ffmpeg) and Slim (without ffmpeg) variants</li>
+                    <li><strong>📊 Capabilities API:</strong> Runtime feature detection and availability checking</li>
                 </ul>
 
                 <div class="alert alert-success">
                     <i class="fas fa-star me-2"></i>
-                    <strong>{{ _('docs.new_version') }}</strong> {{ _('docs.new_version_desc') }}
+                    <strong>Version 3.4.0:</strong> Now with image variant detection, improved error handling, and comprehensive format support!
                 </div>
             </section>
             
-            <!-- Operational Notes -->
-            <section id="operations" class="mb-5">
-                <h2 class="fw-bold mb-3">{{ _('docs.operational_title') }}</h2>
-                <ul>
-                    <li>{{ _('docs.operational_limit') }}</li>
-                    <li>{{ _('docs.operational_fallback') }}</li>
-                    <li>{{ _('docs.operational_backend') }}</li>
-                    <li>{{ _('docs.operational_ffmpeg') }}</li>
-                </ul>
+            <!-- Docker Image Variants -->
+            <section id="docker-variants" class="mb-5">
+                <h2 class="fw-bold mb-3">Docker Image Variants</h2>
+                <p>
+                    TTSFM provides two Docker image variants to suit different needs:
+                </p>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-success mb-3">
+                            <div class="card-header bg-success text-white">
+                                <strong>Full Image</strong> (Recommended)
+                            </div>
+                            <div class="card-body">
+                                <p><code>dbcccc/ttsfm:latest</code></p>
+                                <p><strong>Includes:</strong></p>
+                                <ul class="small">
+                                    <li>ffmpeg for audio processing</li>
+                                    <li>All 6 audio formats (MP3, WAV, OPUS, AAC, FLAC, PCM)</li>
+                                    <li>Speed adjustment (0.25x - 4.0x)</li>
+                                    <li>Format conversion</li>
+                                    <li>MP3 auto-combine for long text</li>
+                                </ul>
+                                <p class="small text-muted mb-0">Size: ~200MB</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-warning mb-3">
+                            <div class="card-header bg-warning">
+                                <strong>Slim Image</strong> (Lightweight)
+                            </div>
+                            <div class="card-body">
+                                <p><code>dbcccc/ttsfm:slim</code></p>
+                                <p><strong>Includes:</strong></p>
+                                <ul class="small">
+                                    <li>Basic TTS functionality</li>
+                                    <li>2 audio formats (MP3, WAV only)</li>
+                                    <li>No speed adjustment</li>
+                                    <li>No format conversion</li>
+                                    <li>WAV auto-combine for long text</li>
+                                </ul>
+                                <p class="small text-muted mb-0">Size: ~100MB</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Automatic Detection:</strong> The system automatically detects which variant is running and provides appropriate error messages when features are unavailable.
+                    Use the <code>/api/capabilities</code> endpoint to check available features.
+                </div>
             </section>
-            
+
             <!-- Authentication -->
             <section id="authentication" class="mb-5">
                 <h2 class="fw-bold mb-3">{{ _('docs.authentication_title') }}</h2>
                 <p>
-                    {{ _('docs.authentication_desc') }}
+                    API key authentication is optional and disabled by default. When enabled, include your API key in the Authorization header:
                 </p>
 
                 <div class="code-block">
                     <pre><code>Authorization: Bearer YOUR_API_KEY</code></pre>
                 </div>
+
+                <p class="small text-muted">
+                    Set <code>REQUIRE_API_KEY=true</code> environment variable to enable API key protection.
+                </p>
             </section>
 
-            <!-- Text Validation -->
-            <section id="text-validation" class="mb-5">
-                <h2 class="fw-bold mb-3">{{ _('docs.text_validation_title') }}</h2>
+            <!-- OpenAI-Compatible API -->
+            <section id="openai-api" class="mb-5">
+                <h2 class="fw-bold mb-3">OpenAI-Compatible API</h2>
                 <p>
-                    {{ _('docs.text_validation_desc') }}
+                    TTSFM provides a drop-in replacement for OpenAI's Text-to-Speech API. Use the <code>/v1/audio/speech</code> endpoint with the same request format.
                 </p>
 
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>{{ _('docs.important') }}</strong> {{ _('docs.text_validation_warning') }}
-                </div>
-
-                <h4>{{ _('docs.validation_options') }}</h4>
-                <ul>
-                    <li><code>max_length</code>: {{ _('docs.max_length_option') }}</li>
-                    <li><code>validate_length</code>: {{ _('docs.validate_length_option') }}</li>
-                    <li><code>preserve_words</code>: {{ _('docs.preserve_words_option') }}</li>
-                </ul>
-            </section>
-            
-            <!-- API Endpoints -->
-            <section id="endpoints" class="mb-5">
-                <h2 class="fw-bold mb-3">{{ _('docs.endpoints_title') }}</h2>
-
-                <!-- Voices Endpoint -->
-                <div class="card endpoint-card" id="voices">
-                    <div class="card-body">
-                        <h4 class="card-title">
-                            <span class="method-badge method-get">GET</span>
-                            /api/voices
-                        </h4>
-                        <p class="card-text">{{ _('docs.get_voices_desc') }}</p>
-
-                        <h6>{{ _('docs.response_example') }}</h6>
-                        <div class="response-example">
-                            <pre><code>{
-  "voices": [
-    {
-      "id": "alloy",
-      "name": "Alloy",
-      "description": "Alloy voice"
-    },
-    {
-      "id": "echo",
-      "name": "Echo", 
-      "description": "Echo voice"
-    }
-  ],
-  "count": 6
-}</code></pre>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Formats Endpoint -->
-                <div class="card endpoint-card" id="formats">
-                    <div class="card-body">
-                        <h4 class="card-title">
-                            <span class="method-badge method-get">GET</span>
-                            /api/formats
-                        </h4>
-                        <p class="card-text">Get available audio formats for speech generation.</p>
-
-                        <h6>Available Formats</h6>
-                        <p>We support multiple format requests, but internally:</p>
-                        <ul>
-                            <li><strong>mp3</strong> - Returns actual MP3 format</li>
-                            <li><strong>All other formats</strong> (opus, aac, flac, wav, pcm) - Mapped to WAV format</li>
-                        </ul>
-                        
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Note:</strong> When you request opus, aac, flac, wav, or pcm, you'll receive WAV audio data.
-                        </div>
-
-                        <h6>{{ _('docs.response_example') }}</h6>
-                        <div class="response-example">
-                            <pre><code>{
-  "formats": [
-    {
-      "id": "mp3",
-      "name": "MP3",
-      "mime_type": "audio/mp3",
-      "description": "MP3 audio format"
-    },
-    {
-      "id": "opus", 
-      "name": "Opus",
-      "mime_type": "audio/wav",
-      "description": "Returns WAV format"
-    },
-    {
-      "id": "aac",
-      "name": "AAC", 
-      "mime_type": "audio/wav",
-      "description": "Returns WAV format"
-    },
-    {
-      "id": "flac",
-      "name": "FLAC",
-      "mime_type": "audio/wav", 
-      "description": "Returns WAV format"
-    },
-    {
-      "id": "wav",
-      "name": "WAV",
-      "mime_type": "audio/wav",
-      "description": "WAV audio format"
-    },
-    {
-      "id": "pcm",
-      "name": "PCM",
-      "mime_type": "audio/wav",
-      "description": "Returns WAV format"
-    }
-  ],
-  "count": 6
-}</code></pre>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Text Validation Endpoint -->
                 <div class="card endpoint-card">
                     <div class="card-body">
                         <h4 class="card-title">
                             <span class="method-badge method-post">POST</span>
-                            /api/validate-text
-                        </h4>
-                        <p class="card-text">{{ _('docs.validate_text_desc') }}</p>
-
-                        <h6>{{ _('docs.request_body') }}</h6>
-                        <div class="code-block">
-                            <pre><code>{
-  "text": "Your text to validate",
-  "max_length": 1000
-}</code></pre>
-                        </div>
-                        
-                        <h6>{{ _('docs.response_example') }}</h6>
-                        <div class="response-example">
-                            <pre><code>{
-  "text_length": 5000,
-  "max_length": 1000,
-  "is_valid": false,
-  "needs_splitting": true,
-  "suggested_chunks": 2,
-  "chunk_preview": [
-    "First chunk preview...",
-    "Second chunk preview..."
-  ]
-}</code></pre>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- OpenAI Compatible Endpoint with Auto-Combine -->
-                <div class="card endpoint-card" id="generate">
-                    <div class="card-body">
-                        <h4 class="card-title">
-                            <span class="method-badge method-post">POST</span>
                             /v1/audio/speech
-                            <span class="badge bg-success ms-2">OpenAI Compatible</span>
                         </h4>
-                        <p class="card-text">{{ _('docs.openai_compatible_desc') }}</p>
+                        <p class="card-text">Generate speech from text using OpenAI-compatible format.</p>
 
-                        <h6>{{ _('docs.request_body') }}</h6>
+                        <h6>Request Body</h6>
                         <div class="code-block">
                             <pre><code>{
-  "model": "gpt-4o-mini-tts",
-  "input": "Text of any length...",
+  "model": "tts-1",
+  "input": "Hello, world!",
   "voice": "alloy",
   "response_format": "mp3",
-  "instructions": "Optional voice instructions",
-  "speed": 1.0,
-  "auto_combine": true,
-  "max_length": 1000
+  "speed": 1.0
 }</code></pre>
                         </div>
 
-                        <h6>{{ _('docs.parameters') }}</h6>
+                        <h6>Parameters</h6>
                         <ul>
-                            <li><code>model</code> ({{ _('docs.required') }}): Model identifier (use "gpt-4o-mini-tts")</li>
-                            <li><code>input</code> ({{ _('docs.required') }}): {{ _('docs.text_param') }}</li>
-                            <li><code>voice</code> ({{ _('docs.optional') }}): {{ _('docs.voice_param') }}</li>
-                            <li><code>response_format</code> ({{ _('docs.optional') }}): {{ _('docs.format_param') }}</li>
-                            <li><code>instructions</code> ({{ _('docs.optional') }}): {{ _('docs.instructions_param') }}</li>
-                            <li><code>speed</code> ({{ _('docs.optional') }}): Playback speed (0.25 to 4.0, default: 1.0)</li>
-                            <li><code>auto_combine</code> ({{ _('docs.optional') }}): Automatically combine long text chunks (default: true)</li>
-                            <li><code>max_length</code> ({{ _('docs.optional') }}): {{ _('docs.max_length_param') }}</li>
+                            <li><code>model</code> (string): Model ID (any value accepted, uses openai.fm)</li>
+                            <li><code>input</code> (string, required): Text to convert to speech</li>
+                            <li><code>voice</code> (string, required): Voice ID (alloy, echo, fable, onyx, nova, shimmer)</li>
+                            <li><code>response_format</code> (string): Audio format (mp3, wav, opus, aac, flac, pcm). Default: mp3</li>
+                            <li><code>speed</code> (number): Playback speed 0.25-4.0 (requires ffmpeg). Default: 1.0</li>
                         </ul>
 
-                        <h6>{{ _('docs.enhanced_parameters') }}</h6>
-                        <ul>
-                            <li><strong>auto_combine</strong> (boolean, default: true):
-                                <ul>
-                                    <li><code>true</code>: {{ _('docs.auto_combine_param') }}</li>
-                                    <li><code>false</code>: {{ _('docs.auto_combine_false') }}</li>
-                                </ul>
-                            </li>
-                            <li><strong>speed</strong> (float, 0.25-4.0, default: 1.0): Adjust audio playback speed</li>
-                            <li><strong>max_length</strong> (integer, default: 1000): {{ _('docs.max_length_chunk_param') }}</li>
+                        <h6>Response</h6>
+                        <p>Returns audio file with appropriate Content-Type header.</p>
+
+                        <h6>Response Headers</h6>
+                        <ul class="small">
+                            <li><code>Content-Type</code>: MIME type of the audio format</li>
+                            <li><code>X-Requested-Speed</code>: The speed value requested</li>
+                            <li><code>X-Speed-Applied</code>: Whether speed adjustment was applied (true/false)</li>
+                            <li><code>X-Chunks-Combined</code>: Number of chunks combined (for long text)</li>
                         </ul>
+                    </div>
+                </div>
+            </section>
 
-                        <h6>{{ _('docs.response_headers') }}</h6>
-                        <ul>
-                            <li><code>X-Auto-Combine</code>: {{ _('docs.auto_combine_header') }}</li>
-                            <li><code>X-Chunks-Combined</code>: {{ _('docs.chunks_combined_response') }}</li>
-                            <li><code>X-Original-Text-Length</code>: {{ _('docs.original_text_response') }}</li>
-                            <li><code>X-Audio-Format</code>: {{ _('docs.audio_format_header') }}</li>
-                            <li><code>X-Audio-Size</code>: {{ _('docs.audio_size_response') }}</li>
-                            <li><code>X-Requested-Speed</code>: Requested playback speed</li>
-                            <li><code>X-Speed-Applied</code>: Whether speed adjustment was applied</li>
-                        </ul>
+            <!-- System Capabilities -->
+            <section id="capabilities" class="mb-5">
+                <h2 class="fw-bold mb-3">System Capabilities</h2>
+                <p>
+                    Check which features are available in the current Docker image variant using the capabilities endpoint.
+                </p>
 
-                        <h6>{{ _('docs.examples_title') }}</h6>
-                        <div class="code-block">
-                            <pre><code># {{ _('docs.short_text_comment') }}
-curl -X POST {{ request.url_root }}v1/audio/speech \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4o-mini-tts",
-    "input": "Hello world!",
-    "voice": "alloy"
-  }'
+                <div class="card endpoint-card">
+                    <div class="card-body">
+                        <h4 class="card-title">
+                            <span class="method-badge method-get">GET</span>
+                            /api/capabilities
+                        </h4>
+                        <p class="card-text">Get system capabilities and available features.</p>
 
-# {{ _('docs.long_text_auto_comment') }}
-curl -X POST {{ request.url_root }}v1/audio/speech \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4o-mini-tts",
-    "input": "Very long text...",
-    "voice": "alloy",
-    "auto_combine": true
-  }'
-
-# With speed adjustment
-curl -X POST {{ request.url_root }}v1/audio/speech \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4o-mini-tts",
-    "input": "Hello world!",
-    "voice": "alloy",
-    "speed": 1.5
-  }'</code></pre>
+                        <h6>Response Example</h6>
+                        <div class="response-example">
+                            <pre><code>{
+  "ffmpeg_available": true,
+  "image_variant": "full",
+  "features": {
+    "speed_adjustment": true,
+    "format_conversion": true,
+    "mp3_auto_combine": true,
+    "basic_formats": true
+  },
+  "supported_formats": ["mp3", "wav", "opus", "aac", "flac", "pcm"]
+}</code></pre>
                         </div>
 
                         <div class="alert alert-info mt-3">
                             <i class="fas fa-info-circle me-2"></i>
-                            <strong>{{ _('docs.audio_combination') }}</strong> {{ _('docs.audio_combination_desc') }}
+                            <strong>Tip:</strong> Use this endpoint to check feature availability before making requests.
+                            In slim images, advanced features will return helpful error messages.
                         </div>
+                    </div>
+                </div>
+            </section>
 
-                        <h6 class="mt-4">{{ _('docs.use_cases') }}</h6>
+            <!-- Speed Adjustment -->
+            <section id="speed-adjustment" class="mb-5">
+                <h2 class="fw-bold mb-3">Speed Adjustment</h2>
+                <p>
+                    Adjust audio playback speed from 0.25x (slower) to 4.0x (faster). This feature requires ffmpeg and is only available in the full Docker image.
+                </p>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Speed Values</h6>
                         <ul>
-                            <li><strong>{{ _('docs.use_case_articles') }}</strong></li>
-                            <li><strong>{{ _('docs.use_case_audiobooks') }}</strong></li>
-                            <li><strong>{{ _('docs.use_case_podcasts') }}</strong></li>
-                            <li><strong>{{ _('docs.use_case_education') }}</strong></li>
+                            <li><code>0.25</code> - 4x slower</li>
+                            <li><code>0.5</code> - 2x slower</li>
+                            <li><code>1.0</code> - Normal speed (default)</li>
+                            <li><code>1.5</code> - 1.5x faster</li>
+                            <li><code>2.0</code> - 2x faster</li>
+                            <li><code>4.0</code> - 4x faster</li>
                         </ul>
-
-                        <h6 class="mt-4">{{ _('docs.example_usage') }}</h6>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Example Request</h6>
                         <div class="code-block">
-                            <pre><code># {{ _('docs.python_example_comment') }}
-import requests
-
-response = requests.post(
-    "{{ request.url_root }}v1/audio/speech",
-    json={
-        "model": "gpt-4o-mini-tts",
-        "input": "Your very long text content here...",
-        "voice": "nova",
-        "response_format": "mp3",
-        "speed": 1.25,
-        "auto_combine": true,
-        "max_length": 2000
-    }
-)
-
-if response.status_code == 200:
-    with open("combined_audio.mp3", "wb") as f:
-        f.write(response.content)
-
-    chunks = response.headers.get('X-Chunks-Combined')
-    print(f"Combined {chunks} chunks into single file")</code></pre>
+                            <pre><code>curl -X POST {{ request.url_root }}v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "tts-1",
+    "input": "Hello!",
+    "voice": "alloy",
+    "speed": 1.5
+  }' --output speech.mp3</code></pre>
                         </div>
                     </div>
                 </div>
 
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Slim Image:</strong> Speed adjustment is not available in the slim Docker image.
+                    Requests with speed != 1.0 will return an error with instructions to use the full image.
+                </div>
+            </section>
+
+            <!-- Format Conversion -->
+            <section id="format-conversion" class="mb-5">
+                <h2 class="fw-bold mb-3">Format Conversion</h2>
+                <p>
+                    TTSFM supports 6 audio formats with real ffmpeg-based conversion for high-quality output.
+                </p>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Format</th>
+                                <th>MIME Type</th>
+                                <th>Availability</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>mp3</code></td>
+                                <td>audio/mpeg</td>
+                                <td><span class="badge bg-success">Always</span></td>
+                                <td>Direct from openai.fm, best compatibility</td>
+                            </tr>
+                            <tr>
+                                <td><code>wav</code></td>
+                                <td>audio/wav</td>
+                                <td><span class="badge bg-success">Always</span></td>
+                                <td>Direct from openai.fm, uncompressed</td>
+                            </tr>
+                            <tr>
+                                <td><code>opus</code></td>
+                                <td>audio/opus</td>
+                                <td><span class="badge bg-warning">Full Image</span></td>
+                                <td>Converted from WAV, internet streaming</td>
+                            </tr>
+                            <tr>
+                                <td><code>aac</code></td>
+                                <td>audio/aac</td>
+                                <td><span class="badge bg-warning">Full Image</span></td>
+                                <td>Converted from WAV, digital audio</td>
+                            </tr>
+                            <tr>
+                                <td><code>flac</code></td>
+                                <td>audio/flac</td>
+                                <td><span class="badge bg-warning">Full Image</span></td>
+                                <td>Converted from WAV, lossless compression</td>
+                            </tr>
+                            <tr>
+                                <td><code>pcm</code></td>
+                                <td>audio/pcm</td>
+                                <td><span class="badge bg-warning">Full Image</span></td>
+                                <td>Converted from WAV, raw samples at 24kHz</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Note:</strong> MP3 and WAV are available in both full and slim images.
+                    OPUS, AAC, FLAC, and PCM require ffmpeg and are only available in the full image.
+                </div>
+            </section>
+
+            <!-- Long Text Handling -->
+            <section id="text-validation" class="mb-5">
+                <h2 class="fw-bold mb-3">Long Text Handling</h2>
+                <p>
+                    TTSFM automatically handles long text by splitting it into chunks and combining the audio output.
+                    The openai.fm service has a limit of approximately 1000 characters per request.
+                </p>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Automatic Splitting:</strong> Text longer than the limit is automatically split at sentence boundaries,
+                    processed separately, and combined into a single audio file.
+                </div>
+
+                <h6>Python Package Options</h6>
+                <ul>
+                    <li><code>max_length</code>: Maximum characters per chunk (default: 1000)</li>
+                    <li><code>validate_length</code>: Raise error if text exceeds limit (default: False)</li>
+                    <li><code>preserve_words</code>: Split at word boundaries (default: True)</li>
+                    <li><code>auto_combine</code>: Automatically combine chunks (default: True)</li>
+                </ul>
+
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Note:</strong> MP3 auto-combine requires ffmpeg (full image only).
+                    WAV auto-combine works in both full and slim images.
+                </div>
             </section>
 
             <!-- Python Package -->
             <section id="python-package" class="mb-5">
-                <h3 class="fw-bold mb-4">
-                    <i class="fab fa-python me-2 text-warning"></i>{{ _('docs.python_package_title') }}
-                </h3>
+                <h2 class="fw-bold mb-3">
+                    <i class="fab fa-python me-2 text-warning"></i>Python Package
+                </h2>
+                <p>
+                    Install the TTSFM Python package for easy integration into your Python applications.
+                </p>
 
-                <div class="card">
-                    <div class="card-body">
-                        <h5>{{ _('docs.long_text_support') }}</h5>
-                        <p>{{ _('docs.long_text_desc') }}</p>
+                <div class="code-block">
+                    <pre><code>pip install ttsfm</code></pre>
+                </div>
 
-                        <div class="code-block">
-                            <pre><code>from ttsfm import TTSClient, Voice, AudioFormat
+                <h6 class="mt-4">Basic Usage</h6>
+                <div class="code-block">
+                    <pre><code>from ttsfm import TTSClient, Voice, AudioFormat
 
 # Create client
 client = TTSClient()
 
-# Generate speech from long text (automatically splits into separate files)
-responses = client.generate_speech_long_text(
-    text="Very long text that exceeds 1000 characters...",
+# Generate speech
+response = client.generate_speech(
+    text="Hello, world!",
     voice=Voice.ALLOY,
     response_format=AudioFormat.MP3,
-    max_length=2000,
-    preserve_words=True
+    speed=1.0
 )
 
-# Save each chunk as separate files
-for i, response in enumerate(responses, 1):
-    response.save_to_file(f"part_{i:03d}.mp3")</code></pre>
-                        </div>
-
-                        <h6 class="mt-4">{{ _('docs.developer_features') }}</h6>
-                        <ul>
-                            <li><strong>{{ _('docs.manual_splitting') }}</strong></li>
-                            <li><strong>{{ _('docs.word_preservation') }}</strong></li>
-                            <li><strong>{{ _('docs.separate_files') }}</strong></li>
-                            <li><strong>{{ _('docs.cli_support') }}</strong></li>
-                        </ul>
-
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>{{ _('docs.note') }}</strong> {{ _('docs.auto_combine_note') }}
-                        </div>
-                    </div>
+# Save to file
+response.save_to_file("output.mp3")</code></pre>
                 </div>
 
+                <h6 class="mt-4">Long Text Support</h6>
+                <p>Automatically split and combine long text:</p>
+                <div class="code-block">
+                    <pre><code># Auto-combine mode (single file output)
+response = client.generate_speech(
+    text="Very long text...",
+    voice=Voice.ALLOY,
+    response_format=AudioFormat.MP3,
+    auto_combine=True  # Default
+)
+response.save_to_file("combined.mp3")
 
+# Manual chunks mode (multiple files)
+responses = client.generate_speech_long_text(
+    text="Very long text...",
+    voice=Voice.ALLOY,
+    response_format=AudioFormat.MP3
+)
+for i, resp in enumerate(responses, 1):
+    resp.save_to_file(f"part_{i:03d}.mp3")</code></pre>
+                </div>
+
+                <h6 class="mt-4">Async Client</h6>
+                <div class="code-block">
+                    <pre><code>from ttsfm import AsyncTTSClient, Voice, AudioFormat
+import asyncio
+
+async def main():
+    client = AsyncTTSClient()
+    response = await client.generate_speech(
+        text="Hello, async world!",
+        voice=Voice.ALLOY,
+        response_format=AudioFormat.MP3
+    )
+    response.save_to_file("async_output.mp3")
+
+asyncio.run(main())</code></pre>
+                </div>
+
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Documentation:</strong> For complete API reference, visit
+                    <a href="https://github.com/dbccccccc/ttsfm" target="_blank" class="alert-link">GitHub Repository</a>
+                </div>
             </section>
-            
+
             <!-- WebSocket Streaming -->
             <section id="websocket" class="mb-5">
-                <h2 class="mb-4">
-                    <i class="fas fa-bolt text-warning me-2"></i>WebSocket Streaming
+                <h2 class="fw-bold mb-3">
+                    <i class="fas fa-broadcast-tower me-2 text-info"></i>WebSocket Streaming
                 </h2>
-                <p class="lead">
-                    Real-time audio streaming for enhanced user experience. Get audio chunks as they're generated instead of waiting for the complete file.
+                <p>
+                    Stream audio generation in real-time using WebSocket for better user experience with long text.
                 </p>
-                
+
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
-                    WebSocket streaming provides lower perceived latency and real-time progress tracking for TTS generation.
+                    <strong>Try it:</strong> Visit the <a href="{{ url_for('websocket_demo') }}" class="alert-link">WebSocket Demo</a> page to see it in action.
                 </div>
-                
-                <h3 class="mt-4">Connection</h3>
-                <div class="code-block">
-                    <pre><code>// JavaScript WebSocket client
-const client = new WebSocketTTSClient({
-    socketUrl: '{{ request.url_root[:-1] }}',
-    debug: true
-});
 
-// Connection events
-client.onConnect = () => console.log('Connected');
-client.onDisconnect = () => console.log('Disconnected');</code></pre>
-                </div>
-                
-                <h3 class="mt-4">Streaming TTS Generation</h3>
+                <h6>WebSocket Endpoint</h6>
                 <div class="code-block">
-                    <pre><code>// Generate speech with real-time streaming
-const result = await client.generateSpeech('Hello, WebSocket world!', {
-    voice: 'alloy',
-    format: 'mp3',
-    chunkSize: 1024,  // Characters per chunk
-    
-    // Progress callback
-    onProgress: (progress) => {
-        console.log(`Progress: ${progress.progress}%`);
-        console.log(`Chunks: ${progress.chunksCompleted}/${progress.totalChunks}`);
-    },
-    
-    // Receive audio chunks in real-time
-    onChunk: (chunk) => {
-        console.log(`Received chunk ${chunk.chunkIndex + 1}`);
-        // Process or play audio chunk immediately
-        processAudioChunk(chunk.audioData);
-    },
-    
-    // Completion callback
-    onComplete: (result) => {
-        console.log('Streaming complete!');
-        // result.audioData contains the complete audio
-    }
-});</code></pre>
+                    <pre><code>ws://{{ request.host }}/ws/generate</code></pre>
                 </div>
-                
-                <h3 class="mt-4">WebSocket Events</h3>
-                <div class="endpoint-card card">
-                    <div class="card-body">
-                        <h5>Client → Server Events</h5>
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Event</th>
-                                    <th>Description</th>
-                                    <th>Payload</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><code>generate_stream</code></td>
-                                    <td>Start TTS generation</td>
-                                    <td><code>{text, voice, format, chunk_size}</code></td>
-                                </tr>
-                                <tr>
-                                    <td><code>cancel_stream</code></td>
-                                    <td>Cancel active stream</td>
-                                    <td><code>{request_id}</code></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        
-                        <h5 class="mt-4">Server → Client Events</h5>
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Event</th>
-                                    <th>Description</th>
-                                    <th>Payload</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><code>stream_started</code></td>
-                                    <td>Stream initiated</td>
-                                    <td><code>{request_id, timestamp}</code></td>
-                                </tr>
-                                <tr>
-                                    <td><code>audio_chunk</code></td>
-                                    <td>Audio chunk ready</td>
-                                    <td><code>{request_id, chunk_index, audio_data, duration}</code></td>
-                                </tr>
-                                <tr>
-                                    <td><code>stream_progress</code></td>
-                                    <td>Progress update</td>
-                                    <td><code>{progress, chunks_completed, total_chunks}</code></td>
-                                </tr>
-                                <tr>
-                                    <td><code>stream_complete</code></td>
-                                    <td>Generation complete</td>
-                                    <td><code>{request_id, total_chunks, status}</code></td>
-                                </tr>
-                                <tr>
-                                    <td><code>stream_error</code></td>
-                                    <td>Error occurred</td>
-                                    <td><code>{request_id, error, timestamp}</code></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+
+                <h6>Message Format</h6>
+                <div class="code-block">
+                    <pre><code>{
+  "text": "Your text here",
+  "voice": "alloy",
+  "format": "mp3",
+  "speed": 1.0
+}</code></pre>
                 </div>
-                
-                <h3 class="mt-4">Benefits</h3>
+
+                <h6>Response Events</h6>
                 <ul>
-                    <li><strong>Real-time feedback:</strong> Users see progress as audio generates</li>
-                    <li><strong>Lower latency:</strong> First audio chunk arrives quickly</li>
-                    <li><strong>Cancellable:</strong> Stop generation mid-stream if needed</li>
-                    <li><strong>Efficient:</strong> Process chunks as they arrive</li>
+                    <li><code>start</code>: Generation started</li>
+                    <li><code>chunk</code>: Audio chunk ready (base64 encoded)</li>
+                    <li><code>complete</code>: All chunks sent</li>
+                    <li><code>error</code>: Error occurred</li>
                 </ul>
-                
-                <h3 class="mt-4">Example: Streaming Audio Player</h3>
-                <div class="code-block">
-                    <pre><code>// Create a streaming audio player
-const audioChunks = [];
-let isPlaying = false;
+            </section>
 
-const streamingPlayer = await client.generateSpeech(longText, {
-    voice: 'nova',
-    format: 'mp3',
-    
-    onChunk: (chunk) => {
-        // Store chunk
-        audioChunks.push(chunk.audioData);
-        
-        // Start playing after first chunk
-        if (!isPlaying && audioChunks.length >= 3) {
-            startStreamingPlayback(audioChunks);
-            isPlaying = true;
-        }
-    },
-    
-    onComplete: (result) => {
-        // Ensure all chunks are played
-        finishPlayback(result.audioData);
-    }
-});</code></pre>
+            <!-- Error Handling -->
+            <section id="errors" class="mb-5">
+                <h2 class="fw-bold mb-3">
+                    <i class="fas fa-exclamation-circle me-2 text-danger"></i>Error Handling
+                </h2>
+                <p>
+                    TTSFM provides clear error messages with helpful hints for troubleshooting.
+                </p>
+
+                <h6>Common Error Codes</h6>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Code</th>
+                                <th>Description</th>
+                                <th>Solution</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>ffmpeg_required</code></td>
+                                <td>Feature requires ffmpeg (not available in slim image)</td>
+                                <td>Use full Docker image: <code>dbcccc/ttsfm:latest</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>invalid_voice</code></td>
+                                <td>Voice ID not recognized</td>
+                                <td>Use one of: alloy, echo, fable, onyx, nova, shimmer</td>
+                            </tr>
+                            <tr>
+                                <td><code>invalid_format</code></td>
+                                <td>Audio format not supported</td>
+                                <td>Use: mp3, wav, opus, aac, flac, or pcm</td>
+                            </tr>
+                            <tr>
+                                <td><code>invalid_speed</code></td>
+                                <td>Speed value out of range</td>
+                                <td>Use value between 0.25 and 4.0</td>
+                            </tr>
+                            <tr>
+                                <td><code>text_too_long</code></td>
+                                <td>Text exceeds maximum length</td>
+                                <td>Enable auto_combine or split text manually</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-                
-                <div class="alert alert-success mt-4">
-                    <h6><i class="fas fa-rocket me-2"></i>Try It Out!</h6>
-                    <p class="mb-0">
-                        Experience WebSocket streaming in action at the 
-                        <a href="/websocket-demo" class="alert-link">WebSocket Demo</a> or enable streaming mode in the 
-                        <a href="/playground" class="alert-link">Playground</a>.
-                    </p>
+
+                <h6>Example Error Response</h6>
+                <div class="response-example">
+                    <pre><code>{
+  "error": {
+    "message": "Format 'opus' requires ffmpeg. Available formats: mp3, wav",
+    "type": "feature_unavailable_error",
+    "code": "ffmpeg_required",
+    "hint": "Use the full Docker image (dbcccc/ttsfm:latest) instead of the slim variant.",
+    "available_formats": ["mp3", "wav"]
+  }
+}</code></pre>
                 </div>
             </section>
         </div>
@@ -696,3 +636,4 @@ const streamingPlayer = await client.generateSpeech(longText, {
     });
 </script>
 {% endblock %}
+
