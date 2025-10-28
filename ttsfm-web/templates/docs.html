@@ -305,42 +305,138 @@
                     </div>
                 </div>
 
-                <!-- Generate Speech Endpoint -->
+                <!-- OpenAI Compatible Endpoint with Auto-Combine -->
                 <div class="card endpoint-card" id="generate">
                     <div class="card-body">
                         <h4 class="card-title">
                             <span class="method-badge method-post">POST</span>
-                            /api/generate
+                            /v1/audio/speech
+                            <span class="badge bg-success ms-2">OpenAI Compatible</span>
                         </h4>
-                        <p class="card-text">{{ _('docs.generate_speech_desc') }}</p>
+                        <p class="card-text">{{ _('docs.openai_compatible_desc') }}</p>
 
                         <h6>{{ _('docs.request_body') }}</h6>
                         <div class="code-block">
                             <pre><code>{
-  "text": "Hello, world!",
+  "model": "gpt-4o-mini-tts",
+  "input": "Text of any length...",
   "voice": "alloy",
-  "format": "mp3",
-  "instructions": "Speak cheerfully",
-  "max_length": 1000,
-  "validate_length": true
+  "response_format": "mp3",
+  "instructions": "Optional voice instructions",
+  "speed": 1.0,
+  "auto_combine": true,
+  "max_length": 1000
 }</code></pre>
                         </div>
-                        
+
                         <h6>{{ _('docs.parameters') }}</h6>
                         <ul>
-                            <li><code>text</code> ({{ _('docs.required') }}): {{ _('docs.text_param') }}</li>
+                            <li><code>model</code> ({{ _('docs.required') }}): Model identifier (use "gpt-4o-mini-tts")</li>
+                            <li><code>input</code> ({{ _('docs.required') }}): {{ _('docs.text_param') }}</li>
                             <li><code>voice</code> ({{ _('docs.optional') }}): {{ _('docs.voice_param') }}</li>
-                            <li><code>format</code> ({{ _('docs.optional') }}): {{ _('docs.format_param') }}</li>
+                            <li><code>response_format</code> ({{ _('docs.optional') }}): {{ _('docs.format_param') }}</li>
                             <li><code>instructions</code> ({{ _('docs.optional') }}): {{ _('docs.instructions_param') }}</li>
+                            <li><code>speed</code> ({{ _('docs.optional') }}): Playback speed (0.25 to 4.0, default: 1.0)</li>
+                            <li><code>auto_combine</code> ({{ _('docs.optional') }}): Automatically combine long text chunks (default: true)</li>
                             <li><code>max_length</code> ({{ _('docs.optional') }}): {{ _('docs.max_length_param') }}</li>
-                            <li><code>validate_length</code> ({{ _('docs.optional') }}): {{ _('docs.validate_length_param') }}</li>
                         </ul>
 
-                        <h6>{{ _('docs.response') }}</h6>
-                        <p>{{ _('docs.response_audio') }}</p>
+                        <h6>{{ _('docs.enhanced_parameters') }}</h6>
+                        <ul>
+                            <li><strong>auto_combine</strong> (boolean, default: true):
+                                <ul>
+                                    <li><code>true</code>: {{ _('docs.auto_combine_param') }}</li>
+                                    <li><code>false</code>: {{ _('docs.auto_combine_false') }}</li>
+                                </ul>
+                            </li>
+                            <li><strong>speed</strong> (float, 0.25-4.0, default: 1.0): Adjust audio playback speed</li>
+                            <li><strong>max_length</strong> (integer, default: 1000): {{ _('docs.max_length_chunk_param') }}</li>
+                        </ul>
+
+                        <h6>{{ _('docs.response_headers') }}</h6>
+                        <ul>
+                            <li><code>X-Auto-Combine</code>: {{ _('docs.auto_combine_header') }}</li>
+                            <li><code>X-Chunks-Combined</code>: {{ _('docs.chunks_combined_response') }}</li>
+                            <li><code>X-Original-Text-Length</code>: {{ _('docs.original_text_response') }}</li>
+                            <li><code>X-Audio-Format</code>: {{ _('docs.audio_format_header') }}</li>
+                            <li><code>X-Audio-Size</code>: {{ _('docs.audio_size_response') }}</li>
+                            <li><code>X-Requested-Speed</code>: Requested playback speed</li>
+                            <li><code>X-Speed-Applied</code>: Whether speed adjustment was applied</li>
+                        </ul>
+
+                        <h6>{{ _('docs.examples_title') }}</h6>
+                        <div class="code-block">
+                            <pre><code># {{ _('docs.short_text_comment') }}
+curl -X POST {{ request.url_root }}v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini-tts",
+    "input": "Hello world!",
+    "voice": "alloy"
+  }'
+
+# {{ _('docs.long_text_auto_comment') }}
+curl -X POST {{ request.url_root }}v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini-tts",
+    "input": "Very long text...",
+    "voice": "alloy",
+    "auto_combine": true
+  }'
+
+# With speed adjustment
+curl -X POST {{ request.url_root }}v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini-tts",
+    "input": "Hello world!",
+    "voice": "alloy",
+    "speed": 1.5
+  }'</code></pre>
+                        </div>
+
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>{{ _('docs.audio_combination') }}</strong> {{ _('docs.audio_combination_desc') }}
+                        </div>
+
+                        <h6 class="mt-4">{{ _('docs.use_cases') }}</h6>
+                        <ul>
+                            <li><strong>{{ _('docs.use_case_articles') }}</strong></li>
+                            <li><strong>{{ _('docs.use_case_audiobooks') }}</strong></li>
+                            <li><strong>{{ _('docs.use_case_podcasts') }}</strong></li>
+                            <li><strong>{{ _('docs.use_case_education') }}</strong></li>
+                        </ul>
+
+                        <h6 class="mt-4">{{ _('docs.example_usage') }}</h6>
+                        <div class="code-block">
+                            <pre><code># {{ _('docs.python_example_comment') }}
+import requests
+
+response = requests.post(
+    "{{ request.url_root }}v1/audio/speech",
+    json={
+        "model": "gpt-4o-mini-tts",
+        "input": "Your very long text content here...",
+        "voice": "nova",
+        "response_format": "mp3",
+        "speed": 1.25,
+        "auto_combine": true,
+        "max_length": 2000
+    }
+)
+
+if response.status_code == 200:
+    with open("combined_audio.mp3", "wb") as f:
+        f.write(response.content)
+
+    chunks = response.headers.get('X-Chunks-Combined')
+    print(f"Combined {chunks} chunks into single file")</code></pre>
+                        </div>
                     </div>
                 </div>
-                
+
             </section>
 
             <!-- Python Package -->
@@ -389,151 +485,7 @@ for i, response in enumerate(responses, 1):
                     </div>
                 </div>
 
-                <!-- Combined Audio Endpoints -->
-                <div class="card endpoint-card" id="combined">
-                    <div class="card-body">
-                        <h4 class="card-title">
-                            <span class="method-badge method-post">POST</span>
-                            /api/generate-combined
-                        </h4>
-                        <p class="card-text">{{ _('docs.combined_audio_desc') }}</p>
 
-                        <h6>{{ _('docs.request_body') }}</h6>
-                        <div class="code-block">
-                            <pre><code>{
-  "text": "Very long text that exceeds the limit...",
-  "voice": "alloy",
-  "format": "mp3",
-  "instructions": "Optional voice instructions",
-  "max_length": 1000,
-  "preserve_words": true
-}</code></pre>
-                        </div>
-
-                        <h6>{{ _('docs.response') }}</h6>
-                        <p>{{ _('docs.response_combined_audio') }}</p>
-
-                        <h6>{{ _('docs.response_headers') }}</h6>
-                        <ul>
-                            <li><code>X-Chunks-Combined</code>: {{ _('docs.chunks_combined_header') }}</li>
-                            <li><code>X-Original-Text-Length</code>: {{ _('docs.original_text_length_header') }}</li>
-                            <li><code>X-Audio-Size</code>: {{ _('docs.audio_size_header') }}</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- OpenAI Compatible Endpoint with Auto-Combine -->
-                <div class="card endpoint-card">
-                    <div class="card-body">
-                        <h4 class="card-title">
-                            <span class="method-badge method-post">POST</span>
-                            /v1/audio/speech
-                        </h4>
-                        <p class="card-text">{{ _('docs.openai_compatible_desc') }}</p>
-
-                        <h6>{{ _('docs.request_body') }}</h6>
-                        <div class="code-block">
-                            <pre><code>{
-  "model": "gpt-4o-mini-tts",
-  "input": "Text of any length...",
-  "voice": "alloy",
-  "response_format": "mp3",
-  "instructions": "Optional voice instructions",
-  "speed": 1.0,
-  "auto_combine": true,
-  "max_length": 1000
-}</code></pre>
-                        </div>
-
-                        <h6>{{ _('docs.enhanced_parameters') }}</h6>
-                        <ul>
-                            <li><strong>auto_combine</strong> (boolean, default: true):
-                                <ul>
-                                    <li><code>true</code>: {{ _('docs.auto_combine_param') }}</li>
-                                    <li><code>false</code>: {{ _('docs.auto_combine_false') }}</li>
-                                </ul>
-                            </li>
-                            <li><strong>max_length</strong> (integer, default: 1000): {{ _('docs.max_length_chunk_param') }}</li>
-                        </ul>
-
-                        <h6>{{ _('docs.response_headers') }}</h6>
-                        <ul>
-                            <li><code>X-Auto-Combine</code>: {{ _('docs.auto_combine_header') }}</li>
-                            <li><code>X-Chunks-Combined</code>: {{ _('docs.chunks_combined_response') }}</li>
-                            <li><code>X-Original-Text-Length</code>: {{ _('docs.original_text_response') }}</li>
-                            <li><code>X-Audio-Format</code>: {{ _('docs.audio_format_header') }}</li>
-                            <li><code>X-Audio-Size</code>: {{ _('docs.audio_size_response') }}</li>
-                        </ul>
-
-                        <h6>{{ _('docs.examples_title') }}</h6>
-                        <div class="code-block">
-                            <pre><code># {{ _('docs.short_text_comment') }}
-curl -X POST {{ request.url_root }}v1/audio/speech \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4o-mini-tts",
-    "input": "Hello world!",
-    "voice": "alloy"
-  }'
-
-# {{ _('docs.long_text_auto_comment') }}
-curl -X POST {{ request.url_root }}v1/audio/speech \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4o-mini-tts",
-    "input": "Very long text...",
-    "voice": "alloy",
-    "auto_combine": true
-  }'
-
-# {{ _('docs.long_text_no_auto_comment') }}
-curl -X POST {{ request.url_root }}v1/audio/speech \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4o-mini-tts",
-    "input": "Very long text...",
-    "voice": "alloy",
-    "auto_combine": false
-  }'</code></pre>
-                        </div>
-
-                        <div class="alert alert-info mt-3">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>{{ _('docs.audio_combination') }}</strong> {{ _('docs.audio_combination_desc') }}
-                        </div>
-
-                        <h6 class="mt-4">{{ _('docs.use_cases') }}</h6>
-                        <ul>
-                            <li><strong>{{ _('docs.use_case_articles') }}</strong></li>
-                            <li><strong>{{ _('docs.use_case_audiobooks') }}</strong></li>
-                            <li><strong>{{ _('docs.use_case_podcasts') }}</strong></li>
-                            <li><strong>{{ _('docs.use_case_education') }}</strong></li>
-                        </ul>
-
-                        <h6 class="mt-4">{{ _('docs.example_usage') }}</h6>
-                        <div class="code-block">
-                            <pre><code># {{ _('docs.python_example_comment') }}
-import requests
-
-response = requests.post(
-    "{{ request.url_root }}api/generate-combined",
-    json={
-        "text": "Your very long text content here...",
-        "voice": "nova",
-        "format": "mp3",
-        "max_length": 2000
-    }
-)
-
-if response.status_code == 200:
-    with open("combined_audio.mp3", "wb") as f:
-        f.write(response.content)
-
-    chunks = response.headers.get('X-Chunks-Combined')
-    print(f"Combined {chunks} chunks into single file")</code></pre>
-                        </div>
-                    </div>
-                </div>
             </section>
             
             <!-- WebSocket Streaming -->

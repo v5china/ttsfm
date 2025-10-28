@@ -331,7 +331,12 @@ const PlaygroundApp = (() => {
             if (apiKey) {
                 headers['Authorization'] = `Bearer ${apiKey}`;
             }
-            const body = { text, voice, format };
+            const body = {
+                model: 'gpt-4o-mini-tts',
+                input: text,
+                voice: voice,
+                response_format: format
+            };
             if (instructions) {
                 body.instructions = instructions;
             }
@@ -339,7 +344,7 @@ const PlaygroundApp = (() => {
                 body.speed = speed;
             }
 
-            const response = await fetch('/api/generate', {
+            const response = await fetch('/v1/audio/speech', {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(body)
@@ -362,6 +367,11 @@ const PlaygroundApp = (() => {
             state.audioBlob = blob;
             state.format = format;
 
+            // Extract speed from response headers (what was actually applied)
+            const requestedSpeed = response.headers.get('X-Requested-Speed');
+            const speedApplied = response.headers.get('X-Speed-Applied');
+            const actualSpeed = requestedSpeed ? parseFloat(requestedSpeed) : speed;
+
             const meta = buildGenerationMeta({
                 voice,
                 voiceLabel: getSelectedText(els.voiceSelect) || voice,
@@ -371,7 +381,8 @@ const PlaygroundApp = (() => {
                 instructions,
                 streaming: false,
                 sizeBytes: blob.size,
-                speed: speed !== 1.0 ? speed : null,
+                speed: actualSpeed,
+                speedApplied: speedApplied === 'true',
                 chunks: response.headers.get('X-Chunks-Combined') || null
             });
 
@@ -485,7 +496,7 @@ const PlaygroundApp = (() => {
                         sizeBytes: result.audioData.byteLength,
                         chunks: result.chunks.length,
                         elapsedMs: performance.now() - startTime,
-                        speed: speed !== 1.0 ? speed : null
+                        speed: speed
                     });
 
                     showResults(blob, meta);
@@ -897,7 +908,8 @@ const PlaygroundApp = (() => {
             els.audioFormat.textContent = label ? label.toString().toUpperCase() : '--';
         }
         if (els.audioSpeed) {
-            els.audioSpeed.textContent = meta.speed ? `${meta.speed}x` : '1.0x';
+            const speedValue = meta.speed !== undefined && meta.speed !== null ? meta.speed : 1.0;
+            els.audioSpeed.textContent = `${speedValue}x`;
         }
         if (els.audioChunks) {
             els.audioChunks.textContent = meta.chunks || '1';
@@ -1024,7 +1036,9 @@ const PlaygroundApp = (() => {
             sizeBytes: overrides.sizeBytes,
             chunks: overrides.chunks || 0,
             elapsedMs: overrides.elapsedMs,
-            generatedAt: overrides.generatedAt || new Date()
+            generatedAt: overrides.generatedAt || new Date(),
+            speed: overrides.speed,
+            speedApplied: overrides.speedApplied
         };
     }
 
