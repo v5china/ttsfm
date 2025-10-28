@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0-beta1] - 2025-10-28
+
+### Added
+- **Image variant detection system**: Automatic detection of full vs slim Docker images
+  - New `ttsfm/capabilities.py` module with `SystemCapabilities` class
+  - Runtime detection of ffmpeg availability using `shutil.which("ffmpeg")`
+  - Global singleton instance via `get_capabilities()` function
+- **New API endpoints for feature discovery**:
+  - `/api/capabilities` - Returns complete system capabilities report
+    - `ffmpeg_available`: Boolean indicating ffmpeg availability
+    - `image_variant`: "full" or "slim"
+    - `features`: Dictionary of available features (speed_adjustment, format_conversion, mp3_auto_combine, basic_formats)
+    - `supported_formats`: List of available audio formats
+  - Enhanced `/api/health` endpoint with `image_variant` and `ffmpeg_available` fields
+- **Early validation for ffmpeg-dependent features**:
+  - Advanced formats (OPUS, AAC, FLAC, PCM) checked before processing
+  - Speed adjustment (speed != 1.0) validated before processing
+  - MP3 auto-combine for long text validated before processing
+  - Returns 400 error with helpful hints when features unavailable
+- **Playground UI enhancements for slim image**:
+  - Automatic capabilities loading on page load
+  - Image variant badge in navbar ("Full Image" green / "Slim Image" yellow)
+  - Speed slider disabled with tooltip when ffmpeg unavailable
+  - Advanced format options disabled and marked "(requires full image)"
+  - Error messages include hints from API responses
+- **Comprehensive test scripts**:
+  - `scripts/test_slim_image.py` - Integration tests against running server
+  - `scripts/test_slim_simulation.py` - Unit tests with mocked ffmpeg unavailability
+
+### Fixed
+- **Slim image error handling**: Slim image now properly reports errors instead of failing silently
+  - Clear error messages for unavailable features
+  - Helpful hints directing users to full Docker image
+  - Proper HTTP 400 status codes with structured error responses
+- **RuntimeError exception handling**: Web API now catches ffmpeg-related errors from audio_processing module
+
+### Changed
+- **Improved error response format**: All feature unavailability errors now include:
+  - `message`: Clear description of the issue
+  - `type`: "feature_unavailable_error"
+  - `code`: "ffmpeg_required"
+  - `hint`: Helpful suggestion to use full Docker image
+  - `available_formats`: List of supported formats (when applicable)
+
+### Technical
+- Capabilities detection uses singleton pattern for efficiency
+- Early validation prevents expensive operations when features unavailable
+- Playground JavaScript loads capabilities asynchronously
+- All 25 tests passing plus new integration and simulation tests
+
 ## [3.4.0-alpha4] - 2025-10-28
 
 ### Added

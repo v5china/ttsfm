@@ -44,6 +44,7 @@ from i18n import init_i18n, set_locale
 try:
     from ttsfm import AudioFormat, TTSClient, Voice
     from ttsfm.audio import combine_audio_chunks
+    from ttsfm.capabilities import get_capabilities
     from ttsfm.exceptions import (
         APIException,
         AudioProcessingException,
@@ -58,6 +59,7 @@ except ImportError:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
     from ttsfm import AudioFormat, TTSClient, Voice
     from ttsfm.audio import combine_audio_chunks
+    from ttsfm.capabilities import get_capabilities
     from ttsfm.exceptions import APIException, NetworkException, ValidationException
     from ttsfm.utils import split_text_by_length
 
@@ -497,7 +499,7 @@ def get_status():
             {
                 "status": "online",
                 "tts_service": "openai.fm (free)",
-                "package_version": "3.4.0a4",
+                "package_version": "3.4.0b1",
                 "timestamp": datetime.now().isoformat(),
             }
         )
@@ -519,10 +521,24 @@ def get_status():
 
 @app.route("/api/health", methods=["GET"])
 def health_check():
-    """Simple health check endpoint."""
+    """Health check endpoint with capabilities info."""
+    caps = get_capabilities()
     return jsonify(
-        {"status": "healthy", "package_version": "3.4.0a4", "timestamp": datetime.now().isoformat()}
+        {
+            "status": "healthy",
+            "package_version": "3.4.0b1",
+            "image_variant": caps.get_capabilities()["image_variant"],
+            "ffmpeg_available": caps.ffmpeg_available,
+            "timestamp": datetime.now().isoformat(),
+        }
     )
+
+
+@app.route("/api/capabilities", methods=["GET"])
+def get_system_capabilities():
+    """Get system capabilities and available features."""
+    caps = get_capabilities()
+    return jsonify(caps.get_capabilities())
 
 
 @app.route("/api/websocket/status", methods=["GET"])
@@ -687,6 +703,66 @@ def openai_speech():
                     ),
                     400,
                 )
+
+        # Check feature availability before processing
+        caps = get_capabilities()
+
+        # Check if requested format requires ffmpeg
+        if format_enum.value in ["opus", "aac", "flac", "pcm"] and not caps.ffmpeg_available:
+            return (
+                jsonify(
+                    {
+                        "error": {
+                            "message": f"Format '{format_enum.value}' requires ffmpeg. "
+                            f"Available formats: {', '.join(caps.get_supported_formats())}",
+                            "type": "feature_unavailable_error",
+                            "code": "ffmpeg_required",
+                            "available_formats": caps.get_supported_formats(),
+                            "hint": "Use the full Docker image (dbcccc/ttsfm:latest) instead of the slim variant.",
+                        }
+                    }
+                ),
+                400,
+            )
+
+        # Check if speed adjustment requires ffmpeg
+        if speed is not None and speed != 1.0 and not caps.ffmpeg_available:
+            return (
+                jsonify(
+                    {
+                        "error": {
+                            "message": "Speed adjustment requires ffmpeg. "
+                            "Use the full Docker image (dbcccc/ttsfm:latest).",
+                            "type": "feature_unavailable_error",
+                            "code": "ffmpeg_required",
+                            "hint": "Speed adjustment is only available in the full Docker image.",
+                        }
+                    }
+                ),
+                400,
+            )
+
+        # Check if MP3 auto-combine requires ffmpeg (for long text)
+        if (
+            len(input_text) > max_length
+            and auto_combine
+            and format_enum == AudioFormat.MP3
+            and not caps.ffmpeg_available
+        ):
+            return (
+                jsonify(
+                    {
+                        "error": {
+                            "message": "MP3 auto-combine for long text requires ffmpeg. "
+                            "Use WAV format, disable auto_combine, or use the full Docker image.",
+                            "type": "feature_unavailable_error",
+                            "code": "ffmpeg_required",
+                            "hint": "MP3 auto-combine is only available in the full Docker image.",
+                        }
+                    }
+                ),
+                400,
+            )
 
         logger.info(
             "OpenAI API: Generating speech: text='%s...', voice=%s, "
@@ -898,6 +974,30 @@ def openai_speech():
             ),
             400,
         )
+
+    except RuntimeError as e:
+        # Catch ffmpeg-related errors from audio_processing module
+        error_msg = str(e)
+        logger.error(f"OpenAI API runtime error: {error_msg}")
+
+        # Check if it's an ffmpeg-related error
+        if "ffmpeg" in error_msg.lower():
+            return (
+                jsonify(
+                    {
+                        "error": {
+                            "message": error_msg,
+                            "type": "feature_unavailable_error",
+                            "code": "ffmpeg_required",
+                            "hint": "This feature requires the full Docker image. "
+                            "Use dbcccc/ttsfm:latest instead of the slim variant.",
+                        }
+                    }
+                ),
+                400,
+            )
+        # Re-raise if not ffmpeg-related
+        raise
 
     except Exception as e:
         logger.error(f"OpenAI API unexpected error: {e}")

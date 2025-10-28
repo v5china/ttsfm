@@ -19,7 +19,8 @@ const PlaygroundApp = (() => {
         wsClient: null,
         streamingMode: false,
         activeStreamId: null,
-        defaultText: ''
+        defaultText: '',
+        capabilities: null  // System capabilities
     };
 
     const els = {};
@@ -38,6 +39,7 @@ const PlaygroundApp = (() => {
         initWebSocket();
 
         checkAuthStatus();
+        loadCapabilities();  // Load system capabilities first
         loadVoices();
 
         if (document.getElementById('format-select')) {
@@ -352,10 +354,18 @@ const PlaygroundApp = (() => {
 
             if (!response.ok) {
                 let message = `Error: ${response.status} ${response.statusText}`;
+                let hint = null;
                 try {
                     const errorData = await response.json();
                     if (errorData.error?.message) {
                         message = errorData.error.message;
+                    }
+                    if (errorData.error?.hint) {
+                        hint = errorData.error.hint;
+                    }
+                    // Add hint to message if available
+                    if (hint) {
+                        message += `\n\n💡 ${hint}`;
                     }
                 } catch (error) {
                     // ignore parse errors
@@ -625,6 +635,62 @@ const PlaygroundApp = (() => {
             }
         } catch (error) {
             console.warn('Could not check auth status:', error);
+        }
+    }
+
+    async function loadCapabilities() {
+        try {
+            const response = await fetch('/api/capabilities');
+            if (!response.ok) {
+                console.warn('Failed to load capabilities, assuming full image');
+                return;
+            }
+            const caps = await response.json();
+            state.capabilities = caps;
+            updateUIForCapabilities(caps);
+        } catch (error) {
+            console.error('Failed to load capabilities:', error);
+        }
+    }
+
+    function updateUIForCapabilities(caps) {
+        if (!caps) return;
+
+        // Update speed slider if ffmpeg not available
+        const speedSlider = document.getElementById('speed-slider');
+        const speedValue = document.getElementById('speed-value');
+        if (speedSlider && !caps.features.speed_adjustment) {
+            speedSlider.disabled = true;
+            speedSlider.title = 'Speed adjustment requires full Docker image';
+            if (speedValue) {
+                speedValue.insertAdjacentHTML('afterend',
+                    '<small class="text-warning ms-2">⚠️ Requires full image</small>');
+            }
+        }
+
+        // Filter format options based on availability
+        const formatSelect = document.getElementById('format-select');
+        if (formatSelect && caps.supported_formats) {
+            Array.from(formatSelect.options).forEach(option => {
+                if (!caps.supported_formats.includes(option.value)) {
+                    option.disabled = true;
+                    option.textContent += ' (requires full image)';
+                }
+            });
+        }
+
+        // Show image variant badge in navbar
+        const variant = caps.image_variant;
+        const badgeHtml = variant === 'full'
+            ? '<span class="badge bg-success ms-2">Full Image</span>'
+            : '<span class="badge bg-warning ms-2">Slim Image</span>';
+
+        const navbar = document.querySelector('.navbar-brand');
+        if (navbar && !document.querySelector('.image-variant-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'image-variant-badge';
+            badge.innerHTML = badgeHtml;
+            navbar.appendChild(badge);
         }
     }
 
