@@ -33,17 +33,23 @@ class WebSocketTTSClient {
             this.log('Already connected');
             return;
         }
-        
+
         this.log('Connecting to WebSocket server...');
-        
-        // Initialize Socket.IO connection
+
+        // Initialize Socket.IO connection with explicit configuration
         this.socket = io(this.socketUrl, {
-            transports: ['websocket', 'polling'],
+            path: '/socket.io/',  // Explicit Socket.IO path
+            transports: ['polling', 'websocket'],  // Try polling first, then upgrade to websocket
             reconnection: true,
             reconnectionAttempts: this.maxReconnectAttempts,
-            reconnectionDelay: this.reconnectDelay
+            reconnectionDelay: this.reconnectDelay,
+            upgrade: true,  // Allow transport upgrades
+            rememberUpgrade: true,  // Remember successful upgrades
+            timeout: 20000,  // Connection timeout (20 seconds)
+            autoConnect: true,  // Automatically connect on creation
+            forceNew: false  // Reuse existing connection if available
         });
-        
+
         // Set up event handlers
         this.setupEventHandlers();
     }
@@ -52,23 +58,37 @@ class WebSocketTTSClient {
         // Connection events
         this.socket.on('connect', () => {
             this.log('Connected to WebSocket server');
+            this.log('Socket ID:', this.socket.id);
+            this.log('Transport:', this.socket.io.engine.transport.name);
             this.reconnectAttempts = 0;
             this.onConnect();
         });
-        
+
         this.socket.on('disconnect', (reason) => {
             this.log('Disconnected from WebSocket server:', reason);
             this.onDisconnect(reason);
         });
-        
+
         this.socket.on('connect_error', (error) => {
             this.log('Connection error:', error);
+            this.log('Error message:', error.message);
+            this.log('Error type:', error.type);
             this.reconnectAttempts++;
             this.onError({
                 type: 'connection_error',
-                message: error.message,
+                message: error.message || 'Failed to connect to WebSocket server',
                 attempts: this.reconnectAttempts
             });
+        });
+
+        // Log transport upgrade
+        this.socket.io.engine.on('upgrade', (transport) => {
+            this.log('Transport upgraded to:', transport.name);
+        });
+
+        // Log any errors from the engine
+        this.socket.io.engine.on('error', (error) => {
+            this.log('Engine error:', error);
         });
         
         // TTS streaming events
@@ -103,6 +123,25 @@ class WebSocketTTSClient {
         this.socket.on('stream_cancelled', (data) => {
             this.handleStreamCancelled(data);
         });
+
+        // Ping/pong for connection testing
+        this.socket.on('pong', (data) => {
+            this.log('Pong received:', data);
+        });
+    }
+
+    /**
+     * Test the connection with a ping
+     */
+    testConnection() {
+        if (!this.socket || !this.socket.connected) {
+            this.log('Cannot test connection - not connected');
+            return false;
+        }
+
+        this.socket.emit('ping', { timestamp: Date.now() });
+        this.log('Ping sent');
+        return true;
     }
     
     /**

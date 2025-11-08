@@ -164,24 +164,37 @@ let startTime = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initializing WebSocket client...');
+    console.log('Server URL:', window.location.origin);
+
     // Create WebSocket client
     wsClient = new WebSocketTTSClient({
         debug: true,
         onConnect: () => {
+            console.log('WebSocket connected successfully');
             updateConnectionStatus('connected');
+
+            // Test the connection with a ping
+            setTimeout(() => {
+                if (wsClient.testConnection) {
+                    wsClient.testConnection();
+                }
+            }, 500);
         },
-        onDisconnect: () => {
+        onDisconnect: (reason) => {
+            console.log('WebSocket disconnected:', reason);
             updateConnectionStatus('disconnected');
         },
         onError: (error) => {
+            console.error('WebSocket error:', error);
             updateConnectionStatus('error');
-            showError(`Connection error: ${error.message}`);
+            showError(`Connection error: ${error.message}. Check browser console for details.`);
         }
     });
-    
+
     // Form submission
     document.getElementById('streaming-form').addEventListener('submit', handleStreamingSubmit);
-    
+
     // Cancel button
     document.getElementById('cancel-btn').addEventListener('click', handleCancel);
 });
@@ -189,25 +202,33 @@ document.addEventListener('DOMContentLoaded', function() {
 function updateConnectionStatus(status) {
     const statusEl = document.getElementById('connection-status');
     const statusText = document.getElementById('status-text');
-    
+
     statusEl.className = 'alert';
-    
+
     switch(status) {
         case 'connected':
             statusEl.classList.add('alert-success');
-            statusText.innerHTML = '<i class="fas fa-check-circle me-2"></i>Connected to WebSocket server';
+            statusText.innerHTML = '<i class="fas fa-check-circle me-2"></i>Connected to WebSocket server - Ready to stream!';
+            // Enable the form
+            document.getElementById('stream-btn').disabled = false;
             break;
         case 'disconnected':
             statusEl.classList.add('alert-warning');
-            statusText.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Disconnected from server';
+            statusText.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Disconnected from server - Attempting to reconnect...';
+            // Disable the form
+            document.getElementById('stream-btn').disabled = true;
             break;
         case 'error':
             statusEl.classList.add('alert-danger');
-            statusText.innerHTML = '<i class="fas fa-times-circle me-2"></i>Connection error';
+            statusText.innerHTML = '<i class="fas fa-times-circle me-2"></i>Connection error - Please check console and refresh the page';
+            // Disable the form
+            document.getElementById('stream-btn').disabled = true;
             break;
         default:
             statusEl.classList.add('alert-info');
-            statusText.innerHTML = '<i class="fas fa-plug me-2"></i>Connecting...';
+            statusText.innerHTML = '<i class="fas fa-plug me-2"></i>Connecting to WebSocket server...';
+            // Disable the form until connected
+            document.getElementById('stream-btn').disabled = true;
     }
 }
 

@@ -51,6 +51,7 @@ class WebSocketTTSHandler:
             }
             self._tasks[session_id] = {}
             logger.info(f"WebSocket client connected: {session_id}")
+            logger.info(f"Active sessions: {len(self.active_sessions)}")
             emit("connected", {"session_id": session_id, "status": "ready"})
 
         @self.socketio.on("disconnect")
@@ -109,6 +110,13 @@ class WebSocketTTSHandler:
                 logger.info(f"Stream cancellation requested for unknown request: {request_id}")
 
             emit("stream_cancelled", {"request_id": request_id, "cancelled": cancelled})
+
+        @self.socketio.on("ping")
+        def handle_ping(data):
+            """Handle ping request for connection testing."""
+            session_id = request.sid
+            logger.debug(f"Ping received from {session_id}")
+            emit("pong", {"timestamp": time.time(), "data": data})
 
     def _generate_stream(self, session_id: str, request_id: str, data: Dict[str, Any]):
         """

@@ -110,7 +110,17 @@ DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 # Initialize SocketIO with proper async mode
 # Using eventlet for production, threading for development
 async_mode = "eventlet" if not DEBUG else "threading"
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode=async_mode)
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode=async_mode,
+    logger=DEBUG,  # Enable logging in debug mode for troubleshooting
+    engineio_logger=DEBUG,
+    ping_timeout=60,  # Time to wait for pong response
+    ping_interval=25,  # Interval between ping messages
+    cors_credentials=True,  # Allow credentials in CORS requests
+    manage_session=False  # Don't interfere with Flask sessions
+)
 
 # Initialize i18n support
 init_i18n(app)
@@ -499,7 +509,7 @@ def get_status():
             {
                 "status": "online",
                 "tts_service": "openai.fm (free)",
-                "package_version": "3.4.0",
+                "package_version": "3.4.1",
                 "timestamp": datetime.now().isoformat(),
             }
         )
@@ -526,7 +536,7 @@ def health_check():
     return jsonify(
         {
             "status": "healthy",
-            "package_version": "3.4.0",
+            "package_version": "3.4.1",
             "image_variant": caps.get_capabilities()["image_variant"],
             "ffmpeg_available": caps.ffmpeg_available,
             "timestamp": datetime.now().isoformat(),

@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.1] - 2025-11-08
+
+### Fixed
+- **WebSocket connection issues** ([#37](https://github.com/dbccccccc/ttsfm/issues/37))
+  - Fixed Socket.IO server configuration with proper timeouts and CORS settings
+  - Fixed client transport order (polling first, then upgrade to WebSocket)
+  - Added explicit Socket.IO path configuration (`/socket.io/`)
+  - Enhanced connection timeout and upgrade settings
+  - Improved error logging and debugging information
+- **WebSocket client improvements**:
+  - Added ping/pong connection testing functionality
+  - Better status messages and error handling in UI
+  - Enhanced console logging for troubleshooting
+  - Automatic connection testing on successful connect
+
+### Added
+- **WebSocket test script** (`scripts/test_websocket.py`)
+  - Automated WebSocket connection testing
+  - Ping/pong latency testing
+  - TTS generation verification
+  - Comprehensive test output with status indicators
+- **WebSocket troubleshooting documentation** (`docs/websocket-troubleshooting.md`)
+  - Common issues and solutions
+  - Configuration reference
+  - Debugging steps
+  - Browser compatibility notes
+
+### Changed
+- Socket.IO server configuration now includes:
+  - `ping_timeout: 60` seconds
+  - `ping_interval: 25` seconds
+  - `logger` and `engineio_logger` enabled in debug mode
+  - `cors_credentials: True` for proper CORS handling
+- Socket.IO client configuration now includes:
+  - Transport order: `['polling', 'websocket']` for better reliability
+  - `upgrade: true` and `rememberUpgrade: true` for transport optimization
+  - `timeout: 20000` ms connection timeout
+  - Explicit path configuration
+
+### Technical
+- WebSocket connections now successfully establish in both local and Docker environments
+- Transport upgrade from polling to WebSocket working correctly
+- All WebSocket tests passing (connection, ping/pong, TTS streaming)
+- Docker image tested and verified (594MB full variant)
+
 ## [3.4.0] - 2025-10-28
 
 ### Added
