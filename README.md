@@ -16,7 +16,7 @@
 TTSFM is a free, OpenAI-compatible text-to-speech API service that provides a complete solution for converting text to natural-sounding speech based on OpenAI's GPT-4o mini TTS. Built on top of the openai.fm backend, it offers a powerful Python SDK, RESTful API endpoints, and an intuitive web playground for easy testing and integration.
 
 **What TTSFM Can Do:**
-- 🎤 **Multiple Voices**: Choose from 6 high-quality voices (alloy, echo, fable, onyx, nova, shimmer)
+- 🎤 **Multiple Voices**: Choose from 11 OpenAI-compatible voices (alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse)
 - 🎵 **Flexible Audio Formats**: Support for 6 audio formats (MP3, WAV, OPUS, AAC, FLAC, PCM)
 - ⚡ **Speed Control**: Adjust playback speed from 0.25x to 4.0x for different use cases
 - 📝 **Long Text Support**: Automatic text splitting and audio combining for content of any length
@@ -43,7 +43,7 @@ TTSFM is a free, OpenAI-compatible text-to-speech API service that provides a co
 
 ```bash
 pip install ttsfm        # core client
-pip install ttsfm[web]   # client + Flask web app
+pip install ttsfm[web]   # core client + web/server dependencies
 ```
 
 ### Docker image
@@ -140,7 +140,7 @@ curl -X POST http://localhost:8000/v1/audio/speech \
   }' --output speech_fast.mp3
 ```
 
-**Available voices:** alloy, echo, fable, onyx, nova, shimmer
+**Available voices:** alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse
 **Available formats:** mp3, wav (always) + opus, aac, flac, pcm (full image only)
 **Speed range:** 0.25 - 4.0 (requires full image)
 

@@ -16,7 +16,7 @@
 TTSFM 是一个免费的、兼容 OpenAI 的文本转语音 API 服务，提供将文本转换为自然语音的完整解决方案，使用OpenAI的GPT-4o mini TTS。基于 openai.fm 后端构建，提供强大的 Python SDK、RESTful API 接口以及直观的网页 Playground，方便测试和集成。
 
 **TTSFM 的功能：**
-- 🎤 **多种语音选择**：6 种高质量语音（alloy、echo、fable、onyx、nova、shimmer）
+- 🎤 **多种语音选择**：11 种兼容 OpenAI 的语音（alloy、ash、ballad、coral、echo、fable、nova、onyx、sage、shimmer、verse）
 - 🎵 **灵活的音频格式**：支持 6 种音频格式（MP3、WAV、OPUS、AAC、FLAC、PCM）
 - ⚡ **语速控制**：0.25x 到 4.0x 的播放速度调节，适应不同使用场景
 - 📝 **长文本支持**：自动文本分割和音频合并，支持任意长度内容
@@ -43,7 +43,7 @@ TTSFM 是一个免费的、兼容 OpenAI 的文本转语音 API 服务，提供�
 
 ```bash
 pip install ttsfm        # 核心客户端
-pip install ttsfm[web]   # 客户端 + Flask Web 应用
+pip install ttsfm[web]   # 核心客户端 + Web/服务端依赖
 ```
 
 ### Docker 镜像
@@ -140,7 +140,7 @@ curl -X POST http://localhost:8000/v1/audio/speech \
   }' --output speech_fast.mp3
 ```
 
-**可用语音：** alloy、echo、fable、onyx、nova、shimmer
+**可用语音：** alloy、ash、ballad、coral、echo、fable、nova、onyx、sage、shimmer、verse
 **可用格式：** mp3、wav（始终可用）+ opus、aac、flac、pcm（仅完整版镜像）
 **语速范围：** 0.25 - 4.0（需要完整版镜像）
 

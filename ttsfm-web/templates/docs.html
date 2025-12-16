@@ -107,7 +107,7 @@
 
                 <h4>Key Features</h4>
                 <ul>
-                    <li><strong>🎤 Multiple Voices:</strong> 6 voices (alloy, echo, fable, onyx, nova, shimmer)</li>
+                    <li><strong>🎤 Multiple Voices:</strong> 11 voices (alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse)</li>
                     <li><strong>🎵 Audio Formats:</strong> MP3, WAV (always available) + OPUS, AAC, FLAC, PCM (requires ffmpeg)</li>
                     <li><strong>🤖 OpenAI-Compatible API:</strong> Drop-in replacement for OpenAI's TTS API</li>
                     <li><strong>⚡ Speed Adjustment:</strong> 0.25x to 4.0x playback speed (requires ffmpeg)</li>
@@ -224,7 +224,7 @@
                         <ul>
                             <li><code>model</code> (string): Model ID (any value accepted, uses openai.fm)</li>
                             <li><code>input</code> (string, required): Text to convert to speech</li>
-                            <li><code>voice</code> (string, required): Voice ID (alloy, echo, fable, onyx, nova, shimmer)</li>
+                            <li><code>voice</code> (string, required): Voice ID (alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse)</li>
                             <li><code>response_format</code> (string): Audio format (mp3, wav, opus, aac, flac, pcm). Default: mp3</li>
                             <li><code>speed</code> (number): Playback speed 0.25-4.0 (requires ffmpeg). Default: 1.0</li>
                         </ul>
@@ -561,7 +561,7 @@ asyncio.run(main())</code></pre>
                             <tr>
                                 <td><code>invalid_voice</code></td>
                                 <td>Voice ID not recognized</td>
-                                <td>Use one of: alloy, echo, fable, onyx, nova, shimmer</td>
+                                <td>Use one of: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse</td>
                             </tr>
                             <tr>
                                 <td><code>invalid_format</code></td>
@@ -636,4 +636,3 @@ asyncio.run(main())</code></pre>
     });
 </script>
 {% endblock %}
-
