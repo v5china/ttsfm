@@ -996,7 +996,7 @@ def openai_speech():
                 jsonify(
                     {
                         "error": {
-                            "message": error_msg,
+                            "message": "FFmpeg is not available in this environment",
                             "type": "feature_unavailable_error",
                             "code": "ffmpeg_required",
                             "hint": "This feature requires the full Docker image. "
