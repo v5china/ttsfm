@@ -86,7 +86,7 @@ ttsfm = "ttsfm.cli:main"
 version_scheme = "no-guess-dev"
 local_scheme = "no-local-version"
 
-fallback_version = "3.4.1"
+fallback_version = "3.4.2"
 [tool.setuptools]
 packages = ["ttsfm"]
 

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.2] - 2025-12-17
+
+### Security
+- **Fixed information exposure vulnerability** (CWE-209, CWE-497)
+  - Sanitized error messages in FFmpeg-related exceptions
+  - Replaced raw exception details with user-friendly messages
+  - Detailed errors now only logged internally for debugging
+  - Prevents exposure of internal file paths, stack traces, and system configuration
+
+### Fixed
+- **Complete Chinese translation coverage**
+  - Added 30+ missing translation keys for web interface
+  - Translated WebSocket streaming UI components
+  - Translated playground controls and tooltips
+  - Translated audio player metadata and statistics
+  - All UI elements now properly display in Chinese mode
+
+### Changed
+- Removed redundant version badge from home page feature section
+- Improved error message consistency across API endpoints
+
 ## [3.4.1] - 2025-11-08
 
 ### Fixed

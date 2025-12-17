@@ -509,7 +509,7 @@ def get_status():
             {
                 "status": "online",
                 "tts_service": "openai.fm (free)",
-                "package_version": "3.4.1",
+                "package_version": "3.4.2",
                 "timestamp": datetime.now().isoformat(),
             }
         )
@@ -536,7 +536,7 @@ def health_check():
     return jsonify(
         {
             "status": "healthy",
-            "package_version": "3.4.1",
+            "package_version": "3.4.2",
             "image_variant": caps.get_capabilities()["image_variant"],
             "ffmpeg_available": caps.ffmpeg_available,
             "timestamp": datetime.now().isoformat(),
