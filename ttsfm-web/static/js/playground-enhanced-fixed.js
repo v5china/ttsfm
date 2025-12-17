@@ -174,8 +174,8 @@ const PlaygroundApp = (() => {
             <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="stream-mode-toggle" disabled>
                 <label class="form-check-label" for="stream-mode-toggle">
-                    <i class="fas fa-bolt me-1"></i>Enable WebSocket Streaming
-                    <small class="text-muted">(Real-time audio chunks)</small>
+                    <i class="fas fa-bolt me-1"></i>${_('playground.enable_websocket_streaming')}
+                    <small class="text-muted">${_('playground.realtime_audio_chunks')}</small>
                 </label>
             </div>
             <div id="streaming-indicator" class="streaming-status mt-2"></div>
@@ -212,9 +212,9 @@ const PlaygroundApp = (() => {
         loadingDiv.style.display = 'none';
         loadingDiv.innerHTML = `
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">${_('common.loading')}</span>
             </div>
-            <p class="mt-2">Generating speech...</p>
+            <p class="mt-2">${_('common.generating_speech')}</p>
         `;
         parent.insertBefore(loadingDiv, els.audioResult);
         els.loadingBox = loadingDiv;
@@ -227,7 +227,7 @@ const PlaygroundApp = (() => {
             <div class="card border-primary">
                 <div class="card-body">
                     <h5 class="card-title">
-                        <i class="fas fa-stream me-2"></i>Streaming Progress
+                        <i class="fas fa-stream me-2"></i>${_('playground.streaming_progress')}
                     </h5>
                     <div class="progress mb-3" style="height: 25px;">
                         <div class="progress-bar progress-bar-striped progress-bar-animated" id="stream-progress-bar" role="progressbar" style="width: 0%">
@@ -236,15 +236,15 @@ const PlaygroundApp = (() => {
                     </div>
                     <div class="row text-center">
                         <div class="col-md-4">
-                            <h6>Chunks</h6>
+                            <h6>${_('playground.chunks_heading')}</h6>
                             <p class="h5"><span id="chunks-count">0</span> / <span id="total-chunks">0</span></p>
                         </div>
                         <div class="col-md-4">
-                            <h6>Data</h6>
+                            <h6>${_('playground.data_heading')}</h6>
                             <p class="h5" id="data-transferred">0 KB</p>
                         </div>
                         <div class="col-md-4">
-                            <h6>Time</h6>
+                            <h6>${_('playground.time_heading')}</h6>
                             <p class="h5" id="stream-time">0.0s</p>
                         </div>
                     </div>
@@ -293,9 +293,9 @@ const PlaygroundApp = (() => {
             return;
         }
         if (state.streamingMode) {
-            label.innerHTML = '<i class="fas fa-bolt me-2"></i>Stream Speech';
+            label.innerHTML = `<i class="fas fa-bolt me-2"></i>${_('playground.stream_speech')}`;
         } else {
-            label.innerHTML = '<i class="fas fa-magic me-2"></i>Generate Speech';
+            label.innerHTML = `<i class="fas fa-magic me-2"></i>${_('playground.generate_speech')}`;
         }
     }
 
@@ -480,7 +480,7 @@ const PlaygroundApp = (() => {
                     if (els.streamVisual) {
                         const element = document.createElement('div');
                         element.className = 'chunk-indicator';
-                        element.title = `Chunk ${chunk.chunkIndex + 1} - ${(chunk.audioData.byteLength / 1024).toFixed(1)} KB`;
+                        element.title = `${_('playground.chunk_title')} ${chunk.chunkIndex + 1} - ${(chunk.audioData.byteLength / 1024).toFixed(1)} KB`;
                         element.innerHTML = '<i class="fas fa-music"></i>';
                         els.streamVisual.appendChild(element);
                     }
@@ -551,17 +551,17 @@ const PlaygroundApp = (() => {
         summary.className = 'alert alert-success mt-3';
 
         const heading = document.createElement('h6');
-        heading.innerHTML = '<i class="fas fa-check-circle me-2"></i>Streaming Complete';
+        heading.innerHTML = `<i class="fas fa-check-circle me-2"></i>${_('playground.streaming_complete')}`;
         summary.appendChild(heading);
 
         const row = document.createElement('div');
         row.className = 'row mt-2';
 
         [
-            { label: 'Chunks:', value: meta.chunks || 0 },
-            { label: 'Total Size:', value: formatBytes(meta.sizeBytes || 0) },
-            { label: 'Time:', value: meta.elapsedMs ? (meta.elapsedMs / 1000).toFixed(2) + 's' : '--' },
-            { label: 'Format:', value: (meta.format || state.format).toUpperCase() },
+            { label: _('playground.chunks_label'), value: meta.chunks || 0 },
+            { label: _('playground.total_size_label'), value: formatBytes(meta.sizeBytes || 0) },
+            { label: _('playground.time_label'), value: meta.elapsedMs ? (meta.elapsedMs / 1000).toFixed(2) + 's' : '--' },
+            { label: _('playground.format_label_colon'), value: (meta.format || state.format).toUpperCase() },
         ].forEach((stat) => {
             const col = document.createElement('div');
             col.className = 'col-md-3';
@@ -586,18 +586,18 @@ const PlaygroundApp = (() => {
         switch (status) {
             case 'connected':
                 els.streamingIndicator.classList.add('connected');
-                els.streamingIndicator.innerHTML = '<i class="fas fa-bolt"></i> Streaming Ready';
+                els.streamingIndicator.innerHTML = `<i class="fas fa-bolt"></i> ${_('playground.streaming_ready')}`;
                 if (els.streamToggle) {
                     els.streamToggle.disabled = false;
                 }
                 break;
             case 'streaming':
                 els.streamingIndicator.classList.add('streaming');
-                els.streamingIndicator.innerHTML = '<i class="fas fa-stream"></i> Streaming...';
+                els.streamingIndicator.innerHTML = `<i class="fas fa-stream"></i> ${_('playground.streaming_active')}`;
                 break;
             case 'error':
                 els.streamingIndicator.classList.add('error');
-                els.streamingIndicator.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Connection Error';
+                els.streamingIndicator.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${_('playground.connection_error')}`;
                 if (els.streamToggle) {
                     els.streamToggle.disabled = true;
                     els.streamToggle.checked = false;
@@ -607,7 +607,7 @@ const PlaygroundApp = (() => {
                 break;
             default:
                 els.streamingIndicator.classList.add('disconnected');
-                els.streamingIndicator.innerHTML = '<i class="fas fa-plug"></i> Streaming Offline';
+                els.streamingIndicator.innerHTML = `<i class="fas fa-plug"></i> ${_('playground.streaming_offline')}`;
                 if (els.streamToggle) {
                     els.streamToggle.disabled = true;
                     els.streamToggle.checked = false;
@@ -990,13 +990,13 @@ const PlaygroundApp = (() => {
         if (els.audioInfo) {
             const parts = [];
             if (meta.generatedAt) {
-                parts.push(`Generated ${formatClock(meta.generatedAt)}`);
+                parts.push(`${_('common.generated')} ${formatClock(meta.generatedAt)}`);
             }
             if (meta.streaming) {
-                parts.push('Streaming');
+                parts.push(_('common.streaming'));
             }
             if (typeof meta.textLength === 'number') {
-                parts.push(`${meta.textLength} chars`);
+                parts.push(`${meta.textLength} ${_('common.chars')}`);
             }
             if (meta.sizeBytes || (state.audioBlob && state.audioBlob.size)) {
                 parts.push(formatBytes(meta.sizeBytes || state.audioBlob.size));

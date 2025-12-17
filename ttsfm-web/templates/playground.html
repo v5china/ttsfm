@@ -10,7 +10,7 @@
             <div class="col-lg-8">
                 <div class="fade-in">
                     <div class="badge bg-primary text-white mb-3 px-3 py-2">
-                        <i class="fas fa-flask me-2"></i>Demo
+                        <i class="fas fa-flask me-2"></i>{{ _('common.demo') }}
                     </div>
                     <h1 class="display-4 fw-bold mb-3 text-dark">
                         <i class="fas fa-play-circle me-3 text-primary"></i>{{ _('playground.title') }}
@@ -61,7 +61,7 @@
                                     required
                                 >Hello! This is a test of the TTSFM text-to-speech system.</textarea>
                                 <div class="position-absolute top-0 end-0 p-2">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-text-btn" title="Clear text">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-text-btn" title="{{ _('common.clear_text') }}">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
@@ -78,7 +78,7 @@
                                     </span>
                                     <span class="text-muted small">
                                         <i class="fas fa-lightbulb me-1"></i>
-                                        Tip: Use Ctrl+Enter to generate
+                                        {{ _('common.tip_ctrl_enter') }}
                                     </span>
                                 </div>
                                 <div class="btn-group" role="group">
@@ -124,7 +124,7 @@
                                 </select>
                                 <div class="form-text">
                                     <i class="fas fa-info-circle me-1"></i>
-                                    {{ _('playground.format_description') if _('playground.format_description') != 'playground.format_description' else 'Choose audio output format. Converted formats require ffmpeg.' }}
+                                    {{ _('playground.format_description') }}
                                 </div>
                             </div>
                         </div>
@@ -178,7 +178,7 @@
                             <div class="col-md-12 mb-4">
                                 <label for="speed-input" class="form-label fw-bold d-flex align-items-center justify-content-between">
                                     <span>
-                                        <i class="fas fa-gauge-high me-2 text-primary"></i>{{ _('playground.speed_label') if _('playground.speed_label') != 'playground.speed_label' else 'Playback Speed' }}
+                                        <i class="fas fa-gauge-high me-2 text-primary"></i>{{ _('playground.speed_label') }}
                                     </span>
                                     <span class="badge bg-primary" id="speed-value-display">1.0x</span>
                                 </label>
@@ -197,7 +197,7 @@
                                 </div>
                                 <div class="form-text">
                                     <i class="fas fa-info-circle me-1"></i>
-                                    {{ _('playground.speed_description') if _('playground.speed_description') != 'playground.speed_description' else 'Adjust audio playback speed from 0.25x (slower) to 4.0x (faster). Default is 1.0x (normal speed).' }}
+                                    {{ _('playground.speed_description') }}
                                 </div>
                             </div>
                         </div>
@@ -266,14 +266,14 @@
                                     <i class="fas fa-volume-up me-2 text-success"></i>
                                     {{ _('playground.audio_player_title') }}
                                     <span class="badge bg-success ms-2">
-                                        <i class="fas fa-check me-1"></i>Ready
+                                        <i class="fas fa-check me-1"></i>{{ _('common.ready') }}
                                     </span>
                                 </h5>
                                 <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="replay-btn" title="Replay audio">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="replay-btn" title="{{ _('common.replay_audio') }}">
                                         <i class="fas fa-redo"></i>
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="share-btn" title="Share audio">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="share-btn" title="{{ _('common.share_audio') }}">
                                         <i class="fas fa-share"></i>
                                     </button>
                                 </div>
@@ -281,7 +281,7 @@
 
                             <div class="audio-player-container bg-light rounded p-3 mb-3">
                                 <audio controls class="audio-player w-100" id="audio-player" preload="metadata">
-                                    Your browser does not support the audio element.
+                                    {{ _('common.browser_no_audio_support') }}
                                 </audio>
                                 <div class="audio-controls mt-2 d-flex justify-content-between align-items-center">
                                     <div class="audio-info">
@@ -328,14 +328,14 @@
                                     <div class="stat-item">
                                         <i class="fas fa-gauge-high text-danger"></i>
                                         <div class="stat-value" id="audio-speed">--</div>
-                                        <div class="stat-label">{{ _('playground.speed') if _('playground.speed') != 'playground.speed' else 'Speed' }}</div>
+                                        <div class="stat-label">{{ _('playground.speed') }}</div>
                                     </div>
                                 </div>
                                 <div class="col-lg-2 col-md-4 col-6">
                                     <div class="stat-item">
                                         <i class="fas fa-layer-group text-secondary"></i>
                                         <div class="stat-value" id="audio-chunks">--</div>
-                                        <div class="stat-label">{{ _('playground.chunks') if _('playground.chunks') != 'playground.chunks' else 'Chunks' }}</div>
+                                        <div class="stat-label">{{ _('playground.chunks') }}</div>
                                     </div>
                                 </div>
                             </div>
