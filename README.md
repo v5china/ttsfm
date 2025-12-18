@@ -1,5 +1,7 @@
 # TTSFM - Text-to-Speech API Client
 
+> **⚠️ NOTICE: This project is no longer functional as the openai.fm demo website has been shut down.**
+
 > **Language / 语言**: [English](README.md) | [中文](README.zh.md)
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/dbcccc/ttsfm?style=flat-square&logo=docker)](https://hub.docker.com/r/dbcccc/ttsfm)

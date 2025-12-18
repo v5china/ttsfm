@@ -1,5 +1,7 @@
 # TTSFM - 文本转语音 API 客户端
 
+> **⚠️ 告示：由于 openai.fm 体验网站已关闭，本项目已无法使用。**
+
 > **Language / 语言**: [English](README.md) | [中文](README.zh.md)
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/dbcccc/ttsfm?style=flat-square&logo=docker)](https://hub.docker.com/r/dbcccc/ttsfm)
